@@ -13,6 +13,9 @@ RECT Choice_2_Button;
 RECT Choice_3;
 RECT Choice_3_Button;
 
+// Project
+RECT Choice_4;
+RECT Choice_4_Button;
 void baseRectangle()
 {
     Choice_1.left=40;
@@ -30,9 +33,15 @@ void baseRectangle()
     Choice_3.right=Choice_1.right;
     Choice_3.bottom=Choice_3.top+40;
 
+    Choice_4.left=40;
+    Choice_4.top=Choice_3.bottom+40;
+    Choice_4.right=Choice_1.right;
+    Choice_4.bottom=Choice_4.top+40;
+
     Choice_1_Button = Choice_1;
     Choice_2_Button = Choice_2;
     Choice_3_Button=Choice_3;
+    Choice_4_Button=Choice_4;
 }
 // Creating message button
 void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage)
@@ -148,6 +157,47 @@ void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask)
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,TaskAnimation.left-(CurrentHTask/2),TaskAnimation.top-15-(CurrentVTask/2),TaskAnimation.right+(CurrentHTask/2),TaskAnimation.bottom+2+(CurrentVTask/2),32,28);
     DrawText(Mdc,"Task",-1,&TaskRect,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+    SelectObject(Mdc,OldButtonColor);
+    SelectObject(Mdc,OldFont);
+    SelectObject(Mdc,OldPen);
+    DeleteObject(Font);
+    DeleteObject(Pen);
+    DeleteObject(OldButtonColor);
+}
+// creating Project button
+void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject)
+{
+    RECT ProjectAnimation=Choice_4_Button;
+    
+    RECT ProjectRect= Choice_4;
+    ProjectRect.left = ProjectRect.left-(CurrentHProject/2);
+    ProjectRect.top = ProjectRect.top-(CurrentVProject/2)+5;
+    ProjectRect.right = ProjectRect.right+(CurrentHProject/2);
+    ProjectRect.bottom = ProjectRect.bottom+(CurrentVProject/2);
+
+    HFONT Font=CreateFont(
+    20,
+    10,
+    0,
+    0,
+    FW_NORMAL,
+    FALSE,
+    FALSE,
+    FALSE,
+    DEFAULT_CHARSET,
+    OUT_OUTLINE_PRECIS,
+    CLIP_DEFAULT_PRECIS,
+    CLEARTYPE_QUALITY,
+    DEFAULT_PITCH | FF_DONTCARE,
+    "Segoe UI");
+    HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
+    HFONT OldFont=SelectObject(Mdc,Font);
+    HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
+    SetBkMode(Mdc,TRANSPARENT);
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    RoundRect(Mdc,ProjectAnimation.left-(CurrentHProject/2),ProjectAnimation.top-15-(CurrentVProject/2),ProjectAnimation.right+(CurrentHProject/2),ProjectAnimation.bottom+2+(CurrentVProject/2),32,28);
+    DrawText(Mdc,"Projects",-1,&ProjectRect,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);

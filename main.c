@@ -136,6 +136,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 CreateOnlineAccount(Mdc,CurrentHOnline,CurrentVOnline);
                 //rendering  the task button
                 CreateTaskAccount(Mdc,CurrentHTask,CurrentVTask);
+                // rendering  the project button
+                CreateProjectAccount(Mdc,CurrentHProject,CurrentVProject);
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);
@@ -177,6 +179,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
             case TaskTimer :
             UpdateTaskAnimation(HoveringTask,HandleWnd);
+            break;
+            case ProjectTimer :
+            UpdateProjectAnimation(HoveringProject,HandleWnd);
             break;
         }
         InvalidateRect(HandleWnd,&WindowSize,FALSE);
@@ -241,6 +246,21 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             SetTimer(HandleWnd,TaskTimer,4,NULL); 
         }
 
+
+        // Project hovering 
+        WasHoveringProject=HoveringProject;
+        CheckProject=CheckProjectRect(Choice_4_Button,HandleWnd,Mx,My);
+        HoveringProject=CheckProject;
+        if(HoveringProject && !WasHoveringProject)
+        {
+            // increase the button is size
+            SetTimer(HandleWnd,ProjectTimer,4,NULL);
+        }
+        else if(!HoveringProject && WasHoveringProject)
+        {
+            // decrease the button is size
+            SetTimer(HandleWnd,ProjectTimer,4,NULL); 
+        }
 
         break;
         case WM_CLOSE:

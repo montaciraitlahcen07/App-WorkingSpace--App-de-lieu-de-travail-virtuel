@@ -27,3 +27,12 @@ bool CheckTaskRect(RECT Choice_3_Button,HWND HandleWnd,int Mx,int My)
     }
     return FALSE;
 }
+// Project button is hovering check
+bool CheckProjectRect(RECT Choice_4_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=Choice_4_Button.left && Mx<=Choice_4_Button.right) && (My >=Choice_4_Button.top && My<=Choice_4_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}

@@ -3,6 +3,7 @@
 int Mx,My;
 #define HOVER_H 8
 #define HOVER_V 6
+
 // message variable 
 #define MessageTimer 1003
 float CurrentHMessage=0.0f;
@@ -10,6 +11,7 @@ float CurrentVMessage=0.0f;
 bool HoveringMessage=FALSE;
 bool WasHoveringMessage=FALSE;
 bool CheckMessage=FALSE;
+
 // online variable
 #define OnlineTimer 1004
 float CurrentHOnline=0.0f;
@@ -17,6 +19,7 @@ float CurrentVOnline=0.0f;
 bool HoveringOnline=FALSE;
 bool WasHoveringOnline=FALSE;
 bool CheckOnline=FALSE;
+
 // Task variable
 #define TaskTimer 1005
 float CurrentHTask=0.0f;
@@ -24,6 +27,15 @@ float CurrentVTask=0.0f;
 bool HoveringTask=FALSE;
 bool WasHoveringTask=FALSE;
 bool CheckTask=FALSE;
+
+// Project variable
+#define ProjectTimer 1006
+float CurrentHProject=0.0f;
+float CurrentVProject=0.0f;
+bool HoveringProject=FALSE;
+bool WasHoveringProject=FALSE;
+bool CheckProject=FALSE;
+
 // Animation message
 void UpdateMessageAnimation(bool HoveringMessage,HWND HandleWnd)
 {
@@ -105,6 +117,34 @@ void UpdateTaskAnimation(bool HoveringTask,HWND HandleWnd)
             CurrentHTask=0;
             CurrentVTask=0;
             KillTimer(HandleWnd,TaskTimer);
+        }
+    }        
+}
+// animation Project
+void UpdateProjectAnimation(bool HoveringProject,HWND HandleWnd)
+{
+    float IncremmentHProject=HOVER_H/8;
+    float IncremmentVProject=HOVER_V/8;
+    if(HoveringProject)
+    {
+        CurrentHProject+=IncremmentHProject;
+        CurrentVProject+=IncremmentVProject;
+        if(CurrentHProject >=HOVER_H)
+        {
+            CurrentHProject=HOVER_H;
+            CurrentVProject=HOVER_V;
+            KillTimer(HandleWnd,ProjectTimer);
+        }
+    }
+    else
+    {
+        CurrentHProject-=IncremmentHProject;
+        CurrentVProject-=IncremmentVProject;
+        if(CurrentHProject <=0)
+        {
+            CurrentHProject=0;
+            CurrentVProject=0;
+            KillTimer(HandleWnd,ProjectTimer);
         }
     }        
 }
