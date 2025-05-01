@@ -8,7 +8,7 @@
 #include "usersdata.h"
 #include "Account.h"
 #include "message.h"
-#include "messageanimation.h"
+#include "hoveringanimation.h"
 #include "checkmessagerectangle.h"
 
 // the window is variable
@@ -127,9 +127,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 Authentifaction(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,HandleWnd);
             }
             Green=FALSE;
+            baseRectangle();
             if(Account)
             {
-                CreateMessageAccount(Mdc,CurrentH,CurrentV);
+                CreateMessageAccount(Mdc,CurrentHMessage,CurrentVMessage);
+                CreateOnlineAccount(Mdc,CurrentHOnline,CurrentVOnline);
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);
@@ -163,8 +165,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             LogInCtl=FALSE;
             break;
             case MessageTimer :
-            // this to show the message button after she is resized
+            // this is updating the the button message every time
             UpdateMessageAnimation(HoveringMessage,HandleWnd);
+            break;
+            case OnlineTimer :
+            UpdateOnlineAnimation(HoveringOnline,HandleWnd);
             break;
         }
         InvalidateRect(HandleWnd,&WindowSize,FALSE);
@@ -180,18 +185,33 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case WM_MOUSEMOVE :
         Mx=LOWORD(lParam);
         My=HIWORD(lParam);
+        // message hovering
         WasHoveringMessage=HoveringMessage;
-        check=checkMrect(Choice_1,HandleWnd,Mx,My);
-        HoveringMessage=check;
+        CheckMessage=CheckMessageRect(Choice_1_Button,HandleWnd,Mx,My);
+        HoveringMessage=CheckMessage;
+        // online hovering 
+        WasHoveringOnline=HoveringOnline;
+        CheckOnline=CheckOnlineRect(Choice_2_Button,HandleWnd,Mx,My);
+        HoveringOnline=CheckOnline;
         if(HoveringMessage && !WasHoveringMessage)
         {
             // increase the button is size
-            SetTimer(HandleWnd,MessageTimer,2,NULL);
+            SetTimer(HandleWnd,MessageTimer,4,NULL);
         }
         else if(!HoveringMessage && WasHoveringMessage)
         {
             // decrease the button is size
-            SetTimer(HandleWnd,MessageTimer,2,NULL); 
+            SetTimer(HandleWnd,MessageTimer,4,NULL); 
+        }
+        else if(HoveringOnline && !WasHoveringOnline)
+        {
+            // increase the button is size
+            SetTimer(HandleWnd,OnlineTimer,4,NULL);
+        }
+        else if(!HoveringOnline && WasHoveringOnline)
+        {
+            // decrease the button is size
+            SetTimer(HandleWnd,OnlineTimer,4,NULL); 
         }
         break;
         case WM_CLOSE:
