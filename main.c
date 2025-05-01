@@ -130,8 +130,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             baseRectangle();
             if(Account)
             {
+                //rendering the message button
                 CreateMessageAccount(Mdc,CurrentHMessage,CurrentVMessage);
+                //rendering the online button
                 CreateOnlineAccount(Mdc,CurrentHOnline,CurrentVOnline);
+                //rendering  the task button
+                CreateTaskAccount(Mdc,CurrentHTask,CurrentVTask);
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);
@@ -171,6 +175,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             case OnlineTimer :
             UpdateOnlineAnimation(HoveringOnline,HandleWnd);
             break;
+            case TaskTimer :
+            UpdateTaskAnimation(HoveringTask,HandleWnd);
+            break;
         }
         InvalidateRect(HandleWnd,&WindowSize,FALSE);
         break;
@@ -185,14 +192,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case WM_MOUSEMOVE :
         Mx=LOWORD(lParam);
         My=HIWORD(lParam);
+
+
         // message hovering
         WasHoveringMessage=HoveringMessage;
         CheckMessage=CheckMessageRect(Choice_1_Button,HandleWnd,Mx,My);
         HoveringMessage=CheckMessage;
-        // online hovering 
-        WasHoveringOnline=HoveringOnline;
-        CheckOnline=CheckOnlineRect(Choice_2_Button,HandleWnd,Mx,My);
-        HoveringOnline=CheckOnline;
         if(HoveringMessage && !WasHoveringMessage)
         {
             // increase the button is size
@@ -203,7 +208,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(HandleWnd,MessageTimer,4,NULL); 
         }
-        else if(HoveringOnline && !WasHoveringOnline)
+
+
+        // online hovering 
+        WasHoveringOnline=HoveringOnline;
+        CheckOnline=CheckOnlineRect(Choice_2_Button,HandleWnd,Mx,My);
+        HoveringOnline=CheckOnline;
+        if(HoveringOnline && !WasHoveringOnline)
         {
             // increase the button is size
             SetTimer(HandleWnd,OnlineTimer,4,NULL);
@@ -213,6 +224,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(HandleWnd,OnlineTimer,4,NULL); 
         }
+
+
+        // Task hovering 
+        WasHoveringTask=HoveringTask;
+        CheckTask=CheckTaskRect(Choice_3_Button,HandleWnd,Mx,My);
+        HoveringTask=CheckTask;
+        if(HoveringTask && !WasHoveringTask)
+        {
+            // increase the button is size
+            SetTimer(HandleWnd,TaskTimer,4,NULL);
+        }
+        else if(!HoveringTask && WasHoveringTask)
+        {
+            // decrease the button is size
+            SetTimer(HandleWnd,TaskTimer,4,NULL); 
+        }
+
+
         break;
         case WM_CLOSE:
             DestroyWindow(hwnd);
