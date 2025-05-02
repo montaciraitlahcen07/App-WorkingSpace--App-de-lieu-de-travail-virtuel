@@ -1,5 +1,4 @@
 #include <windows.h>
-#include <windowsx.h>
 #include <stdbool.h>
 // all file of the project 
 #include "WndClr.h"
@@ -138,6 +137,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 CreateTaskAccount(Mdc,CurrentHTask,CurrentVTask);
                 // rendering  the project button
                 CreateProjectAccount(Mdc,CurrentHProject,CurrentVProject);
+                // rendering  the disconnect button
+                CreateDisconnectAccount(Mdc,CurrentHDisconnect,CurrentVDisconnect);
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);
@@ -174,14 +175,21 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // this is updating the the button message every time
             UpdateMessageAnimation(HoveringMessage,HandleWnd);
             break;
+            // this is updating the the button online every time
             case OnlineTimer :
             UpdateOnlineAnimation(HoveringOnline,HandleWnd);
             break;
+            // this is updating the the button task every time
             case TaskTimer :
             UpdateTaskAnimation(HoveringTask,HandleWnd);
             break;
+            // this is updating the the button project every time
             case ProjectTimer :
             UpdateProjectAnimation(HoveringProject,HandleWnd);
+            break;
+            // this is updating the the button disconnect every time
+            case DisconnectTimer :
+            UpdateDisconnectAnimation(HoveringDisconnect,HandleWnd);
             break;
         }
         InvalidateRect(HandleWnd,&WindowSize,FALSE);
@@ -262,6 +270,21 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             SetTimer(HandleWnd,ProjectTimer,4,NULL); 
         }
 
+
+        // Disconnect hovering 
+        WasHoveringDisconnect=HoveringDisconnect;
+        CheckDisconnect=CheckDisconnectRect(Choice_5_Button,HandleWnd,Mx,My);
+        HoveringDisconnect=CheckDisconnect;
+        if(HoveringDisconnect && !WasHoveringDisconnect)
+        {
+            // increase the button is size
+            SetTimer(HandleWnd,DisconnectTimer,4,NULL);
+        }
+        else if(!HoveringDisconnect && WasHoveringDisconnect)
+        {
+            // decrease the button is size
+            SetTimer(HandleWnd,DisconnectTimer,4,NULL); 
+        }
         break;
         case WM_CLOSE:
             DestroyWindow(hwnd);

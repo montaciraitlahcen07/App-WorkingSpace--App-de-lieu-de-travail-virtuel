@@ -16,6 +16,10 @@ RECT Choice_3_Button;
 // Project
 RECT Choice_4;
 RECT Choice_4_Button;
+
+// Disconnect
+RECT Choice_5;
+RECT Choice_5_Button;
 void baseRectangle()
 {
     Choice_1.left=40;
@@ -38,10 +42,16 @@ void baseRectangle()
     Choice_4.right=Choice_1.right;
     Choice_4.bottom=Choice_4.top+40;
 
+    Choice_5.left=40;
+    Choice_5.top=Choice_4.bottom+40;
+    Choice_5.right=Choice_1.right;
+    Choice_5.bottom=Choice_5.top+40;
+
     Choice_1_Button = Choice_1;
     Choice_2_Button = Choice_2;
-    Choice_3_Button=Choice_3;
-    Choice_4_Button=Choice_4;
+    Choice_3_Button = Choice_3;
+    Choice_4_Button = Choice_4;
+    Choice_5_Button = Choice_5;
 }
 // Creating message button
 void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage)
@@ -198,6 +208,47 @@ void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject)
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,ProjectAnimation.left-(CurrentHProject/2),ProjectAnimation.top-15-(CurrentVProject/2),ProjectAnimation.right+(CurrentHProject/2),ProjectAnimation.bottom+2+(CurrentVProject/2),32,28);
     DrawText(Mdc,"Projects",-1,&ProjectRect,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+    SelectObject(Mdc,OldButtonColor);
+    SelectObject(Mdc,OldFont);
+    SelectObject(Mdc,OldPen);
+    DeleteObject(Font);
+    DeleteObject(Pen);
+    DeleteObject(OldButtonColor);
+}
+// creating disconnect button
+void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisconnect)
+{
+    RECT DisconnectAnimation=Choice_5_Button;
+    
+    RECT DisconnectRect= Choice_5;
+    DisconnectRect.left = DisconnectRect.left-(CurrentHDisconnect/2);
+    DisconnectRect.top = DisconnectRect.top-(CurrentVDisconnect/2)+5;
+    DisconnectRect.right = DisconnectRect.right+(CurrentHDisconnect/2);
+    DisconnectRect.bottom = DisconnectRect.bottom+(CurrentVDisconnect/2);
+
+    HFONT Font=CreateFont(
+    20,
+    10,
+    0,
+    0,
+    FW_NORMAL,
+    FALSE,
+    FALSE,
+    FALSE,
+    DEFAULT_CHARSET,
+    OUT_OUTLINE_PRECIS,
+    CLIP_DEFAULT_PRECIS,
+    CLEARTYPE_QUALITY,
+    DEFAULT_PITCH | FF_DONTCARE,
+    "Segoe UI");
+    HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
+    HFONT OldFont=SelectObject(Mdc,Font);
+    HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
+    SetBkMode(Mdc,TRANSPARENT);
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    RoundRect(Mdc,DisconnectAnimation.left-(CurrentHDisconnect/2),DisconnectAnimation.top-15-(CurrentVDisconnect/2),DisconnectAnimation.right+(CurrentHDisconnect/2),DisconnectAnimation.bottom+2+(CurrentVDisconnect/2),32,28);
+    DrawText(Mdc,"Disconnect",-1,&DisconnectRect,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);

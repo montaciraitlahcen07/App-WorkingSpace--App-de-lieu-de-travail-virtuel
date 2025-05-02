@@ -36,6 +36,13 @@ bool HoveringProject=FALSE;
 bool WasHoveringProject=FALSE;
 bool CheckProject=FALSE;
 
+// Disconnect variable
+#define DisconnectTimer 1007
+float CurrentHDisconnect=0.0f;
+float CurrentVDisconnect=0.0f;
+bool HoveringDisconnect=FALSE;
+bool WasHoveringDisconnect=FALSE;
+bool CheckDisconnect=FALSE;
 // Animation message
 void UpdateMessageAnimation(bool HoveringMessage,HWND HandleWnd)
 {
@@ -145,6 +152,34 @@ void UpdateProjectAnimation(bool HoveringProject,HWND HandleWnd)
             CurrentHProject=0;
             CurrentVProject=0;
             KillTimer(HandleWnd,ProjectTimer);
+        }
+    }        
+}
+// animation Disconnect
+void UpdateDisconnectAnimation(bool HoveringDisconnect,HWND HandleWnd)
+{
+    float IncremmentHDisconnect=HOVER_H/8;
+    float IncremmentVDisconnect=HOVER_V/8;
+    if(HoveringDisconnect)
+    {
+        CurrentHDisconnect+=IncremmentHDisconnect;
+        CurrentVDisconnect+=IncremmentVDisconnect;
+        if(CurrentHDisconnect >=HOVER_H)
+        {
+            CurrentHDisconnect=HOVER_H;
+            CurrentVDisconnect=HOVER_V;
+            KillTimer(HandleWnd,DisconnectTimer);
+        }
+    }
+    else
+    {
+        CurrentHDisconnect-=IncremmentHDisconnect;
+        CurrentVDisconnect-=IncremmentVDisconnect;
+        if(CurrentHDisconnect <=0)
+        {
+            CurrentHDisconnect=0;
+            CurrentVDisconnect=0;
+            KillTimer(HandleWnd,DisconnectTimer);
         }
     }        
 }

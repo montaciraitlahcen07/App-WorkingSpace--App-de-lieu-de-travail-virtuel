@@ -36,3 +36,12 @@ bool CheckProjectRect(RECT Choice_4_Button,HWND HandleWnd,int Mx,int My)
     }
     return FALSE;
 }
+// Disconnect button is hovering check
+bool CheckDisconnectRect(RECT Choice_5_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=Choice_5_Button.left && Mx<=Choice_5_Button.right) && (My >=Choice_5_Button.top && My<=Choice_5_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
