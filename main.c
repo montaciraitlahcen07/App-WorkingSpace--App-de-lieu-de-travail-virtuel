@@ -126,19 +126,19 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 Authentifaction(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,HandleWnd);
             }
             Green=FALSE;
-            baseRectangle();
+            baseRectangle(WindowSize,HandleWnd);
             if(Account)
             {
                 //rendering the message button
-                CreateMessageAccount(Mdc,CurrentHMessage,CurrentVMessage);
+                CreateMessageAccount(Mdc,CurrentHMessage,CurrentVMessage,WindowSize);
                 //rendering the online button
-                CreateOnlineAccount(Mdc,CurrentHOnline,CurrentVOnline);
+                CreateOnlineAccount(Mdc,CurrentHOnline,CurrentVOnline,WindowSize);
                 //rendering  the task button
-                CreateTaskAccount(Mdc,CurrentHTask,CurrentVTask);
+                CreateTaskAccount(Mdc,CurrentHTask,CurrentVTask,WindowSize);
                 // rendering  the project button
-                CreateProjectAccount(Mdc,CurrentHProject,CurrentVProject);
+                CreateProjectAccount(Mdc,CurrentHProject,CurrentVProject,WindowSize);
                 // rendering  the disconnect button
-                CreateDisconnectAccount(Mdc,CurrentHDisconnect,CurrentVDisconnect);
+                CreateDisconnectAccount(Mdc,CurrentHDisconnect,CurrentVDisconnect,WindowSize);
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);

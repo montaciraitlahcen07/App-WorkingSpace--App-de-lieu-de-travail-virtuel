@@ -24,4 +24,5 @@ void InterfaceLogin(int WindowLeft,int WindowTop,int WindowWidth,int WindowHeigh
     SelectObject(Mdc, OldFont);
     DeleteObject(Italique);
     DeleteObject(Creme);
+    
 }

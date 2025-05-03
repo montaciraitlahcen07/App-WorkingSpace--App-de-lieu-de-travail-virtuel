@@ -20,32 +20,49 @@ RECT Choice_4_Button;
 // Disconnect
 RECT Choice_5;
 RECT Choice_5_Button;
-void baseRectangle()
+
+#define MAX_BUTTON_WIDTH 160
+#define MAX_BUTTON_HEIGHT 52
+#define MIN_BUTTON_WIDTH 120
+#define MIN_BUTTON_HEIGHT 35
+
+// a function for measuring my window 
+int MeasureWindowSize(int size, int min, int max) {
+    if (size < min) return min;
+    if (size > max) return max;
+    return size;
+}
+void baseRectangle(RECT WindowSize,HWND HandleWnd)
 {
-    Choice_1.left=40;
-    Choice_1.top=148;
-    Choice_1.right=Choice_1.left+120;
-    Choice_1.bottom=Choice_1.top+40;
+    GetClientRect(HandleWnd,&WindowSize);
     
-    Choice_2.left=40;
-    Choice_2.top=Choice_1.bottom+40;
-    Choice_2.right=Choice_1.right;
-    Choice_2.bottom=Choice_2.top+40;
+    int ButtonWidth=MeasureWindowSize((WindowSize.right-WindowSize.left)*0.12f,MIN_BUTTON_WIDTH,MAX_BUTTON_WIDTH);
+    int ButtonHeight=MeasureWindowSize((WindowSize.bottom-WindowSize.top)*0.082f,MIN_BUTTON_HEIGHT,MAX_BUTTON_HEIGHT);
 
-    Choice_3.left=40;
-    Choice_3.top=Choice_2.bottom+40;
-    Choice_3.right=Choice_1.right;
-    Choice_3.bottom=Choice_3.top+40;
+    Choice_1.left=(WindowSize.right-WindowSize.left)*0.02f;
+    Choice_1.top=(WindowSize.bottom-WindowSize.top)*0.28f;
+    Choice_1.right=Choice_1.left+ButtonWidth;
+    Choice_1.bottom=Choice_1.top+ButtonHeight;
+    
+    Choice_2.left=(WindowSize.right-WindowSize.left)*0.02f;
+    Choice_2.top=Choice_1.bottom+(WindowSize.bottom-WindowSize.top)*0.05f;
+    Choice_2.right=Choice_2.left+ButtonWidth;
+    Choice_2.bottom=Choice_2.top+ButtonHeight;
 
-    Choice_4.left=40;
-    Choice_4.top=Choice_3.bottom+40;
-    Choice_4.right=Choice_1.right;
-    Choice_4.bottom=Choice_4.top+40;
+    Choice_3.left=(WindowSize.right-WindowSize.left)*0.02f;
+    Choice_3.top=Choice_2.bottom+(WindowSize.bottom-WindowSize.top)*0.05f;
+    Choice_3.right=Choice_3.left+ButtonWidth;
+    Choice_3.bottom=Choice_3.top+ButtonHeight;
 
-    Choice_5.left=40;
-    Choice_5.top=Choice_4.bottom+40;
-    Choice_5.right=Choice_1.right;
-    Choice_5.bottom=Choice_5.top+40;
+    Choice_4.left=(WindowSize.right-WindowSize.left)*0.02f;
+    Choice_4.top=Choice_3.bottom+(WindowSize.bottom-WindowSize.top)*0.05f;
+    Choice_4.right=Choice_4.left+ButtonWidth;
+    Choice_4.bottom=Choice_4.top+ButtonHeight;
+
+    Choice_5.left=(WindowSize.right-WindowSize.left)*0.02f;
+    Choice_5.top=Choice_4.bottom+(WindowSize.bottom-WindowSize.top)*0.05f;
+    Choice_5.right=Choice_5.left+ButtonWidth;
+    Choice_5.bottom=Choice_5.top+ButtonHeight;
 
     Choice_1_Button = Choice_1;
     Choice_2_Button = Choice_2;
@@ -54,17 +71,20 @@ void baseRectangle()
     Choice_5_Button = Choice_5;
 }
 // Creating message button
-void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage)
+void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage,RECT WindowSize)
 { 
-    RECT MessageRect=Choice_1;
     RECT MessageAnimation=Choice_1_Button;
-    MessageRect.left=40-(CurrentHMessage/2);
-    MessageRect.top=148-(CurrentVMessage/2)+5;
-    MessageRect.right=MessageRect.left+120+(CurrentHMessage/2);
-    MessageRect.bottom=MessageRect.top+40+(CurrentVMessage/2);
+    MessageAnimation.left-=(CurrentHMessage/2);
+    MessageAnimation.top-=(CurrentVMessage/2);
+    MessageAnimation.right+=(CurrentHMessage/2);
+    MessageAnimation.bottom+=(CurrentVMessage/2);
+    RECT MessageRect=MessageAnimation;
+    MessageRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
+    MessageRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
+    
     HFONT Font=CreateFont(
-    20,
-    10,
+    25,
+    12,
     0,
     0,
     FW_NORMAL,
@@ -84,7 +104,7 @@ void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage)
     HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,MessageAnimation.left-(CurrentHMessage/2),MessageAnimation.top-15-(CurrentVMessage/2),MessageAnimation.right+(CurrentHMessage/2),MessageAnimation.bottom+2+(CurrentVMessage/2),32,28);
-    DrawText(Mdc,"Message",-1,&MessageRect,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+    DrawText(Mdc,"Message",-1,&MessageRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);
@@ -93,19 +113,20 @@ void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage)
     DeleteObject(OldButtonColor);
 }
 // creating online button
-void CreateOnlineAccount(HDC Mdc,float CurrentHOnline,float CurrentVOnline)
+void CreateOnlineAccount(HDC Mdc,float CurrentHOnline,float CurrentVOnline,RECT WindowSize)
 {
     RECT OnlineAnimation=Choice_2_Button;
-    
-    RECT OnlineRect= Choice_2;
-    OnlineRect.left = OnlineRect.left-(CurrentHOnline/2);
-    OnlineRect.top = OnlineRect.top-(CurrentVOnline/2)+5;
-    OnlineRect.right = OnlineRect.right+(CurrentHOnline/2);
-    OnlineRect.bottom = OnlineRect.bottom+(CurrentVOnline/2);
+    OnlineAnimation.left-=(CurrentHOnline/2);
+    OnlineAnimation.top-=(CurrentVOnline/2);
+    OnlineAnimation.right+=(CurrentHOnline/2);
+    OnlineAnimation.bottom+=(CurrentVOnline/2);
+    RECT OnlineRect=OnlineAnimation;
+    OnlineRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
+    OnlineRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
 
     HFONT Font=CreateFont(
-    20,
-    10,
+    25,
+    12,
     0,
     0,
     FW_NORMAL,
@@ -125,28 +146,29 @@ void CreateOnlineAccount(HDC Mdc,float CurrentHOnline,float CurrentVOnline)
     HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,OnlineAnimation.left-(CurrentHOnline/2),OnlineAnimation.top-15-(CurrentVOnline/2),OnlineAnimation.right+(CurrentHOnline/2),OnlineAnimation.bottom+2+(CurrentVOnline/2),32,28);
-    DrawText(Mdc,"Online",-1,&OnlineRect,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+    DrawText(Mdc,"Online",-1,&OnlineRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);
     DeleteObject(Font);
     DeleteObject(Pen);
-    DeleteObject(OldButtonColor);
+    DeleteObject(ButtonColor);
 }
 // creating task button
-void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask)
+void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask,RECT WindowSize)
 {
     RECT TaskAnimation=Choice_3_Button;
-    
-    RECT TaskRect= Choice_3;
-    TaskRect.left = TaskRect.left-(CurrentHTask/2);
-    TaskRect.top = TaskRect.top-(CurrentVTask/2)+5;
-    TaskRect.right = TaskRect.right+(CurrentHTask/2);
-    TaskRect.bottom = TaskRect.bottom+(CurrentVTask/2);
+    TaskAnimation.left-=(CurrentHTask/2);
+    TaskAnimation.top-=(CurrentVTask/2);
+    TaskAnimation.right+=(CurrentHTask/2);
+    TaskAnimation.bottom+=(CurrentVTask/2);
+    RECT TaskRect=TaskAnimation;
+    TaskRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
+    TaskRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
 
     HFONT Font=CreateFont(
-    20,
-    10,
+    25,
+    12,
     0,
     0,
     FW_NORMAL,
@@ -166,28 +188,29 @@ void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask)
     HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,TaskAnimation.left-(CurrentHTask/2),TaskAnimation.top-15-(CurrentVTask/2),TaskAnimation.right+(CurrentHTask/2),TaskAnimation.bottom+2+(CurrentVTask/2),32,28);
-    DrawText(Mdc,"Task",-1,&TaskRect,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+    DrawText(Mdc,"Task",-1,&TaskRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);
     DeleteObject(Font);
     DeleteObject(Pen);
-    DeleteObject(OldButtonColor);
+    DeleteObject(ButtonColor);
 }
 // creating Project button
-void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject)
+void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject,RECT WindowSize)
 {
     RECT ProjectAnimation=Choice_4_Button;
-    
-    RECT ProjectRect= Choice_4;
-    ProjectRect.left = ProjectRect.left-(CurrentHProject/2);
-    ProjectRect.top = ProjectRect.top-(CurrentVProject/2)+5;
-    ProjectRect.right = ProjectRect.right+(CurrentHProject/2);
-    ProjectRect.bottom = ProjectRect.bottom+(CurrentVProject/2);
+    ProjectAnimation.left-=(CurrentHProject/2);
+    ProjectAnimation.top-=(CurrentVProject/2);
+    ProjectAnimation.right+=(CurrentHProject/2);
+    ProjectAnimation.bottom+=(CurrentVProject/2);
+    RECT ProjectRect=ProjectAnimation;
+    ProjectRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
+    ProjectRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
 
     HFONT Font=CreateFont(
-    20,
-    10,
+    25,
+    12,
     0,
     0,
     FW_NORMAL,
@@ -207,28 +230,29 @@ void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject)
     HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,ProjectAnimation.left-(CurrentHProject/2),ProjectAnimation.top-15-(CurrentVProject/2),ProjectAnimation.right+(CurrentHProject/2),ProjectAnimation.bottom+2+(CurrentVProject/2),32,28);
-    DrawText(Mdc,"Projects",-1,&ProjectRect,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+    DrawText(Mdc,"Projects",-1,&ProjectRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);
     DeleteObject(Font);
     DeleteObject(Pen);
-    DeleteObject(OldButtonColor);
+    DeleteObject(ButtonColor);
 }
 // creating disconnect button
-void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisconnect)
+void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisconnect,RECT WindowSize)
 {
     RECT DisconnectAnimation=Choice_5_Button;
-    
-    RECT DisconnectRect= Choice_5;
-    DisconnectRect.left = DisconnectRect.left-(CurrentHDisconnect/2);
-    DisconnectRect.top = DisconnectRect.top-(CurrentVDisconnect/2)+5;
-    DisconnectRect.right = DisconnectRect.right+(CurrentHDisconnect/2);
-    DisconnectRect.bottom = DisconnectRect.bottom+(CurrentVDisconnect/2);
+    DisconnectAnimation.left-=(CurrentHDisconnect/2);
+    DisconnectAnimation.top-=(CurrentVDisconnect/2);
+    DisconnectAnimation.right+=(CurrentHDisconnect/2);
+    DisconnectAnimation.bottom+=(CurrentVDisconnect/2);
+    RECT DisconnectRect=DisconnectAnimation;
+    DisconnectRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
+    DisconnectRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
 
     HFONT Font=CreateFont(
-    20,
-    10,
+    25,
+    12,
     0,
     0,
     FW_NORMAL,
@@ -248,11 +272,11 @@ void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisc
     HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,DisconnectAnimation.left-(CurrentHDisconnect/2),DisconnectAnimation.top-15-(CurrentVDisconnect/2),DisconnectAnimation.right+(CurrentHDisconnect/2),DisconnectAnimation.bottom+2+(CurrentVDisconnect/2),32,28);
-    DrawText(Mdc,"Disconnect",-1,&DisconnectRect,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+    DrawText(Mdc,"Disconnect",-1,&DisconnectRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);
     DeleteObject(Font);
     DeleteObject(Pen);
-    DeleteObject(OldButtonColor);
+    DeleteObject(ButtonColor);
 }
