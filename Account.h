@@ -21,6 +21,9 @@ RECT Choice_4_Button;
 RECT Choice_5;
 RECT Choice_5_Button;
 
+// Panel
+RECT PanelRect;
+
 #define MAX_BUTTON_WIDTH 160
 #define MAX_BUTTON_HEIGHT 52
 #define MIN_BUTTON_WIDTH 120
@@ -101,7 +104,7 @@ void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage,RE
     HFONT OldFont=SelectObject(Mdc,Font);
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
     SetBkMode(Mdc,TRANSPARENT);
-    HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,MessageAnimation.left-(CurrentHMessage/2),MessageAnimation.top-15-(CurrentVMessage/2),MessageAnimation.right+(CurrentHMessage/2),MessageAnimation.bottom+2+(CurrentVMessage/2),32,28);
     DrawText(Mdc,"Message",-1,&MessageRect,DT_SINGLELINE | DT_CENTER);
@@ -143,7 +146,7 @@ void CreateOnlineAccount(HDC Mdc,float CurrentHOnline,float CurrentVOnline,RECT 
     HFONT OldFont=SelectObject(Mdc,Font);
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
     SetBkMode(Mdc,TRANSPARENT);
-    HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,OnlineAnimation.left-(CurrentHOnline/2),OnlineAnimation.top-15-(CurrentVOnline/2),OnlineAnimation.right+(CurrentHOnline/2),OnlineAnimation.bottom+2+(CurrentVOnline/2),32,28);
     DrawText(Mdc,"Online",-1,&OnlineRect,DT_SINGLELINE | DT_CENTER);
@@ -185,7 +188,7 @@ void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask,RECT Window
     HFONT OldFont=SelectObject(Mdc,Font);
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
     SetBkMode(Mdc,TRANSPARENT);
-    HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,TaskAnimation.left-(CurrentHTask/2),TaskAnimation.top-15-(CurrentVTask/2),TaskAnimation.right+(CurrentHTask/2),TaskAnimation.bottom+2+(CurrentVTask/2),32,28);
     DrawText(Mdc,"Task",-1,&TaskRect,DT_SINGLELINE | DT_CENTER);
@@ -227,7 +230,7 @@ void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject,RE
     HFONT OldFont=SelectObject(Mdc,Font);
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
     SetBkMode(Mdc,TRANSPARENT);
-    HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,ProjectAnimation.left-(CurrentHProject/2),ProjectAnimation.top-15-(CurrentVProject/2),ProjectAnimation.right+(CurrentHProject/2),ProjectAnimation.bottom+2+(CurrentVProject/2),32,28);
     DrawText(Mdc,"Projects",-1,&ProjectRect,DT_SINGLELINE | DT_CENTER);
@@ -269,9 +272,10 @@ void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisc
     HFONT OldFont=SelectObject(Mdc,Font);
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
     SetBkMode(Mdc,TRANSPARENT);
-    HPEN Pen=CreatePen(BS_SOLID,1,RGB(210, 210, 210));
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
-    RoundRect(Mdc,DisconnectAnimation.left-(CurrentHDisconnect/2),DisconnectAnimation.top-15-(CurrentVDisconnect/2),DisconnectAnimation.right+(CurrentHDisconnect/2),DisconnectAnimation.bottom+2+(CurrentVDisconnect/2),32,28);
+    RoundRect(Mdc,DisconnectAnimation.left-(CurrentHDisconnect/2),DisconnectAnimation.top-15-(CurrentVDisconnect/2),
+    DisconnectAnimation.right+(CurrentHDisconnect/2),DisconnectAnimation.bottom+2+(CurrentVDisconnect/2),32,28);
     DrawText(Mdc,"Disconnect",-1,&DisconnectRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
@@ -279,4 +283,41 @@ void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisc
     DeleteObject(Font);
     DeleteObject(Pen);
     DeleteObject(ButtonColor);
+}
+// creating the panel 
+void CreatePanel(HDC Mdc,RECT WindowSize,HWND HandleWnd)
+{
+    GetClientRect(HandleWnd,&WindowSize);
+    PanelRect.top=WindowSize.top;
+    PanelRect.left=WindowSize.left;
+    PanelRect.right=WindowSize.right;
+    PanelRect.bottom=PanelRect.top+(WindowSize.bottom-WindowSize.top)*0.176;
+    HBRUSH PanelColor=CreateSolidBrush(RGB(210, 210, 210));
+    HBRUSH OldPanelColor=SelectObject(Mdc,PanelColor);
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    RoundRect(Mdc,PanelRect.left,PanelRect.top,
+    PanelRect.right,PanelRect.bottom,42,42);
+    RECT HAHA={PanelRect.left,PanelRect.top,PanelRect.left+35,PanelRect.top+35};
+    RECT HOHO={PanelRect.right-35,PanelRect.top,PanelRect.right,PanelRect.top+35};
+    FillRect(Mdc,&HAHA,PanelColor);
+    FillRect(Mdc,&HOHO,PanelColor);
+    SelectObject(Mdc,OldPanelColor);
+    SelectObject(Mdc,OldPen);
+    DeleteObject(Pen);
+    DeleteObject(PanelColor);
+}
+// the line who will diffrence 
+void LineDifference(HDC Mdc,HWND HandleWnd,RECT WindowSize)
+{
+    GetClientRect(HandleWnd,&WindowSize);
+    HPEN Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    int lineX = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.025; 
+    int lineTop = PanelRect.bottom +(WindowSize.bottom-WindowSize.top)*0.04;
+    int lineBottom = WindowSize.bottom - (WindowSize.bottom-WindowSize.top)*0.04; 
+    MoveToEx(Mdc, lineX, lineTop, NULL);
+    LineTo(Mdc, lineX, lineBottom);
+    SelectObject(Mdc, OldPen);
+    DeleteObject(Pen);
 }

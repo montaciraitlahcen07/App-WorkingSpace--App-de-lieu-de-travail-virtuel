@@ -139,6 +139,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 CreateProjectAccount(Mdc,CurrentHProject,CurrentVProject,WindowSize);
                 // rendering  the disconnect button
                 CreateDisconnectAccount(Mdc,CurrentHDisconnect,CurrentVDisconnect,WindowSize);
+                // rendering the panel 
+                CreatePanel(Mdc,WindowSize,HandleWnd);
+                // the line 
+                LineDifference(Mdc,HandleWnd,WindowSize);
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);
