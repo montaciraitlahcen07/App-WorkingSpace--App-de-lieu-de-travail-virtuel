@@ -45,3 +45,12 @@ bool CheckDisconnectRect(RECT Choice_5_Button,HWND HandleWnd,int Mx,int My)
     }
     return FALSE;
 }
+// Inbox button is hovering check
+bool CheckInboxRect(RECT Choice_1_Inbox_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=Choice_1_Inbox_Button.left && Mx<=Choice_1_Inbox_Button.right) && (My >=Choice_1_Inbox_Button.top && My<=Choice_1_Inbox_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}

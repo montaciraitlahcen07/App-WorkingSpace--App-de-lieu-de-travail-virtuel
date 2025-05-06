@@ -43,6 +43,15 @@ float CurrentVDisconnect=0.0f;
 bool HoveringDisconnect=FALSE;
 bool WasHoveringDisconnect=FALSE;
 bool CheckDisconnect=FALSE;
+
+// Inbox variable
+#define InboxTimer 1008
+float CurrentHInbox=0.0f;
+float CurrentVInbox=0.0f;
+bool HoveringInbox=FALSE;
+bool WasHoveringInbox=FALSE;
+bool CheckInbox=FALSE;
+
 // Animation message
 void UpdateMessageAnimation(bool HoveringMessage,HWND HandleWnd)
 {
@@ -180,6 +189,34 @@ void UpdateDisconnectAnimation(bool HoveringDisconnect,HWND HandleWnd)
             CurrentHDisconnect=0;
             CurrentVDisconnect=0;
             KillTimer(HandleWnd,DisconnectTimer);
+        }
+    }        
+}
+// animation Inbox
+void UpdateInboxAnimation(bool HoveringInbox,HWND HandleWnd)
+{
+    float IncremmentHInbox=HOVER_H/8;
+    float IncremmentVInbox=HOVER_V/8;
+    if(HoveringInbox)
+    {
+        CurrentHInbox+=IncremmentHInbox;
+        CurrentVInbox+=IncremmentVInbox;
+        if(CurrentHInbox >=HOVER_H)
+        {
+            CurrentHInbox=HOVER_H;
+            CurrentVInbox=HOVER_V;
+            KillTimer(HandleWnd,InboxTimer);
+        }
+    }
+    else
+    {
+        CurrentHInbox-=IncremmentHInbox;
+        CurrentVInbox-=IncremmentVInbox;
+        if(CurrentHInbox <=0)
+        {
+            CurrentHInbox=0;
+            CurrentVInbox=0;
+            KillTimer(HandleWnd,InboxTimer);
         }
     }        
 }

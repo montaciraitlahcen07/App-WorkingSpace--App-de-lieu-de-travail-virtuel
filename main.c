@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <windowsx.h>
 #include <stdbool.h>
 // all file of the project 
 #include "WndClr.h"
@@ -145,6 +146,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 LineDifference(Mdc,HandleWnd,WindowSize);
                 // three point of menu on the panel 
                 Points(Mdc,HandleWnd,WindowSize);
+                // for message is click 
+                if(UiMessage)
+                {
+                    CreateMessageUi(Mdc,HandleWnd,WindowSize,CurrentHInbox,CurrentVInbox);
+                }
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);
@@ -197,17 +203,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             case DisconnectTimer :
             UpdateDisconnectAnimation(HoveringDisconnect,HandleWnd);
             break;
+            // this is updating the the button Inbox every time
+            case InboxTimer :
+            UpdateInboxAnimation(HoveringInbox,HandleWnd);
+            break;
         }
         InvalidateRect(HandleWnd,&WindowSize,FALSE);
         break;
-        /*case WM_LBUTTONDOWN :
+        case WM_LBUTTONDOWN :
         x =GET_X_LPARAM(lParam);
         y =GET_Y_LPARAM(lParam);
-        if((x>=Choice_1.left && x<=Choice_1.right) && (y>=Choice_1.top && y<=Choice_1.bottom ))
+        if((x>=Choice_1_Button.left && x<=Choice_1_Button.right) && (y>=Choice_1_Button.top && y<=Choice_1_Button.bottom ))
         {
+            UiMessage=TRUE;   
         }
         InvalidateRect(HandleWnd,&WindowSize,FALSE);
-        break;*/
+        break;
         case WM_MOUSEMOVE :
         Mx=LOWORD(lParam);
         My=HIWORD(lParam);
@@ -290,6 +301,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         {
             // decrease the button is size
             SetTimer(HandleWnd,DisconnectTimer,4,NULL); 
+        }
+
+
+        // Inbox hovering 
+        WasHoveringInbox=HoveringInbox;
+        CheckInbox=CheckInboxRect(Choice_1_Inbox_Button,HandleWnd,Mx,My);
+        HoveringInbox=CheckInbox;
+        if(HoveringInbox && !WasHoveringInbox)
+        {
+            // increase the button is size
+            SetTimer(HandleWnd,InboxTimer,4,NULL);
+        }
+        else if(!HoveringInbox && WasHoveringInbox)
+        {
+            // decrease the button is size
+            SetTimer(HandleWnd,InboxTimer,4,NULL); 
         }
         break;
         case WM_CLOSE:
