@@ -54,3 +54,12 @@ bool CheckInboxRect(RECT Choice_1_Inbox_Button,HWND HandleWnd,int Mx,int My)
     }
     return FALSE;
 }
+// general button is hovering check
+bool CheckGeneralRect(RECT Choice_1_General_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=Choice_1_General_Button.left && Mx<=Choice_1_General_Button.right) && (My >=Choice_1_General_Button.top && My<=Choice_1_General_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}

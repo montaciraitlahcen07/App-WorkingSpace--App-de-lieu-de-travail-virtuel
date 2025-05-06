@@ -52,6 +52,16 @@ bool HoveringInbox=FALSE;
 bool WasHoveringInbox=FALSE;
 bool CheckInbox=FALSE;
 
+
+// General variable
+#define GeneralTimer 1009
+float CurrentHGeneral=0.0f;
+float CurrentVGeneral=0.0f;
+bool HoveringGeneral=FALSE;
+bool WasHoveringGeneral=FALSE;
+bool CheckGeneral=FALSE;
+
+
 // Animation message
 void UpdateMessageAnimation(bool HoveringMessage,HWND HandleWnd)
 {
@@ -217,6 +227,34 @@ void UpdateInboxAnimation(bool HoveringInbox,HWND HandleWnd)
             CurrentHInbox=0;
             CurrentVInbox=0;
             KillTimer(HandleWnd,InboxTimer);
+        }
+    }        
+}
+// animation General
+void UpdateGeneralAnimation(bool HoveringGeneral,HWND HandleWnd)
+{
+    float IncremmentHGeneral=HOVER_H/8;
+    float IncremmentVGeneral=HOVER_V/8;
+    if(HoveringGeneral)
+    {
+        CurrentHGeneral+=IncremmentHGeneral;
+        CurrentVGeneral+=IncremmentVGeneral;
+        if(CurrentHGeneral >=HOVER_H)
+        {
+            CurrentHGeneral=HOVER_H;
+            CurrentVGeneral=HOVER_V;
+            KillTimer(HandleWnd,GeneralTimer);
+        }
+    }
+    else
+    {
+        CurrentHGeneral-=IncremmentHGeneral;
+        CurrentVGeneral-=IncremmentVGeneral;
+        if(CurrentHGeneral <=0)
+        {
+            CurrentHGeneral=0;
+            CurrentVGeneral=0;
+            KillTimer(HandleWnd,GeneralTimer);
         }
     }        
 }

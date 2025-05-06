@@ -7,9 +7,9 @@
 #include "authentification.h"
 #include "usersdata.h"
 #include "Account.h"
-#include "message.h"
 #include "hoveringanimation.h"
 #include "checkmessagerectangle.h"
+#include "message.h"
 
 // the window is variable
 HWND HandleWnd;
@@ -149,7 +149,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 // for message is click 
                 if(UiMessage)
                 {
-                    CreateMessageUi(Mdc,HandleWnd,WindowSize,CurrentHInbox,CurrentVInbox);
+                    CreateMessageUi(Mdc,HandleWnd,WindowSize,CurrentHInbox,CurrentVInbox,CurrentHGeneral,CurrentVGeneral);
                 }
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
@@ -206,6 +206,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // this is updating the the button Inbox every time
             case InboxTimer :
             UpdateInboxAnimation(HoveringInbox,HandleWnd);
+            break;
+            // this is updating the the button general every time
+            case GeneralTimer :
+            UpdateGeneralAnimation(HoveringGeneral,HandleWnd);
             break;
         }
         InvalidateRect(HandleWnd,&WindowSize,FALSE);
@@ -317,6 +321,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         {
             // decrease the button is size
             SetTimer(HandleWnd,InboxTimer,4,NULL); 
+        }
+
+
+        // general hovering 
+        WasHoveringGeneral=HoveringGeneral;
+        CheckGeneral=CheckGeneralRect(Choice_1_General_Button,HandleWnd,Mx,My);
+        HoveringGeneral=CheckGeneral;
+        if(HoveringGeneral && !WasHoveringGeneral)
+        {
+            // increase the button is size
+            SetTimer(HandleWnd,GeneralTimer,4,NULL);
+        }
+        else if(!HoveringGeneral && WasHoveringGeneral)
+        {
+            // decrease the button is size
+            SetTimer(HandleWnd,GeneralTimer,4,NULL); 
         }
         break;
         case WM_CLOSE:
