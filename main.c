@@ -143,6 +143,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 CreatePanel(Mdc,WindowSize,HandleWnd);
                 // the line 
                 LineDifference(Mdc,HandleWnd,WindowSize);
+                // three point of menu on the panel 
+                Points(Mdc,HandleWnd,WindowSize);
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);

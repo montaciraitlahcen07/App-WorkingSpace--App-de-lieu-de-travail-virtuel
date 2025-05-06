@@ -321,3 +321,21 @@ void LineDifference(HDC Mdc,HWND HandleWnd,RECT WindowSize)
     SelectObject(Mdc, OldPen);
     DeleteObject(Pen);
 }
+void Points(HDC Mdc,HWND HandleWnd,RECT WindowSize)
+{
+    GetClientRect(HandleWnd,&WindowSize);
+    HPEN Pen=CreatePen(BS_SOLID,3,RGB(0,0,0));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    HBRUSH DotsColor=CreateSolidBrush(RGB(0,0,0));
+    HBRUSH OldDotsColor=SelectObject(Mdc,DotsColor);
+    for(int i=0;i<3;i++)
+    {
+
+        Ellipse(Mdc,(WindowSize.right-WindowSize.left)*0.97,(WindowSize.bottom-WindowSize.top)*0.07+i*8,
+        (WindowSize.right-WindowSize.left)*0.97+3,(WindowSize.bottom-WindowSize.top)*0.07+2+i*8);
+    }
+    SelectObject(Mdc, OldPen);
+    DeleteObject(Pen);
+    SelectObject(Mdc,OldDotsColor);
+    DeleteObject(DotsColor);
+}
