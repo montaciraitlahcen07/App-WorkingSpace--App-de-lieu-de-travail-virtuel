@@ -36,6 +36,9 @@ FILE *UserData_2=0;
 bool Green=FALSE;
  // for the account
  extern bool Account;
+ //
+ extern HICON CompanyLogo;
+ extern HWND HandleLogo;
 // for then click of the mouse
 int x,y;
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -48,11 +51,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             WindowWidth = WindowSize.right - WindowSize.left;
             WindowHeight = WindowSize.bottom - WindowSize.top;            
             InvalidateRect(HandleWnd, &WindowSize, FALSE);
-            break;        
+            break;  
             case WM_CREATE:
-            ButtonHandle = CreateWindowEx( 0,"BUTTON","Log In",WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_FLAT,
+            GetClientRect(HandleWnd, &WindowSize);
+            ButtonHandle = CreateWindowEx( 0,"BUTTON","Log in",WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_FLAT,
             0, 0, 100, 32,hwnd,(HMENU)ButtonID,IDhInstance,NULL);   
-            break;
+            // thoose are for rendering the logo of the company
+            CompanyLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,200,200,LR_LOADFROMFILE);   
+            HandleLogo=CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
+            (WindowSize.left+(WindowSize.right-WindowSize.left)/2-80),(WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-120),
+            (WindowSize.right-WindowSize.left)*0.07,(WindowSize.bottom-WindowSize.top)*0.07,hwnd,0,0,NULL);
+            SendMessage(HandleLogo, STM_SETICON, (WPARAM)CompanyLogo,0);   
             break;
             case WM_PAINT:
             if(Mdc)
@@ -76,7 +85,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             FillRect(Mdc,&LoginInterface,Creme);
             if(ShowTitle)
             {
-                InterfaceLogin(WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc);
+                InterfaceLogin(WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc,IDhInstance,HandleWnd,WindowSize);
+            }
+            SetWindowPos(HandleLogo, NULL,
+            (WindowSize.left+(WindowSize.right-WindowSize.left)/2-142),
+            (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-140),
+            280,280,
+            SWP_NOZORDER);  
+            if(ShowTitle)
+            {
+                ShowWindow(HandleLogo, SW_SHOW);
+            }
+            else
+            {
+                ShowWindow(HandleLogo, SW_HIDE);
             }
             int buttonWidth = 185;
             int buttonHeight = 55;
@@ -86,11 +108,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 ButtonHandle,
                 NULL,
                 buttonX,
-                buttonY,
+                buttonY+(WindowSize.bottom-WindowSize.top)*0.2,
                 buttonWidth,
                 buttonHeight,
                 SWP_NOZORDER
-            );  
+            );
             if(ShowButton)
             {
                 ShowWindow(ButtonHandle, SW_SHOW);

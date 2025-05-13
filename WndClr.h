@@ -5,9 +5,13 @@ RECT LoginInterface;
 HFONT Italique,OldFont;
 RECT TitleRect;
 bool ShowTitle=TRUE;
+// for the logo
+HWND HandleLogo;
+HICON CompanyLogo;
 //Filling the window with creme color
-void InterfaceLogin(int WindowLeft,int WindowTop,int WindowWidth,int WindowHeight,HDC Mdc)
+void InterfaceLogin(int WindowLeft,int WindowTop,int WindowWidth,int WindowHeight,HDC Mdc,HINSTANCE IDhInstance,HWND HandleWnd,RECT WindowSize)
 {
+    GetClientRect(HandleWnd,&WindowSize);
     int middleY = WindowTop + (WindowHeight / 2);
     int textY = middleY - 130;
     TitleRect.left = WindowLeft;
@@ -16,13 +20,11 @@ void InterfaceLogin(int WindowLeft,int WindowTop,int WindowWidth,int WindowHeigh
     TitleRect.bottom = textY + 40;
     Italique=CreateFont(40,15,0,0,FW_NORMAL,TRUE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,
     CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,DEFAULT_PITCH | FF_DONTCARE,"Arial");
-    
     OldFont = (HFONT)SelectObject(Mdc, Italique);    
     int oldBkMode = SetBkMode(Mdc, TRANSPARENT);
-    DrawText(Mdc, "Welcome To", -1, &TitleRect, DT_SINGLELINE | DT_CENTER);    
+    DrawText(Mdc, "Welcome To", -1, &TitleRect, DT_SINGLELINE | DT_CENTER); 
     SetBkMode(Mdc, oldBkMode);
     SelectObject(Mdc, OldFont);
     DeleteObject(Italique);
     DeleteObject(Creme);
-    
 }
