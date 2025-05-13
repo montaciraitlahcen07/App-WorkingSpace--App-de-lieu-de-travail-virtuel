@@ -55,13 +55,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             case WM_CREATE:
             GetClientRect(HandleWnd, &WindowSize);
             ButtonHandle = CreateWindowEx( 0,"BUTTON","Log in",WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_FLAT,
-            0, 0, 100, 32,hwnd,(HMENU)ButtonID,IDhInstance,NULL);   
+            0, 0, 100, 32,hwnd,(HMENU)ButtonID,IDhInstance,NULL); 
+
             // thoose are for rendering the logo of the company
-            CompanyLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,200,200,LR_LOADFROMFILE);   
+            int logoSize = min(WindowWidth, WindowHeight) * 0.2;
+            CompanyLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,logoSize,logoSize,LR_LOADFROMFILE);   
             HandleLogo=CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
-            (WindowSize.left+(WindowSize.right-WindowSize.left)/2-80),(WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-120),
-            (WindowSize.right-WindowSize.left)*0.07,(WindowSize.bottom-WindowSize.top)*0.07,hwnd,0,0,NULL);
-            SendMessage(HandleLogo, STM_SETICON, (WPARAM)CompanyLogo,0);   
+            (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.149),
+            (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.2),
+            (WindowSize.right-WindowSize.left)*0.3,(WindowSize.bottom-WindowSize.top)*0.45,
+            hwnd,0,0,NULL);
+            SendMessage(HandleLogo,STM_SETICON,(WPARAM)CompanyLogo,0); 
+
             break;
             case WM_PAINT:
             if(Mdc)
@@ -87,10 +92,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             {
                 InterfaceLogin(WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc,IDhInstance,HandleWnd,WindowSize);
             }
+            // make the position of the logo
             SetWindowPos(HandleLogo, NULL,
-            (WindowSize.left+(WindowSize.right-WindowSize.left)/2-142),
-            (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-140),
-            280,280,
+            (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.149),
+            (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.2),
+            (WindowSize.right-WindowSize.left)*0.3,(WindowSize.bottom-WindowSize.top)*0.45,
             SWP_NOZORDER);  
             if(ShowTitle)
             {
