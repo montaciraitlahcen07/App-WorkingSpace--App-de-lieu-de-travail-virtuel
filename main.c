@@ -57,7 +57,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             ButtonHandle = CreateWindowEx( 0,"BUTTON","Log in",WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_FLAT,
             0, 0, 100, 32,hwnd,(HMENU)ButtonID,IDhInstance,NULL); 
 
-            // thoose are for rendering the logo of the company
+            // thoose are for rendering the logo of the company in the first page
             int logoSize = min(WindowWidth, WindowHeight) * 0.2;
             CompanyLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,logoSize,logoSize,LR_LOADFROMFILE);   
             HandleLogo=CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
@@ -67,8 +67,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             hwnd,0,0,NULL);
             SendMessage(HandleLogo,STM_SETICON,(WPARAM)CompanyLogo,0); 
 
+            // company big logo in the account page
+            int BiglogoSize = min(WindowWidth, WindowHeight) * 0.5;
+            CompanyBigLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,
+            (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,LR_LOADFROMFILE);   
+            HandleBigLogo=CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
+            (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.28),
+            (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.32),
+            (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,
+            hwnd,0,0,NULL);
+            SendMessage(HandleBigLogo,STM_SETICON,(WPARAM)CompanyBigLogo,0); 
+            ShowWindow(HandleBigLogo,SW_HIDE);
             break;
             case WM_PAINT:
+            GetClientRect(HandleWnd, &WindowSize);
             if(Mdc)
             {
                 ReleaseDC(HandleWnd,Mdc);
@@ -110,22 +122,25 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             int buttonHeight = 55;
             int buttonX = (WindowWidth - buttonWidth) / 2;  
             int buttonY = WindowTop + (WindowHeight / 2) + 40;            
-            SetWindowPos(
-                ButtonHandle,
-                NULL,
-                buttonX,
-                buttonY+(WindowSize.bottom-WindowSize.top)*0.2,
-                buttonWidth,
-                buttonHeight,
-                SWP_NOZORDER
-            );
-            if(ShowButton)
+            if(CompanyLogo)
             {
-                ShowWindow(ButtonHandle, SW_SHOW);
-            }
-            else
-            {
-                ShowWindow(ButtonHandle, SW_HIDE);
+                SetWindowPos(
+                    ButtonHandle,
+                    NULL,
+                    buttonX,
+                    buttonY+(WindowSize.bottom-WindowSize.top)*0.2,
+                    buttonWidth,
+                    buttonHeight,
+                    SWP_NOZORDER
+                );
+                if(ShowButton)
+                {
+                    ShowWindow(ButtonHandle, SW_SHOW);
+                }
+                else
+                {
+                    ShowWindow(ButtonHandle, SW_HIDE);
+                }
             }
             if(Login)
             {
@@ -174,10 +189,29 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 LineDifference(Mdc,HandleWnd,WindowSize);
                 // three point of menu on the panel 
                 Points(Mdc,HandleWnd,WindowSize);
-                // for message is click 
-                if(UiMessage)
-                {
-                    CreateMessageUi(Mdc,HandleWnd,WindowSize,CurrentHInbox,CurrentVInbox,CurrentHGeneral,CurrentVGeneral);
+
+                // rendering the big logo of the company
+                if(CompanyBigLogo)
+                { 
+                    SetWindowPos(HandleBigLogo, NULL,
+                    (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.28),
+                    (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.32),
+                    (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,
+                    SWP_NOZORDER);  
+                    if(Account && !UiMessage)
+                    {
+                        ShowWindow(HandleBigLogo, SW_SHOW);
+                    }
+                    else
+                    {
+                        ShowWindow(HandleBigLogo, SW_HIDE);
+                    }
+    
+                    // for message is click 
+                    if(UiMessage)
+                    {
+                        CreateMessageUi(Mdc,HandleWnd,WindowSize,CurrentHInbox,CurrentVInbox,CurrentHGeneral,CurrentVGeneral);
+                    }
                 }
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
@@ -203,6 +237,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             InvalidateRect(HandleWnd, &WindowSize, FALSE);
         break;
         case WM_TIMER :
+        GetClientRect(HandleWnd, &WindowSize);
+        AreaRedraw.left = WindowSize.left;
+        AreaRedraw.top = WindowSize.top;
+        AreaRedraw.right = WindowSize.left + (WindowSize.right - WindowSize.left)*0.3;
+        AreaRedraw.bottom = WindowSize.bottom;
         switch(wParam)
         {
             case TimerLogIn :
@@ -240,7 +279,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             UpdateGeneralAnimation(HoveringGeneral,HandleWnd);
             break;
         }
-        InvalidateRect(HandleWnd,&WindowSize,FALSE);
+        InvalidateRect(HandleWnd,&AreaRedraw,FALSE);
         break;
         case WM_LBUTTONDOWN :
         x =GET_X_LPARAM(lParam);
@@ -391,6 +430,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wndClass.hInstance = hInstance;
     wndClass.lpszClassName = "MyWnd";
     wndClass.hCursor=LoadCursor(NULL, IDC_ARROW);
+    wndClass.hIcon = CompanyLogo;
     if (!RegisterClass(&wndClass)) {
         MessageBox(NULL, "Window Registration Failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
         return 1;

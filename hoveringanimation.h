@@ -3,7 +3,8 @@
 int Mx,My;
 #define HOVER_H 8
 #define HOVER_V 6
-
+//redrawing area
+RECT AreaRedraw;
 // message variable 
 #define MessageTimer 1003
 float CurrentHMessage=0.0f;

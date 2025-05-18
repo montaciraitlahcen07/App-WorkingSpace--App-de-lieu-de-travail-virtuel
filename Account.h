@@ -24,6 +24,10 @@ RECT Choice_5_Button;
 // Panel
 RECT PanelRect;
 
+//Comapany Big logo
+HICON CompanyBigLogo;
+HWND HandleBigLogo;
+
 #define MAX_BUTTON_WIDTH 160
 #define MAX_BUTTON_HEIGHT 52
 #define MIN_BUTTON_WIDTH 120
