@@ -27,7 +27,7 @@ void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,
     Choice_1_Inbox.right=Choice_1_Inbox.left+ButtonWidth+(CurrentHInbox/2);
     Choice_1_Inbox.bottom=Choice_1_Inbox.top+ButtonHeight+(CurrentVInbox/2);
     Choice_1_Inbox_Button=Choice_1_Inbox;
-    Choice_1_Inbox.top+=(WindowSize.bottom-WindowSize.top)*0.04;
+    Choice_1_Inbox.top+=(WindowSize.bottom-WindowSize.top)*0.035;
     Choice_1_Inbox.bottom+=(WindowSize.bottom-WindowSize.top)*0.043;
 
     // for making the button general is size
@@ -36,7 +36,7 @@ void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,
     Choice_1_General.right=Choice_1_General.left+ButtonWidth+(CurrentHGeneral/2);
     Choice_1_General.bottom=Choice_1_General.top+ButtonHeight+(CurrentVGeneral/2);
     Choice_1_General_Button=Choice_1_General;
-    Choice_1_General.top+=(WindowSize.bottom-WindowSize.top)*0.04;
+    Choice_1_General.top+=(WindowSize.bottom-WindowSize.top)*0.035;
     Choice_1_General.bottom+=(WindowSize.bottom-WindowSize.top)*0.043;
 
     HPEN Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));

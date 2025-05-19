@@ -204,7 +204,7 @@ void UpdateDisconnectAnimation(bool HoveringDisconnect,HWND HandleWnd)
     }        
 }
 // animation Inbox
-void UpdateInboxAnimation(bool HoveringInbox,HWND HandleWnd)
+void UpdateInboxAnimation(bool HoveringInbox,HWND HandleWnd,RECT WindowSize)
 {
     float IncremmentHInbox=HOVER_H/8;
     float IncremmentVInbox=HOVER_V/8;
@@ -229,10 +229,11 @@ void UpdateInboxAnimation(bool HoveringInbox,HWND HandleWnd)
             CurrentVInbox=0;
             KillTimer(HandleWnd,InboxTimer);
         }
-    }        
+    } 
+    InvalidateRect(HandleWnd,&WindowSize,FALSE);
 }
 // animation General
-void UpdateGeneralAnimation(bool HoveringGeneral,HWND HandleWnd)
+void UpdateGeneralAnimation(bool HoveringGeneral,HWND HandleWnd,RECT WindowSize)
 {
     float IncremmentHGeneral=HOVER_H/8;
     float IncremmentVGeneral=HOVER_V/8;
@@ -258,4 +259,5 @@ void UpdateGeneralAnimation(bool HoveringGeneral,HWND HandleWnd)
             KillTimer(HandleWnd,GeneralTimer);
         }
     }        
+    InvalidateRect(HandleWnd,&WindowSize,FALSE);
 }

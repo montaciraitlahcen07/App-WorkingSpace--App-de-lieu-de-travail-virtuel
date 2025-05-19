@@ -272,11 +272,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
             // this is updating the the button Inbox every time
             case InboxTimer :
-            UpdateInboxAnimation(HoveringInbox,HandleWnd);
+            UpdateInboxAnimation(HoveringInbox,HandleWnd,WindowSize);
             break;
             // this is updating the the button general every time
             case GeneralTimer :
-            UpdateGeneralAnimation(HoveringGeneral,HandleWnd);
+            UpdateGeneralAnimation(HoveringGeneral,HandleWnd,WindowSize);
             break;
         }
         InvalidateRect(HandleWnd,&AreaRedraw,FALSE);
