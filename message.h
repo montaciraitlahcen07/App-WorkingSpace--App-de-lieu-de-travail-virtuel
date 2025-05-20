@@ -14,7 +14,12 @@ RECT Choice_1_Inbox_Button;
 // General
 RECT Choice_1_General;
 RECT Choice_1_General_Button;
-
+// when the message button is clicked 
+bool MessageButtonClicked = FALSE;
+// when the button inbox is clicked 
+bool UiInbox = FALSE;
+// when the button general is clicked
+bool UiGeneral = FALSE;
 // creatign the interface when the user click on the button message inbox
 void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,float CurrentVInbox,float CurrentHGeneral,float CurrentVGeneral)
 {
@@ -77,3 +82,4 @@ void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,
     DeleteObject(ButtonColor);
     DeleteObject(Font);
 }
+

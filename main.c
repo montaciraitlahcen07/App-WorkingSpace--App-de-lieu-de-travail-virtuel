@@ -10,6 +10,7 @@
 #include "hoveringanimation.h"
 #include "checkmessagerectangle.h"
 #include "message.h"
+#include "panelanimation.h"
 
 // the window is variable
 HWND HandleWnd;
@@ -184,7 +185,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 // rendering  the disconnect button
                 CreateDisconnectAccount(Mdc,CurrentHDisconnect,CurrentVDisconnect,WindowSize);
                 // rendering the panel 
-                CreatePanel(Mdc,WindowSize,HandleWnd);
+                CreatePanel(Mdc,WindowSize,HandleWnd,AddLenght);
                 // the line 
                 LineDifference(Mdc,HandleWnd,WindowSize);
                 // three point of menu on the panel 
@@ -278,6 +279,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             case GeneralTimer :
             UpdateGeneralAnimation(HoveringGeneral,HandleWnd,WindowSize);
             break;
+            case TimerPanel :
+            PanelAnimationUp(HandleWnd,WindowSize);
+            break;
         }
         InvalidateRect(HandleWnd,&AreaRedraw,FALSE);
         break;
@@ -287,13 +291,29 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if((x>=Choice_1_Button.left && x<=Choice_1_Button.right) && (y>=Choice_1_Button.top && y<=Choice_1_Button.bottom ))
         {
             UiMessage=TRUE;   
+            MessageButtonClicked = TRUE;   
+        }
+        else if(MessageButtonClicked)
+        {
+            // this is for checking the inbox button 
+            if((x>=Choice_1_Inbox_Button.left && x<=Choice_1_Inbox_Button.right) && (y>=Choice_1_Inbox_Button.top && y<=Choice_1_Inbox_Button.bottom ))
+            {
+                UiInbox = TRUE;
+                MessageButtonClicked = FALSE;
+                SetTimer(HandleWnd,TimerPanel,6,NULL);
+            }
+            else if((x>=Choice_1_General_Button.left && x<=Choice_1_General_Button.right) && (y>=Choice_1_General_Button.top && y<=Choice_1_General_Button.bottom ))
+            {
+                UiGeneral = TRUE;
+                MessageButtonClicked = FALSE;
+                SetTimer(HandleWnd,TimerPanel,30,NULL);
+            }
         }
         InvalidateRect(HandleWnd,&WindowSize,FALSE);
         break;
         case WM_MOUSEMOVE :
         Mx=LOWORD(lParam);
         My=HIWORD(lParam);
-
 
         // message hovering
         WasHoveringMessage=HoveringMessage;

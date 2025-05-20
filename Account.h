@@ -289,23 +289,23 @@ void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisc
     DeleteObject(ButtonColor);
 }
 // creating the panel 
-void CreatePanel(HDC Mdc,RECT WindowSize,HWND HandleWnd)
+void CreatePanel(HDC Mdc,RECT WindowSize,HWND HandleWnd,float AddLenght)
 {
     GetClientRect(HandleWnd,&WindowSize);
     PanelRect.top=WindowSize.top;
     PanelRect.left=WindowSize.left;
     PanelRect.right=WindowSize.right;
-    PanelRect.bottom=PanelRect.top+(WindowSize.bottom-WindowSize.top)*0.176;
+    PanelRect.bottom=PanelRect.top+(WindowSize.bottom-WindowSize.top)*0.176 - (float)AddLenght;
     HBRUSH PanelColor=CreateSolidBrush(RGB(210, 210, 210));
     HBRUSH OldPanelColor=SelectObject(Mdc,PanelColor);
     HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,PanelRect.left,PanelRect.top,
     PanelRect.right,PanelRect.bottom,42,42);
-    RECT HAHA={PanelRect.left,PanelRect.top,PanelRect.left+35,PanelRect.top+35};
-    RECT HOHO={PanelRect.right-35,PanelRect.top,PanelRect.right,PanelRect.top+35};
-    FillRect(Mdc,&HAHA,PanelColor);
-    FillRect(Mdc,&HOHO,PanelColor);
+    RECT LeftCorner={PanelRect.left,PanelRect.top,PanelRect.left+35,PanelRect.top+35};
+    RECT RightCorner={PanelRect.right-35,PanelRect.top,PanelRect.right,PanelRect.top+35};
+    FillRect(Mdc,&LeftCorner,PanelColor);
+    FillRect(Mdc,&RightCorner,PanelColor);
     SelectObject(Mdc,OldPanelColor);
     SelectObject(Mdc,OldPen);
     DeleteObject(Pen);
@@ -318,8 +318,8 @@ void LineDifference(HDC Mdc,HWND HandleWnd,RECT WindowSize)
     HPEN Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
     int lineX = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.025; 
-    int lineTop = PanelRect.bottom +(WindowSize.bottom-WindowSize.top)*0.04;
-    int lineBottom = WindowSize.bottom - (WindowSize.bottom-WindowSize.top)*0.04; 
+    int lineTop = PanelRect.bottom +(WindowSize.bottom-WindowSize.top)*0.05;
+    int lineBottom = WindowSize.bottom - (WindowSize.bottom-WindowSize.top)*0.05; 
     MoveToEx(Mdc, lineX, lineTop, NULL);
     LineTo(Mdc, lineX, lineBottom);
     SelectObject(Mdc, OldPen);
@@ -335,8 +335,8 @@ void Points(HDC Mdc,HWND HandleWnd,RECT WindowSize)
     for(int i=0;i<3;i++)
     {
 
-        Ellipse(Mdc,(WindowSize.right-WindowSize.left)*0.97,(WindowSize.bottom-WindowSize.top)*0.07+i*8,
-        (WindowSize.right-WindowSize.left)*0.97+3,(WindowSize.bottom-WindowSize.top)*0.07+2+i*8);
+        Ellipse(Mdc,(WindowSize.right-WindowSize.left)*0.97,(WindowSize.bottom-WindowSize.top)*0.06+i*8,
+        (WindowSize.right-WindowSize.left)*0.97+3,(WindowSize.bottom-WindowSize.top)*0.06+2+i*8);
     }
     SelectObject(Mdc, OldPen);
     DeleteObject(Pen);
