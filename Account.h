@@ -283,8 +283,8 @@ void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisc
     DrawText(Mdc,"Disconnect",-1,&DisconnectRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
-    SelectObject(Mdc,OldPen);
     DeleteObject(Font);
+    SelectObject(Mdc,OldPen);
     DeleteObject(Pen);
     DeleteObject(ButtonColor);
 }

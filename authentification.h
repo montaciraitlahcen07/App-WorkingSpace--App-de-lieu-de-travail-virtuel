@@ -62,26 +62,26 @@ void Authentifaction(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT 
         else
         {
             HFONT Font=CreateFont(22,9,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
-                DEFAULT_PITCH|FF_SWISS,"Arial");
-                HFONT OldFont=(HFONT)SelectObject(Mdc,Font);
-                Autorisa.left=WindowSize.left+(WindowSize.right/2)-70;
-                Autorisa.top=WindowSize.top+(WindowSize.bottom/2)+150;
-                Autorisa.right=Autorisa.left+140;
-                Autorisa.bottom=Autorisa.top+100;
-                HPEN Pen=CreatePen(PS_DOT,1,RGB(244, 239, 206));
-                HBRUSH Brush=CreateSolidBrush(RGB(244, 239, 206));
-                HPEN OldPen=SelectObject(Mdc,Pen);
-                HBRUSH OldBrush=SelectObject(Mdc,Brush);
-                RoundRect(Mdc,Autorisa.left-30,Autorisa.top,Autorisa.right+30,Autorisa.bottom-30,40,30);
-                RECT CheckText=Autorisa;
-                CheckText.top=CheckText.top+20;
-                DrawText(Mdc,"Incorrect",-1,&CheckText,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
-                SelectObject(Mdc,OldFont);
-                SelectObject(Mdc,OldPen);
-                SelectObject(Mdc,OldBrush);
-                DeleteObject(Font);
-                DeleteObject(Brush);
-                DeleteObject(Pen);
+            DEFAULT_PITCH|FF_SWISS,"Arial");
+            HFONT OldFont=(HFONT)SelectObject(Mdc,Font);
+            Autorisa.left=WindowSize.left+(WindowSize.right/2)-70;
+            Autorisa.top=WindowSize.top+(WindowSize.bottom/2)+150;
+            Autorisa.right=Autorisa.left+140;
+            Autorisa.bottom=Autorisa.top+100;
+            HPEN Pen=CreatePen(PS_DOT,1,RGB(244, 239, 206));
+            HBRUSH Brush=CreateSolidBrush(RGB(244, 239, 206));
+            HPEN OldPen=SelectObject(Mdc,Pen);
+            HBRUSH OldBrush=SelectObject(Mdc,Brush);
+            RoundRect(Mdc,Autorisa.left-30,Autorisa.top,Autorisa.right+30,Autorisa.bottom-30,40,30);
+            RECT CheckText=Autorisa;
+            CheckText.top=CheckText.top+20;
+            DrawText(Mdc,"Incorrect",-1,&CheckText,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+            SelectObject(Mdc,OldFont);
+            SelectObject(Mdc,OldPen);
+            SelectObject(Mdc,OldBrush);
+            DeleteObject(Font);
+            DeleteObject(Brush);
+            DeleteObject(Pen);
         }
         fclose(UserData_2);
     }

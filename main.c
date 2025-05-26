@@ -11,6 +11,11 @@
 #include "checkmessagerectangle.h"
 #include "message.h"
 #include "panelanimation.h"
+#include "Client.h"
+
+// boundaries of the window
+#define MIN_WIDTH 840
+#define MIN_HEIGHT 520
 
 // the window is variable
 HWND HandleWnd;
@@ -79,6 +84,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             hwnd,0,0,NULL);
             SendMessage(HandleBigLogo,STM_SETICON,(WPARAM)CompanyBigLogo,0); 
             ShowWindow(HandleBigLogo,SW_HIDE);
+            
             break;
             case WM_PAINT:
             GetClientRect(HandleWnd, &WindowSize);
@@ -199,7 +205,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.32),
                     (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,
                     SWP_NOZORDER);  
-                    if(Account && !UiMessage)
+                    if(Account && !UiMessage && !UiInbox && !UiGeneral)
                     {
                         ShowWindow(HandleBigLogo, SW_SHOW);
                     }
@@ -208,11 +214,36 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                         ShowWindow(HandleBigLogo, SW_HIDE);
                     }
     
-                    // for message is click 
-                    if(UiMessage)
-                    {
-                        CreateMessageUi(Mdc,HandleWnd,WindowSize,CurrentHInbox,CurrentVInbox,CurrentHGeneral,CurrentVGeneral);
-                    }
+                }
+                // for message is click 
+                if(UiMessage)
+                {
+                    CreateMessageUi(Mdc,HandleWnd,WindowSize,CurrentHInbox,CurrentVInbox,CurrentHGeneral,CurrentVGeneral);
+                }
+                // when the user click on the inbox or general button this created the ui
+                if(UiInbox)
+                {
+                    CreateInboxUi(Mdc,HandleWnd,WindowSize,IDhInstance);
+                    LineDifferenceMessage(Mdc,HandleWnd,WindowSize);
+                    MoveWindow(HandleSearch,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.18,(WindowSize.bottom - WindowSize.top)*0.064,TRUE);
+                    
+                    DrawMessageBubbleLogoLeft(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.14,
+                    (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1,(WindowSize.right-WindowSize.left)*0.125,
+                    (WindowSize.bottom - WindowSize.top)*0.175, 3,WindowSize);
+                    DrawMessageBubbleLogoAdvancedRight(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.1 + (WindowSize.right-WindowSize.left)*0.148,
+                    (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1 + (WindowSize.bottom - WindowSize.top)*0.14,(WindowSize.right-WindowSize.left)*0.1,
+                    (WindowSize.bottom - WindowSize.top)*0.145,3,WindowSize);
+                }  
+                /*else if(UiGeneral)
+                {
+                }*/
+                if(UiInbox)
+                {
+                    ShowWindow(HandleSearch,SW_SHOW);
+                }
+                else
+                {
+                    ShowWindow(HandleSearch,SW_HIDE);
                 }
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
@@ -291,6 +322,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if((x>=Choice_1_Button.left && x<=Choice_1_Button.right) && (y>=Choice_1_Button.top && y<=Choice_1_Button.bottom ))
         {
             UiMessage=TRUE;   
+            UiGeneral = TRUE;
+            UiInbox = FALSE;
             MessageButtonClicked = TRUE;   
         }
         else if(MessageButtonClicked)
@@ -299,12 +332,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if((x>=Choice_1_Inbox_Button.left && x<=Choice_1_Inbox_Button.right) && (y>=Choice_1_Inbox_Button.top && y<=Choice_1_Inbox_Button.bottom ))
             {
                 UiInbox = TRUE;
+                UiMessage = FALSE;
                 MessageButtonClicked = FALSE;
+                UiGeneral = FALSE;
                 SetTimer(HandleWnd,TimerPanel,6,NULL);
+                // for the search of the recipient
+                if(HandleSearch == NULL)
+                {
+                     GetClientRect(HandleWnd, &WindowSize); 
+                    ChatRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.018;
+                    ChatRect.top = WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043;
+                    ChatRect.right = ChatRect.left + (WindowSize.right - WindowSize.left)*0.1;
+                    ChatRect.bottom = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.04;
+                    HandleSearch = CreateWindowEx(0,"EDIT","", 
+                    WS_CHILD | WS_VISIBLE | WS_BORDER, 
+                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.18,(WindowSize.bottom - WindowSize.top)*0.064,
+                    HandleWnd,0,IDhInstance, NULL);
+                    ShowWindow(HandleSearch,SW_HIDE);
+                }
             }
             else if((x>=Choice_1_General_Button.left && x<=Choice_1_General_Button.right) && (y>=Choice_1_General_Button.top && y<=Choice_1_General_Button.bottom ))
             {
                 UiGeneral = TRUE;
+                UiMessage = FALSE;
+                UiInbox = FALSE;
                 MessageButtonClicked = FALSE;
                 SetTimer(HandleWnd,TimerPanel,30,NULL);
             }
@@ -427,11 +478,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         break;
         case WM_CLOSE:
-            DestroyWindow(hwnd);
+        DestroyWindow(hwnd);
         break;     
         case WM_DESTROY:
+        if(HandleSearch != 0)
+        {
+        DestroyWindow(HandleSearch);
+        HandleSearch = 0;
+        }    
+        // Clean up any other resources (icons, etc.)
+        if(CompanyLogo) {
+            DestroyIcon(CompanyLogo);
+        }
+        if(CompanyBigLogo) {
+            DestroyIcon(CompanyBigLogo);
+        }
         PostQuitMessage(0);
         break;
+        case WM_GETMINMAXINFO:
+        {
+            MINMAXINFO* pMinMax = (MINMAXINFO*)lParam;
+            pMinMax->ptMinTrackSize.x = MIN_WIDTH;
+            pMinMax->ptMinTrackSize.y = MIN_HEIGHT;
+            return 0;
+        }
         default:
             return DefWindowProc(hwnd, msg, wParam, lParam);
     }

@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "stdbool.h": "c",
-        "windows.h": "c"
+        "windows.h": "c",
+        "hoveringanimation.h": "c"
     }
 }
