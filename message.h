@@ -198,7 +198,7 @@ void DrawMessageBubbleLogoAdvancedRight(HDC hdc, int x, int y, int width, int he
     tailPoints[1].x = bubbleLeft + tailWidth * 2;
     tailPoints[1].y = bubbleBottom - strokeWidth/2;
     tailPoints[2].x = bubbleLeft + tailWidth / 2;  
-    tailPoints[2].y = y + height;                  
+    tailPoints[2].y = y + height ;                  
     
     MoveToEx(hdc, tailPoints[0].x, tailPoints[0].y, NULL);
     LineTo(hdc, tailPoints[1].x, tailPoints[1].y);
