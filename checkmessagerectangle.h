@@ -63,3 +63,12 @@ bool CheckGeneralRect(RECT Choice_1_General_Button,HWND HandleWnd,int Mx,int My)
     }
     return FALSE;
 }
+// Search button is hovering check
+bool CheckSearchRect(RECT SearchAnimation,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=SearchAnimation.left && Mx<=SearchAnimation.right) && (My >=SearchAnimation.top && My<=SearchAnimation.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}

@@ -233,6 +233,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     DrawMessageBubbleLogoAdvancedRight(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.1 + (WindowSize.right-WindowSize.left)*0.148,
                     (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1 + (WindowSize.bottom - WindowSize.top)*0.14,(WindowSize.right-WindowSize.left)*0.1,
                     (WindowSize.bottom - WindowSize.top)*0.145,3,WindowSize);
+                    //for button start searching for recipient
+                    CreateSearchButton(Mdc,CurrentHSearch,CurrentVSearch,WindowSize,ChatRect,2);
                 }  
                 /*else if(UiGeneral)
                 {
@@ -312,6 +314,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
             case TimerPanel :
             PanelAnimationUp(HandleWnd,WindowSize);
+            break;
+            case SearchTimer :
+            UpdateSearchAnimation(HoveringSearch,HandleWnd,WindowSize);
             break;
         }
         InvalidateRect(HandleWnd,&AreaRedraw,FALSE);
@@ -475,6 +480,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         {
             // decrease the button is size
             SetTimer(HandleWnd,GeneralTimer,4,NULL); 
+        }
+
+
+        // search hovering 
+        WasHoveringSearch=HoveringSearch;
+        CheckSearch=CheckSearchRect(SearchAnimation,HandleWnd,Mx,My);
+        HoveringSearch=CheckSearch;
+        if(HoveringSearch && !WasHoveringSearch)
+        {
+            // increase the button is size
+            SetTimer(HandleWnd,SearchTimer,4,NULL);
+        }
+        else if(!HoveringSearch && WasHoveringSearch)
+        {
+            // decrease the button is size
+            SetTimer(HandleWnd,SearchTimer,4,NULL); 
         }
         break;
         case WM_CLOSE:

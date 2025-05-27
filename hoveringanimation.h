@@ -62,12 +62,21 @@ bool HoveringGeneral=FALSE;
 bool WasHoveringGeneral=FALSE;
 bool CheckGeneral=FALSE;
 
+//for search button 
+#define HOVER_HSearch 5
+#define HOVER_VSearch 3
+#define SearchTimer 1010
+float CurrentHSearch=0.0f;
+float CurrentVSearch=0.0f;
+bool HoveringSearch=FALSE;
+bool WasHoveringSearch=FALSE;
+bool CheckSearch=FALSE;
 
 // Animation message
 void UpdateMessageAnimation(bool HoveringMessage,HWND HandleWnd)
 {
-    float IncremmentHMessage=HOVER_H/8;
-    float IncremmentVMessage=HOVER_V/8;
+    float IncremmentHMessage=HOVER_H/5;
+    float IncremmentVMessage=HOVER_V/5;
     if(HoveringMessage)
     {
         CurrentHMessage+=IncremmentHMessage;
@@ -94,8 +103,8 @@ void UpdateMessageAnimation(bool HoveringMessage,HWND HandleWnd)
 // animation online
 void UpdateOnlineAnimation(bool HoveringOnline,HWND HandleWnd)
 {
-    float IncremmentHOnline=HOVER_H/8;
-    float IncremmentVOnline=HOVER_V/8;
+    float IncremmentHOnline=HOVER_H/5;
+    float IncremmentVOnline=HOVER_V/5;
     if(HoveringOnline)
     {
         CurrentHOnline+=IncremmentHOnline;
@@ -122,8 +131,8 @@ void UpdateOnlineAnimation(bool HoveringOnline,HWND HandleWnd)
 // animation Task
 void UpdateTaskAnimation(bool HoveringTask,HWND HandleWnd)
 {
-    float IncremmentHTask=HOVER_H/8;
-    float IncremmentVTask=HOVER_V/8;
+    float IncremmentHTask=HOVER_H/5;
+    float IncremmentVTask=HOVER_V/5;
     if(HoveringTask)
     {
         CurrentHTask+=IncremmentHTask;
@@ -150,8 +159,8 @@ void UpdateTaskAnimation(bool HoveringTask,HWND HandleWnd)
 // animation Project
 void UpdateProjectAnimation(bool HoveringProject,HWND HandleWnd)
 {
-    float IncremmentHProject=HOVER_H/8;
-    float IncremmentVProject=HOVER_V/8;
+    float IncremmentHProject=HOVER_H/5;
+    float IncremmentVProject=HOVER_V/5;
     if(HoveringProject)
     {
         CurrentHProject+=IncremmentHProject;
@@ -178,8 +187,8 @@ void UpdateProjectAnimation(bool HoveringProject,HWND HandleWnd)
 // animation Disconnect
 void UpdateDisconnectAnimation(bool HoveringDisconnect,HWND HandleWnd)
 {
-    float IncremmentHDisconnect=HOVER_H/8;
-    float IncremmentVDisconnect=HOVER_V/8;
+    float IncremmentHDisconnect=HOVER_H/5;
+    float IncremmentVDisconnect=HOVER_V/5;
     if(HoveringDisconnect)
     {
         CurrentHDisconnect+=IncremmentHDisconnect;
@@ -206,8 +215,8 @@ void UpdateDisconnectAnimation(bool HoveringDisconnect,HWND HandleWnd)
 // animation Inbox
 void UpdateInboxAnimation(bool HoveringInbox,HWND HandleWnd,RECT WindowSize)
 {
-    float IncremmentHInbox=HOVER_H/8;
-    float IncremmentVInbox=HOVER_V/8;
+    float IncremmentHInbox=HOVER_H/5;
+    float IncremmentVInbox=HOVER_V/5;
     if(HoveringInbox)
     {
         CurrentHInbox+=IncremmentHInbox;
@@ -235,8 +244,8 @@ void UpdateInboxAnimation(bool HoveringInbox,HWND HandleWnd,RECT WindowSize)
 // animation General
 void UpdateGeneralAnimation(bool HoveringGeneral,HWND HandleWnd,RECT WindowSize)
 {
-    float IncremmentHGeneral=HOVER_H/8;
-    float IncremmentVGeneral=HOVER_V/8;
+    float IncremmentHGeneral=HOVER_H/5;
+    float IncremmentVGeneral=HOVER_V/5;
     if(HoveringGeneral)
     {
         CurrentHGeneral+=IncremmentHGeneral;
@@ -257,6 +266,35 @@ void UpdateGeneralAnimation(bool HoveringGeneral,HWND HandleWnd,RECT WindowSize)
             CurrentHGeneral=0;
             CurrentVGeneral=0;
             KillTimer(HandleWnd,GeneralTimer);
+        }
+    }        
+    InvalidateRect(HandleWnd,&WindowSize,FALSE);
+}
+// animation Search button when we click on inbox button
+void UpdateSearchAnimation(bool HoveringSearch,HWND HandleWnd,RECT WindowSize)
+{
+    float IncremmentHSearch=HOVER_HSearch/5;
+    float IncremmentVSearch=HOVER_VSearch/5;
+    if(HoveringSearch)
+    {
+        CurrentHSearch+=IncremmentHSearch;
+        CurrentVSearch+=IncremmentVSearch;
+        if(CurrentHSearch >=HOVER_HSearch)
+        {
+            CurrentHSearch=HOVER_HSearch;
+            CurrentVSearch=HOVER_VSearch;
+            KillTimer(HandleWnd,SearchTimer);
+        }
+    }
+    else
+    {
+        CurrentHSearch-=IncremmentHSearch;
+        CurrentVSearch-=IncremmentVSearch;
+        if(CurrentHSearch <=0)
+        {
+            CurrentHSearch=0;
+            CurrentVSearch=0;
+            KillTimer(HandleWnd,SearchTimer);
         }
     }        
     InvalidateRect(HandleWnd,&WindowSize,FALSE);

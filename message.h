@@ -212,12 +212,65 @@ void DrawMessageBubbleLogoAdvancedRight(HDC hdc, int x, int y, int width, int he
     HPEN OldPen=SelectObject(hdc,Pen);
     DrawText(hdc,"Here",-1,&ChatString,DT_SINGLELINE | DT_CENTER);
     SelectObject(hdc,OldFont);
-    SelectObject(hdc,OldPen);
     SelectObject(hdc, hOldPen);
     SelectObject(hdc, hOldBrush);
-
+    SelectObject(hdc,OldPen);
+    
     DeleteObject(Pen);
     DeleteObject(Font);
     DeleteObject(hPen);
 }
+// creating Search button it is located in the left of the bar of the search
+RECT SearchAnimation;
+void CreateSearchButton(HDC Mdc,float CurrentHSearch,float CurrentVSearch,RECT WindowSize,RECT ChatRect,int strokeWidth)
+{
+    SearchAnimation.left =  ChatRect.right + (WindowSize.right - WindowSize.left)*0.112 - (CurrentHSearch/2);
+    SearchAnimation.top = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.0745 - (CurrentVSearch/2);
+    SearchAnimation.right = SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.04 + (CurrentHSearch/2);
+    SearchAnimation.bottom = ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.0725 + (CurrentVSearch/2);
 
+    HFONT Font=CreateFont(
+    25,
+    12,
+    0,
+    0,
+    FW_NORMAL,
+    FALSE,
+    FALSE,
+    FALSE,
+    DEFAULT_CHARSET,
+    OUT_OUTLINE_PRECIS,
+    CLIP_DEFAULT_PRECIS,
+    CLEARTYPE_QUALITY,
+    DEFAULT_PITCH | FF_DONTCARE,
+    "Segoe UI");
+    HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
+    HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
+    HFONT OldFont=SelectObject(Mdc,Font);
+    SetBkMode(Mdc,TRANSPARENT);
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    RoundRect(Mdc,SearchAnimation.left,SearchAnimation.top-15,SearchAnimation.right,SearchAnimation.bottom+2,19,24);
+
+    HPEN hPen = CreatePen(PS_SOLID, strokeWidth, RGB(0, 0, 0));
+    HPEN hOldPen = (HPEN)SelectObject(Mdc, hPen);
+    Ellipse(Mdc,SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.012,
+    SearchAnimation.top -(WindowSize.bottom - WindowSize.top)*0.0116 + (WindowSize.bottom - WindowSize.top)*0.005,
+    SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.012 + (WindowSize.right - WindowSize.left)*0.012,
+    SearchAnimation.top -(WindowSize.bottom - WindowSize.top)*0.0116+ (WindowSize.bottom - WindowSize.top)*0.0248 + (WindowSize.bottom - WindowSize.top)*0.005);
+
+    MoveToEx(Mdc,SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.01571 + (WindowSize.right - WindowSize.left)*0.012 - (WindowSize.right - WindowSize.left)*0.0056,
+    SearchAnimation.top -(WindowSize.bottom - WindowSize.top)*0.0116+ (WindowSize.bottom - WindowSize.top)*0.02175 + (WindowSize.bottom - WindowSize.top)*0.005,NULL);
+    LineTo(Mdc,SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.0291,
+    SearchAnimation.top -(WindowSize.bottom - WindowSize.top)*0.0115+ (WindowSize.bottom - WindowSize.top)*0.036 + (WindowSize.bottom - WindowSize.top)*0.005);
+
+    SelectObject(Mdc,OldFont);
+    SelectObject(Mdc,OldPen);
+    SelectObject(Mdc,hOldPen);
+    SelectObject(Mdc,OldButtonColor);
+
+    DeleteObject(Font);
+    DeleteObject(hPen);
+    DeleteObject(Pen);
+    DeleteObject(ButtonColor);
+}
