@@ -110,7 +110,7 @@
         HPEN OldPen=SelectObject(Mdc,Pen);
         int lineX = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285; 
         int lineTop = ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.02 + 35;
-        int lineBottom = WindowSize.bottom - (WindowSize.bottom-WindowSize.top)*0.07; 
+        int lineBottom = WindowSize.bottom - (WindowSize.bottom-WindowSize.top)*0.05; 
         MoveToEx(Mdc, lineX, lineTop, NULL);
         LineTo(Mdc, lineX, lineBottom);
         SelectObject(Mdc, OldPen);
@@ -168,7 +168,7 @@ void DrawMessageBubbleLogoLeft(HDC hdc, int x, int y, int width, int height, int
     DeleteObject(hPen);
 }
 
-void DrawMessageBubbleLogoAdvancedRight(HDC hdc, int x, int y, int width, int height, int strokeWidth,RECT WindowSize)
+void DrawMessageBubbleLogoRight(HDC hdc, int x, int y, int width, int height, int strokeWidth,RECT WindowSize)
 {
     RECT ChatString;
     HPEN hPen = CreatePen(PS_SOLID, strokeWidth, RGB(0, 0, 0));
@@ -273,4 +273,38 @@ void CreateSearchButton(HDC Mdc,float CurrentHSearch,float CurrentVSearch,RECT W
     DeleteObject(hPen);
     DeleteObject(Pen);
     DeleteObject(ButtonColor);
+}
+// create scrollbar for contact
+HWND ScrollBar;
+RECT ScrollBarRect;
+SCROLLINFO SCRL = {0};
+bool Scroll = TRUE;
+void CreateScrollBar(HWND HandleWnd,HINSTANCE IDhInstance,RECT WindowSize)
+{
+    // when the window resize we change the placement of the child window
+    MoveWindow(ScrollBar,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
+    ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
+    (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
+    (WindowSize.bottom-WindowSize.top)*0.643,TRUE);
+    if(Scroll)
+    {
+        ScrollBar = CreateWindowEx(
+        0,
+        "STATIC",
+        NULL,
+        WS_VISIBLE | WS_VSCROLL | WS_CHILD ,
+        Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
+        ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
+        (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
+        (WindowSize.bottom-WindowSize.top)*0.643,
+        HandleWnd, NULL, IDhInstance, NULL
+        );
+        SCRL.cbSize = sizeof(SCROLLINFO);
+        SCRL.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+        SCRL.nMin = 0;
+        SCRL.nMax = 800;
+        SCRL.nPage = 50;
+        SCRL.nPos = 0;
+        SetScrollInfo(ScrollBar,SB_VERT,&SCRL,TRUE);
+    }
 }

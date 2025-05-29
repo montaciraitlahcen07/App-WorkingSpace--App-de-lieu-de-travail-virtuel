@@ -56,6 +56,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             WindowTop = WindowSize.top;
             WindowWidth = WindowSize.right - WindowSize.left;
             WindowHeight = WindowSize.bottom - WindowSize.top;            
+            SetScrollInfo(ScrollBar, SB_CTL, &SCRL, TRUE);
             InvalidateRect(HandleWnd, &WindowSize, FALSE);
             break;  
             case WM_CREATE:
@@ -230,11 +231,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     DrawMessageBubbleLogoLeft(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.14,
                     (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1,(WindowSize.right-WindowSize.left)*0.125,
                     (WindowSize.bottom - WindowSize.top)*0.175, 3,WindowSize);
-                    DrawMessageBubbleLogoAdvancedRight(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.1 + (WindowSize.right-WindowSize.left)*0.148,
+                    DrawMessageBubbleLogoRight(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.1 + (WindowSize.right-WindowSize.left)*0.148,
                     (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1 + (WindowSize.bottom - WindowSize.top)*0.14,(WindowSize.right-WindowSize.left)*0.1,
                     (WindowSize.bottom - WindowSize.top)*0.145,3,WindowSize);
                     //for button start searching for recipient
                     CreateSearchButton(Mdc,CurrentHSearch,CurrentVSearch,WindowSize,ChatRect,2);
+                    //for the scroll bar 
+                    CreateScrollBar(HandleWnd,IDhInstance,WindowSize);
+                    // for one creation of the scrollbar
+                    Scroll = FALSE;
                 }  
                 /*else if(UiGeneral)
                 {
@@ -498,8 +503,33 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             SetTimer(HandleWnd,SearchTimer,4,NULL); 
         }
         break;
-        case WM_CLOSE:
-        DestroyWindow(hwnd);
+        case WM_VSCROLL :
+        SCRL.fMask = SIF_ALL;
+        GetScrollInfo(ScrollBar,SB_VERT,&SCRL);
+        int oldpos = SCRL.nPos;
+        switch(LOWORD(wParam))
+        {
+            case SB_LINEUP:   
+            SCRL.nPos -= 10; 
+            break;
+            case SB_LINEDOWN: 
+            SCRL.nPos += 10; 
+            break;
+            case SB_PAGEUP:   
+            SCRL.nPos -= SCRL.nPage; 
+            break;
+            case SB_PAGEDOWN: 
+            SCRL.nPos += SCRL.nPage; 
+            break;
+            case SB_THUMBTRACK: 
+            SCRL.nPos = HIWORD(wParam); 
+            break;
+        }
+        if(oldpos != SCRL.nPos)
+        {
+            SetScrollInfo(ScrollBar, SB_VERT, &SCRL, TRUE);
+        }
+        InvalidateRect(HandleWnd,&WindowSize,FALSE);
         break;     
         case WM_DESTROY:
         if(HandleSearch != 0)
