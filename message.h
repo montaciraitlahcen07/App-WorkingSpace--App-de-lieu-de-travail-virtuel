@@ -227,7 +227,7 @@ void CreateSearchButton(HDC Mdc,float CurrentHSearch,float CurrentVSearch,RECT W
     SearchAnimation.left =  ChatRect.right + (WindowSize.right - WindowSize.left)*0.112 - (CurrentHSearch/2);
     SearchAnimation.top = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.0745 - (CurrentVSearch/2);
     SearchAnimation.right = SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.04 + (CurrentHSearch/2);
-    SearchAnimation.bottom = ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.0725 + (CurrentVSearch/2);
+    SearchAnimation.bottom = ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.07 + (CurrentVSearch/2);
 
     HFONT Font=CreateFont(
     25,
@@ -281,18 +281,13 @@ SCROLLINFO SCRL = {0};
 bool Scroll = TRUE;
 void CreateScrollBar(HWND HandleWnd,HINSTANCE IDhInstance,RECT WindowSize)
 {
-    // when the window resize we change the placement of the child window
-    MoveWindow(ScrollBar,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
-    ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
-    (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
-    (WindowSize.bottom-WindowSize.top)*0.643,TRUE);
     if(Scroll)
     {
         ScrollBar = CreateWindowEx(
         0,
         "STATIC",
         NULL,
-        WS_VISIBLE | WS_VSCROLL | WS_CHILD ,
+        WS_VISIBLE | WS_VSCROLL | WS_CHILD,
         Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
         ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
         (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
@@ -307,4 +302,9 @@ void CreateScrollBar(HWND HandleWnd,HINSTANCE IDhInstance,RECT WindowSize)
         SCRL.nPos = 0;
         SetScrollInfo(ScrollBar,SB_VERT,&SCRL,TRUE);
     }
+    // when the window resize we change the placement of the child window
+    MoveWindow(ScrollBar,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
+    ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
+    (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
+    (WindowSize.bottom-WindowSize.top)*0.643,TRUE);
 }

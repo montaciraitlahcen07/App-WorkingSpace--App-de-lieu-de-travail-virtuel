@@ -247,10 +247,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 if(UiInbox)
                 {
                     ShowWindow(HandleSearch,SW_SHOW);
+                    ShowWindow(ScrollBar,SW_SHOW);
                 }
                 else
                 {
                     ShowWindow(HandleSearch,SW_HIDE);
+                    ShowWindow(ScrollBar,SW_HIDE);
                 }
             }
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
@@ -279,7 +281,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         GetClientRect(HandleWnd, &WindowSize);
         AreaRedraw.left = WindowSize.left;
         AreaRedraw.top = WindowSize.top;
-        AreaRedraw.right = WindowSize.left + (WindowSize.right - WindowSize.left)*0.3;
+        AreaRedraw.right = WindowSize.left + (WindowSize.right - WindowSize.left)*0.15;
         AreaRedraw.bottom = WindowSize.bottom;
         switch(wParam)
         {
@@ -345,11 +347,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 UiMessage = FALSE;
                 MessageButtonClicked = FALSE;
                 UiGeneral = FALSE;
-                SetTimer(HandleWnd,TimerPanel,6,NULL);
+                SetTimer(HandleWnd,TimerPanel,30,NULL);
                 // for the search of the recipient
                 if(HandleSearch == NULL)
                 {
-                     GetClientRect(HandleWnd, &WindowSize); 
+                    GetClientRect(HandleWnd, &WindowSize); 
                     ChatRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.018;
                     ChatRect.top = WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043;
                     ChatRect.right = ChatRect.left + (WindowSize.right - WindowSize.left)*0.1;
@@ -515,6 +517,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             case SB_LINEDOWN: 
             SCRL.nPos += 10; 
             break;
+            // fix this make it like SB_THUMBTRACK
             case SB_PAGEUP:   
             SCRL.nPos -= SCRL.nPage; 
             break;
@@ -578,10 +581,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
     
     HandleWnd = CreateWindowEx(
-        0,
+        WS_CLIPCHILDREN,
         wndClass.lpszClassName,
         "WorkSpace",
-        WS_OVERLAPPEDWINDOW,
+        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         CW_USEDEFAULT, CW_USEDEFAULT,
         CW_USEDEFAULT, CW_USEDEFAULT,
         NULL, NULL, hInstance, NULL

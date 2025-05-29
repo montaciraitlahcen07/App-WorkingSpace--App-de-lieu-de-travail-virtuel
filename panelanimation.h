@@ -12,7 +12,7 @@ void PanelAnimationUp(HWND HandleWnd,RECT WindowSize)
     {
         AddLenght+=Add;
     }
-    if(AddLenght == PanelAnim)
+    if(AddLenght >= PanelAnim)
     {
         AddLenght = PanelAnim;
         KillTimer(HandleWnd,TimerPanel);
