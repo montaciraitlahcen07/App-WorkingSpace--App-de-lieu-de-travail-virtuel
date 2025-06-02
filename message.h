@@ -23,6 +23,10 @@
     // for the inbox ui
     RECT ChatRect;
     HWND HandleSearch;
+    void CalculateThumbRect(HWND hwnd, RECT* thumb_rect);
+    void DrawScrollBar(HDC hdc, HWND hwnd);
+    BOOL PointInRect(POINT pt, RECT* rect);
+    void UpdateScrollValue(HWND hwnd, int new_val);
     // creatign the interface when the user click on the button message inbox
     void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,float CurrentVInbox,float CurrentHGeneral,float CurrentVGeneral)
     {
@@ -275,36 +279,105 @@ void CreateSearchButton(HDC Mdc,float CurrentHSearch,float CurrentVSearch,RECT W
     DeleteObject(ButtonColor);
 }
 // create scrollbar for contact
+#define ID_CHILD_WINDOW 1015
+#define SCROLLBAR_WIDTH 12
+
+#define TRACK_COLOR RGB(240, 240, 240)
+#define THUMB_COLOR RGB(170, 170, 170)
+#define THUMB_HOVER_COLOR RGB(140, 140, 140)
+#define THUMB_PRESSED_COLOR RGB(100, 100, 100)
+
+typedef struct {
+    int min_val;
+    int max_val;
+    int current_val;
+    int page_size;
+    BOOL is_dragging;
+    int drag_offset;
+    RECT thumb_rect;
+    BOOL thumb_hover;
+    BOOL thumb_pressed;
+} ScrollBarInfo;
+
+ScrollBarInfo g_scrollbar = {0, 100, 0, 10, FALSE, 0, {0}, FALSE, FALSE};
 HWND ScrollBar;
 RECT ScrollBarRect;
-SCROLLINFO SCRL = {0};
-bool Scroll = TRUE;
-void CreateScrollBar(HWND HandleWnd,HINSTANCE IDhInstance,RECT WindowSize)
-{
-    if(Scroll)
-    {
-        ScrollBar = CreateWindowEx(
-        0,
-        "STATIC",
-        NULL,
-        WS_VISIBLE | WS_VSCROLL | WS_CHILD,
-        Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
-        ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
-        (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
-        (WindowSize.bottom-WindowSize.top)*0.643,
-        HandleWnd, NULL, IDhInstance, NULL
-        );
-        SCRL.cbSize = sizeof(SCROLLINFO);
-        SCRL.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
-        SCRL.nMin = 0;
-        SCRL.nMax = 800;
-        SCRL.nPage = 50;
-        SCRL.nPos = 0;
-        SetScrollInfo(ScrollBar,SB_VERT,&SCRL,TRUE);
+bool Scroll = FALSE;
+
+// for calculating the thumb is rect
+void CalculateThumbRect(HWND hwnd, RECT* thumb_rect) {
+    RECT client_rect;
+    GetClientRect(hwnd, &client_rect);
+    
+    int scrollbar_height = client_rect.bottom;
+    int range = g_scrollbar.max_val - g_scrollbar.min_val;
+    
+    if (range <= 0) range = 1;
+    
+    int thumb_height = max(20, (g_scrollbar.page_size * scrollbar_height) / (range + g_scrollbar.page_size));
+    int track_height = scrollbar_height - thumb_height;
+    
+    int thumb_pos = 0;
+    if (range > 0) {
+        thumb_pos = (g_scrollbar.current_val * track_height) / range;
     }
-    // when the window resize we change the placement of the child window
-    MoveWindow(ScrollBar,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
-    ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
-    (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
-    (WindowSize.bottom-WindowSize.top)*0.643,TRUE);
+    
+    thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
+    thumb_rect->top =  2 + thumb_pos;
+    thumb_rect->right = client_rect.right - 2;
+    thumb_rect->bottom = thumb_rect->top + thumb_height - 5;
+}
+// for drawing the thumb 
+void DrawScrollBar(HDC hdc, HWND hwnd) {
+    RECT client_rect;
+    GetClientRect(hwnd, &client_rect);
+    
+    RECT track_rect = {
+        client_rect.right - SCROLLBAR_WIDTH - 2,
+        0,
+        client_rect.right - 2,
+        client_rect.bottom
+    };
+    
+    HBRUSH track_brush = CreateSolidBrush(TRACK_COLOR);
+    FillRect(hdc, &track_rect, track_brush);
+    DeleteObject(track_brush);
+    
+    CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect);
+    
+    COLORREF thumb_color = THUMB_COLOR;
+    if (g_scrollbar.thumb_pressed) {
+        thumb_color = THUMB_PRESSED_COLOR;
+    } else if (g_scrollbar.thumb_hover) {
+        thumb_color = THUMB_HOVER_COLOR;
+    }
+    
+    HBRUSH thumb_brush = CreateSolidBrush(thumb_color);
+    
+    HPEN old_pen = SelectObject(hdc, CreatePen(PS_SOLID, 1, thumb_color));
+    HBRUSH old_brush = SelectObject(hdc, thumb_brush);
+    
+    RoundRect(hdc, 
+        g_scrollbar.thumb_rect.left + 2, 
+        g_scrollbar.thumb_rect.top,
+        g_scrollbar.thumb_rect.right - 2, 
+        g_scrollbar.thumb_rect.bottom,
+        6, 6);
+    
+    DeleteObject(SelectObject(hdc, old_pen));
+    SelectObject(hdc, old_brush);
+    DeleteObject(thumb_brush);
+}
+//for checking is the user hovering or clicking on the thumb
+BOOL PointInRect(POINT pt, RECT* rect) {
+    return (pt.x >= rect->left && pt.x <= rect->right && 
+            pt.y >= rect->top && pt.y <= rect->bottom);
+}
+// updating the thumb is place in the scrollbar 
+void UpdateScrollValue(HWND hwnd, int new_val) {
+    new_val = max(g_scrollbar.min_val, min(g_scrollbar.max_val, new_val));
+    if (new_val != g_scrollbar.current_val) {
+        g_scrollbar.current_val = new_val;
+        InvalidateRect(hwnd, NULL, TRUE);
+    }
 }
