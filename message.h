@@ -23,10 +23,27 @@
     // for the inbox ui
     RECT ChatRect;
     HWND HandleSearch;
-    void CalculateThumbRect(HWND hwnd, RECT* thumb_rect);
-    void DrawScrollBar(HDC hdc, HWND hwnd);
+    // create the child window of scrollbar
+    typedef struct
+    {
+        int min_val;
+        int max_val;
+        int current_val;
+        int page_size;
+        BOOL is_dragging;
+        int drag_offset;
+        RECT thumb_rect;
+        BOOL thumb_hover;
+        BOOL thumb_pressed;
+    }ScrollbarInfo;
+    
+    ScrollbarInfo g_scrollbar;
+    void CalculateThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize);
+    void DrawScrollBar(HDC hdc, HWND hwnd,RECT WindowSize);
     BOOL PointInRect(POINT pt, RECT* rect);
     void UpdateScrollValue(HWND hwnd, int new_val);
+    void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollbar);
+    void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,char Message[10][30],ScrollbarInfo *g_scrollbar);
     // creatign the interface when the user click on the button message inbox
     void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,float CurrentVInbox,float CurrentHGeneral,float CurrentVGeneral)
     {
@@ -286,35 +303,22 @@ void CreateSearchButton(HDC Mdc,float CurrentHSearch,float CurrentVSearch,RECT W
 #define THUMB_COLOR RGB(170, 170, 170)
 #define THUMB_HOVER_COLOR RGB(140, 140, 140)
 #define THUMB_PRESSED_COLOR RGB(100, 100, 100)
-
-typedef struct {
-    int min_val;
-    int max_val;
-    int current_val;
-    int page_size;
-    BOOL is_dragging;
-    int drag_offset;
-    RECT thumb_rect;
-    BOOL thumb_hover;
-    BOOL thumb_pressed;
-} ScrollBarInfo;
-
-ScrollBarInfo g_scrollbar = {0, 100, 0, 10, FALSE, 0, {0}, FALSE, FALSE};
 HWND ScrollBar;
 RECT ScrollBarRect;
-bool Scroll = FALSE;
 
 // for calculating the thumb is rect
-void CalculateThumbRect(HWND hwnd, RECT* thumb_rect) {
+void CalculateThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize)
+{
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
     
-    int scrollbar_height = client_rect.bottom;
+    int scrollbar_height = (client_rect.bottom -client_rect.top);
     int range = g_scrollbar.max_val - g_scrollbar.min_val;
     
     if (range <= 0) range = 1;
     
     int thumb_height = max(20, (g_scrollbar.page_size * scrollbar_height) / (range + g_scrollbar.page_size));
+
     int track_height = scrollbar_height - thumb_height;
     
     int thumb_pos = 0;
@@ -328,7 +332,7 @@ void CalculateThumbRect(HWND hwnd, RECT* thumb_rect) {
     thumb_rect->bottom = thumb_rect->top + thumb_height - 5;
 }
 // for drawing the thumb 
-void DrawScrollBar(HDC hdc, HWND hwnd) {
+void DrawScrollBar(HDC hdc, HWND hwnd,RECT WindowSize) {
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
     
@@ -343,7 +347,7 @@ void DrawScrollBar(HDC hdc, HWND hwnd) {
     FillRect(hdc, &track_rect, track_brush);
     DeleteObject(track_brush);
     
-    CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect);
+    CalculateThumbRect(hwnd,&g_scrollbar.thumb_rect,WindowSize);
     
     COLORREF thumb_color = THUMB_COLOR;
     if (g_scrollbar.thumb_pressed) {
@@ -358,11 +362,15 @@ void DrawScrollBar(HDC hdc, HWND hwnd) {
     HBRUSH old_brush = SelectObject(hdc, thumb_brush);
     
     RoundRect(hdc, 
-        g_scrollbar.thumb_rect.left + 2, 
-        g_scrollbar.thumb_rect.top,
-        g_scrollbar.thumb_rect.right - 2, 
-        g_scrollbar.thumb_rect.bottom,
-        6, 6);
+    g_scrollbar.thumb_rect.left + 2, 
+    g_scrollbar.thumb_rect.top,
+    g_scrollbar.thumb_rect.right - 2, 
+    g_scrollbar.thumb_rect.bottom,
+    6, 6);
+    MoveWindow(hwnd,((WindowSize.right-WindowSize.left)*0.02f + MeasureWindowSize((WindowSize.right-WindowSize.left)*0.12f,MIN_BUTTON_WIDTH,MAX_BUTTON_WIDTH)) + (WindowSize.right-WindowSize.left)*0.03,
+    (WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043 + (WindowSize.bottom - WindowSize.top)*0.04) + (WindowSize.bottom - WindowSize.top)*0.08,
+    (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
+    (WindowSize.bottom-WindowSize.top)*0.643,TRUE);
     
     DeleteObject(SelectObject(hdc, old_pen));
     SelectObject(hdc, old_brush);
@@ -380,4 +388,48 @@ void UpdateScrollValue(HWND hwnd, int new_val) {
         g_scrollbar.current_val = new_val;
         InvalidateRect(hwnd, NULL, TRUE);
     }
+}
+char Message[10][30] = {{"ali"},{"imad"},{"hamid"},{"smai"},{"js"},{"php"},{"ss"},{"ds"},{"dss"},{"dssa"}};
+int i = 10;
+int total_items;
+int window_height;
+int items_per_page;
+void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollbar) {
+    GetClientRect(hwnd,&ScrollBarRect);
+    total_items = i;
+    
+    window_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
+    items_per_page = window_height / 70;
+    
+    g_scrollbar->min_val = 0;
+    g_scrollbar->max_val = max(0, total_items - items_per_page);
+    g_scrollbar->page_size = items_per_page;   
+}
+
+void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,char Message[10][30],ScrollbarInfo *g_scrollbar)
+{
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
+    HPEN OldPen=SelectObject(Mdc_Child_1,Pen);
+    int scroll_offset = g_scrollbar->current_val * 70;
+    
+    int visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
+    
+    for (int j = 0; j < i; j++)
+    { 
+        int item_y = (j * 70) - scroll_offset;
+        
+        if (item_y < 0 || item_y > visible_height)
+        {
+            continue;
+        }
+        
+        RECT item_rect = {ScrollBarRect.left, item_y, ScrollBarRect.right, item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2};
+        MoveToEx(Mdc_Child_1,item_rect.left + (ScrollBarRect.right - ScrollBarRect.left)*0.1,item_rect.bottom,NULL);
+        LineTo(Mdc_Child_1,item_rect.right - (ScrollBarRect.right - ScrollBarRect.left)*0.1,item_rect.bottom);
+        item_rect.top+=(ScrollBarRect.bottom - ScrollBarRect.top)*0.07;
+        item_rect.bottom-=(ScrollBarRect.bottom - ScrollBarRect.top)*0.04;
+        DrawText(Mdc_Child_1, Message[j],-1, &item_rect, DT_SINGLELINE | DT_CENTER);
+    }
+    SelectObject(Mdc_Child_1, OldPen);
+    DeleteObject(Pen);
 }
