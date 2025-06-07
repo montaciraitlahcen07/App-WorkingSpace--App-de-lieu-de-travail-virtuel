@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <stdbool.h>
+#include <math.h>
 // all file of the project 
 #include "WndClr.h"
 #include "Login.h"
@@ -9,9 +10,9 @@
 #include "Account.h"
 #include "hoveringanimation.h"
 #include "checkmessagerectangle.h"
+#include "Client.h"
 #include "message.h"
 #include "panelanimation.h"
-#include "Client.h"
 
 // boundaries of the window
 #define MIN_WIDTH 840
@@ -52,11 +53,15 @@ bool Green=FALSE;
  extern HWND HandleLogo;
 // for then click of the mouse
 int x,y;
+//
+bool Start = TRUE;
+//
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg)
     {
             case WM_SIZE:
             GetClientRect(hwnd, &WindowSize);
+            ConnectingTools.WindowSize = WindowSize;
             WindowLeft = WindowSize.left;
             WindowTop = WindowSize.top;
             WindowWidth = WindowSize.right - WindowSize.left;
@@ -69,6 +74,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
                 (WindowSize.bottom-WindowSize.top)*0.643,TRUE);
             }
+           UpdateScrollbarRange(ScrollBar, ScrollBarRect, &g_scrollbar);
             break;  
             case WM_CREATE:
             GetClientRect(hwnd, &WindowSize);
@@ -96,7 +102,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             hwnd,0,0,NULL);
             SendMessage(HandleBigLogo,STM_SETICON,(WPARAM)CompanyBigLogo,0); 
             ShowWindow(HandleBigLogo,SW_HIDE);
-            // create the child window of scrollbar
             
             ScrollBar = CreateWindowEx(
             0,
@@ -109,6 +114,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             (WindowSize.bottom-WindowSize.top)*0.643,
             hwnd, NULL, IDhInstance, NULL
             );
+            MemoryDcSndTool.ScrollBar = ScrollBar;
+            UpdateScrollbarRange(ScrollBar, ScrollBarRect, &g_scrollbar);
+            
+            // this is for the client winsock2 things
+            WSADATA wsaData;
+            int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+            if (result != 0) {
+                printf("WSAStartup failed: %d\n", result);
+                return 1;
+            }
+            struct sockaddr_in ClientData;
+            ConnectingTools.ClientSocket=socket(AF_INET,SOCK_STREAM,0);
+            if(ConnectingTools.ClientSocket==INVALID_SOCKET)
+            {
+                printf("broken socket\n");
+                closesocket(ConnectingTools.ClientSocket);
+                return 1;
+            }
+            ConnectingTools.Server.sin_family=AF_INET;
+            ConnectingTools.Server.sin_port=htons(2000);
+            ConnectingTools.Server.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
+        
+        
+            int iResult=connect(ConnectingTools.ClientSocket,(const struct sockaddr *)&ConnectingTools.Server,sizeof(ConnectingTools.Server));
             break;
             case WM_PAINT:
             GetClientRect(hwnd,&WindowSize);
@@ -124,6 +153,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             Mdc = CreateCompatibleDC(DeviceContext);
             BitMap = CreateCompatibleBitmap(DeviceContext, WindowWidth, WindowHeight);
             OldBitMap = (HBITMAP)SelectObject(Mdc, BitMap);
+            // taking a copy into receiving thread
+            ConnectingTools.Mdc = Mdc;
+            //
             Creme=CreateSolidBrush(RGB(250,245,230));
             LoginInterface.left=WindowLeft;
             LoginInterface.top=WindowTop;
@@ -197,10 +229,26 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
             if(Green)
             {
-                Authentifaction(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,hwnd);
+                Authentifaction(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,hwnd,&SendingTools,ConnectingTools);
             }
             Green=FALSE;
             baseRectangle(WindowSize,hwnd);
+            if(Start)
+            {
+                // this is for creating threads to communicate with the server (communicate with other friend in the server (companie)
+                HANDLE ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, NULL, 0, NULL);
+                HANDLE ThreadSending = (HANDLE)_beginthreadex(NULL ,0,SendingThread,&SendingTools,0,NULL);
+                /*if(ThreadSending)
+                {
+                    WaitForSingleObject(ThreadSending, INFINITE);
+                    CloseHandle(ThreadSending);
+                }
+                if(ThreadReceive)
+                {
+                    CloseHandle(ThreadReceive);
+                }*/
+                Start = FALSE;
+            }
             if(Account)
             {
                 //rendering the message button
@@ -362,9 +410,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if((x>=Choice_1_Inbox_Button.left && x<=Choice_1_Inbox_Button.right) && (y>=Choice_1_Inbox_Button.top && y<=Choice_1_Inbox_Button.bottom ))
             {
                 UiInbox = TRUE;
+                MemoryDcSndTool.UiInbox = UiInbox;
                 UiMessage = FALSE;
                 MessageButtonClicked = FALSE;
                 UiGeneral = FALSE;
+                MemoryDcSndTool.UiGeneral = UiGeneral;
                 SetTimer(hwnd,TimerPanel,30,NULL);
                 // for the search of the recipient
                 if(HandleSearch == NULL)
@@ -384,8 +434,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             else if((x>=Choice_1_General_Button.left && x<=Choice_1_General_Button.right) && (y>=Choice_1_General_Button.top && y<=Choice_1_General_Button.bottom ))
             {
                 UiGeneral = TRUE;
+                MemoryDcSndTool.UiGeneral = UiGeneral;
                 UiMessage = FALSE;
                 UiInbox = FALSE;
+                MemoryDcSndTool.UiInbox = UiInbox;
                 MessageButtonClicked = FALSE;
                 SetTimer(hwnd,TimerPanel,30,NULL);
             }
@@ -555,9 +607,9 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     switch (msg) {
         case WM_CREATE:
             g_scrollbar.min_val = 0;
-            g_scrollbar.max_val = 100;
+            g_scrollbar.max_val = max(0, total_items - items_per_page);;
             g_scrollbar.current_val = 0;
-            g_scrollbar.page_size = 10;
+            g_scrollbar.page_size = items_per_page;
             break;
             
         case WM_PAINT: {
@@ -565,8 +617,8 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             DeviceContext_Child_1 = BeginPaint(hwnd, &ps);
             
             GetClientRect(hwnd, &ScrollBarRect);
+            MemoryDcSndTool.ScrollBarRect = ScrollBarRect;
             
-            // Create compatible DC for double buffering
             Mdc_Child_1 = CreateCompatibleDC(DeviceContext_Child_1);
             HBITMAP memBitmap = CreateCompatibleBitmap(DeviceContext_Child_1, 
             ScrollBarRect.right - ScrollBarRect.left, ScrollBarRect.bottom - ScrollBarRect.top);
@@ -579,12 +631,12 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
             HPEN oldPen = SelectObject(Mdc_Child_1, borderPen);
             HBRUSH oldBrush = SelectObject(Mdc_Child_1, GetStockObject(NULL_BRUSH));
-            //Rectangle(Mdc_Child_1, 0, 0, ScrollBarRect.right, ScrollBarRect.bottom);
-            DrawScrollBar(Mdc_Child_1, hwnd);
+            DrawScrollBar(Mdc_Child_1, hwnd,WindowSize);
             SetBkMode(Mdc_Child_1, TRANSPARENT);
-            
+            UpdateScrollbarRange(hwnd,ScrollBarRect,&g_scrollbar);
+            DrawContentWithScroll(Mdc_Child_1,hwnd,ScrollBarRect,Message,&g_scrollbar);
             BitBlt(DeviceContext_Child_1, 0, 0, ScrollBarRect.right - ScrollBarRect.left, 
-                   ScrollBarRect.bottom - ScrollBarRect.top, Mdc_Child_1, 0, 0, SRCCOPY);
+            ScrollBarRect.bottom - ScrollBarRect.top, Mdc_Child_1, 0, 0, SRCCOPY);
             
             SelectObject(Mdc_Child_1, oldBrush);
             SelectObject(Mdc_Child_1, oldPen);
@@ -598,7 +650,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         
         case WM_SIZE: {
-            // Handle child window resizing
+            
             InvalidateRect(hwnd, NULL, TRUE);
             break;
         }
@@ -607,7 +659,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             BOOL was_hovering = g_scrollbar.thumb_hover;
             
-            CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect);
+            CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
             g_scrollbar.thumb_hover = PointInRect(pt, &g_scrollbar.thumb_rect);
             
             if (was_hovering != g_scrollbar.thumb_hover) {
@@ -625,6 +677,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                     UpdateScrollValue(hwnd, new_pos);
                 }
             }
+            InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             break;
         }
         
@@ -639,7 +692,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             client_rect.right - 2,
             client_rect.bottom};
             
-            CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect);
+            CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
             if(PointInRect(pt, &g_scrollbar.thumb_rect)) {
                 g_scrollbar.is_dragging = TRUE;
                 g_scrollbar.thumb_pressed = TRUE;
@@ -647,13 +700,23 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 SetCapture(hwnd);
                 InvalidateRect(hwnd, &g_scrollbar.thumb_rect, FALSE);
             }
-            else if((pt.x >=client_rect.left && pt.x <=client_rect.right))
+            else if((pt.x >=g_scrollbar.thumb_rect.left && pt.x <=g_scrollbar.thumb_rect.right))
             {
                 int track_height = ScrollBarRect.bottom - 40;
                 int range = g_scrollbar.max_val - g_scrollbar.min_val;
-                int new_pos = ((pt.y - 10 - g_scrollbar.drag_offset) * range) / track_height;
+                int new_pos = ((pt.y - 4) * range) / track_height;
                 UpdateScrollValue(hwnd, new_pos);
                 InvalidateRect(hwnd, &ScrollBarRect, FALSE);
+            }
+            else
+            {
+                Index = pt.y/80;
+                if(Index >= 0 && Index<=100)
+                {
+                    strcpy(SelectedRecipient,Message[VisibleRecipient[Index]].Username);
+                    // taking a copy into receiving thread
+                    strcpy(ConnectingTools.SelectedRecipient,Message[VisibleRecipient[Index]].Username);
+                }
             }
             break;
         }
@@ -670,7 +733,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         
         case WM_MOUSEWHEEL: {
             int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-            int step = (delta > 0) ? -5 : 5;
+            int step = (delta > 0) ? -1 : 1;
             UpdateScrollValue(hwnd, g_scrollbar.current_val + step);
             break;
         }
@@ -721,8 +784,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         MessageBox(NULL, "Window Creation Failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
         return 1;
     }
-    // this is for child window
-    
+
     ShowWindow(HandleWnd, nCmdShow);
     UpdateWindow(HandleWnd);
     

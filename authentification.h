@@ -1,13 +1,36 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
-char username[30];
+#include <malloc.h>
+char username[50];
 char password[30];
 RECT Autorisa;
 bool Find=FALSE;
 // id of the timer
 #define TimerLogIn 1002
-void Authentifaction(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT WindowSize,HDC Mdc,HWND HandleWnd)
+// this is for client file 
+typedef struct 
+{
+    HDC Mdc_Child_1;
+    bool UiInbox;
+    bool UiGeneral;
+    RECT ScrollBarRect;
+    RECT WindowSize;
+    HWND ScrollBar;
+    char username[100];
+}SndTrd;
+SndTrd SendingTools;
+typedef struct 
+{
+    struct sockaddr_in Server;
+    SOCKET ClientSocket;
+    RECT WindowSize;
+    HDC Mdc;
+    char SelectedRecipient[100];
+}CntTrd;
+CntTrd ConnectingTools;
+//
+void Authentifaction(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT WindowSize,HDC Mdc,HWND HandleWnd,SndTrd *SendingTools,CntTrd ConnectingTools)
 {
     typedef struct
     {
@@ -20,6 +43,8 @@ void Authentifaction(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT 
     }Workers;
     GetWindowText(ULogin,username,sizeof(username));
     GetWindowText(PLogin,password,sizeof(password));
+    // take a copie for the client file
+    strcpy(SendingTools->username,username);
     Workers WorkerData;
     UserData_2=fopen("usersdata.txt","rb+");
     rewind(UserData_2);
@@ -29,6 +54,12 @@ void Authentifaction(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT 
         {
             if(strcmp(username,WorkerData.UserName) == 0 && strcmp(password,WorkerData.PassWord) == 0)
             {
+                // this is for the client is file sending user name in to the server center server
+                int sendResult = send(ConnectingTools.ClientSocket,SendingTools->username, strlen(SendingTools->username), 0);
+                if(sendResult == SOCKET_ERROR)
+                {
+                    return ;
+                }
                 Find=TRUE;
                 break;
             }
