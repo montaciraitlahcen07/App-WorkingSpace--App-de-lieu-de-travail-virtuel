@@ -408,17 +408,13 @@ int VisibleRecipient[100] = {0};
 int CompVisibleRecipient = 0;
 char SelectedRecipient[100];
 int Index = -1;
+extern int i;
 void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients Message[100],ScrollbarInfo *g_scrollbar)
 {
-    int i = 0;
-    memset(VisibleRecipient, 0, sizeof(VisibleRecipient));    
-    HFONT Font=CreateFont( 25,10,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
-    DEFAULT_PITCH|FF_SWISS,"Arial");
-    HFONT OldFont=(HFONT)SelectObject(Mdc_Child_1,Font);
     int scroll_offset = g_scrollbar->current_val * 80;
     
     int visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
-    
+    CompVisibleRecipient = 0;
     for (int j = 0; j < i;j++)
     { 
         int item_y = (j * 80) - scroll_offset;
@@ -427,43 +423,42 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
         {
             continue;
         }
-        VisibleRecipient[i] = j;
+        SetTextColor(Mdc_Child_1,RGB(0,0, 0));
+        VisibleRecipient[CompVisibleRecipient] = j;
         CompVisibleRecipient++;
         RECT item_rect = {ScrollBarRect.left, item_y, ScrollBarRect.right, item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2};
-        HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
+        HPEN Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
         HPEN OldPen=SelectObject(Mdc_Child_1,Pen);
-        MoveToEx(Mdc_Child_1,item_rect.left + (ScrollBarRect.right - ScrollBarRect.left)*0.1,item_rect.bottom,NULL);
-        LineTo(Mdc_Child_1,item_rect.right - (ScrollBarRect.right - ScrollBarRect.left)*0.1,item_rect.bottom);
+        MoveToEx(Mdc_Child_1,item_rect.left + (ScrollBarRect.right - ScrollBarRect.left)*0.08,item_rect.bottom,NULL);
+        LineTo(Mdc_Child_1,item_rect.right - (ScrollBarRect.right - ScrollBarRect.left)*0.11,item_rect.bottom);
         SelectObject(Mdc_Child_1, OldPen);
         DeleteObject(Pen);
-        Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
+        Pen=CreatePen(BS_SOLID,3,RGB(180, 180, 190));
         OldPen=SelectObject(Mdc_Child_1,Pen);
         item_rect.top+=(ScrollBarRect.bottom - ScrollBarRect.top)*0.07;
         item_rect.bottom-=(ScrollBarRect.bottom - ScrollBarRect.top)*0.04;
         item_rect.right -= (ScrollBarRect.right - ScrollBarRect.left) * 0.3;
         RECT IsActiveRect = item_rect;
-        IsActiveRect.top += (ScrollBarRect.bottom - ScrollBarRect.top)*0.1;
-        IsActiveRect.bottom -= (ScrollBarRect.bottom - ScrollBarRect.top)*0.1;
+        IsActiveRect.top += (ScrollBarRect.bottom - ScrollBarRect.top)*0.065;
+        IsActiveRect.bottom += (ScrollBarRect.bottom - ScrollBarRect.top)*0.05;
+        HFONT Font=CreateFont( 14,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+        DEFAULT_PITCH|FF_SWISS,"Arial");
+        HFONT OldFont=(HFONT)SelectObject(Mdc_Child_1,Font);
         DrawText(Mdc_Child_1,Message[j].Username,-1, &item_rect, DT_SINGLELINE | DT_CENTER);
-        SelectObject(Mdc_Child_1, OldPen);
-        DeleteObject(Pen);
-        if(Message[j].IsActive = TRUE)
+        if(Message[j].IsActive)
         {
-            HPEN Pen=CreatePen(BS_SOLID,1,RGB(0,255, 0));
-            HPEN OldPen=SelectObject(Mdc_Child_1,Pen);
+            SetTextColor(Mdc_Child_1,RGB(0,255, 0));
             DrawText(Mdc_Child_1,"Online",-1,&IsActiveRect, DT_SINGLELINE | DT_CENTER);
-            SelectObject(Mdc_Child_1, OldPen);
-            DeleteObject(Pen);
         }
         else
         {
-            HPEN Pen=CreatePen(BS_SOLID,1,RGB(255,0,0));
-            HPEN OldPen=SelectObject(Mdc_Child_1,Pen);
+            SetTextColor(Mdc_Child_1,RGB(255,0, 0));
             DrawText(Mdc_Child_1,"Offline",-1,&IsActiveRect, DT_SINGLELINE | DT_CENTER);
-            SelectObject(Mdc_Child_1, OldPen);
-            DeleteObject(Pen);
         }
+        SelectObject(Mdc_Child_1,OldFont);
+        DeleteObject(Font);
+        SelectObject(Mdc_Child_1, OldPen);
+        DeleteObject(Pen);
+        
     }
-    SelectObject(Mdc_Child_1,OldFont);
-    DeleteObject(Font);
 }

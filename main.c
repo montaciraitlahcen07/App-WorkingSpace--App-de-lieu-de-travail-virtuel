@@ -55,6 +55,7 @@ bool Green=FALSE;
 int x,y;
 //
 bool Start = TRUE;
+bool StartR = TRUE;
 //
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg)
@@ -236,19 +237,19 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if(Start)
             {
                 // this is for creating threads to communicate with the server (communicate with other friend in the server (companie)
-                HANDLE ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, NULL, 0, NULL);
                 HANDLE ThreadSending = (HANDLE)_beginthreadex(NULL ,0,SendingThread,&SendingTools,0,NULL);
+                HANDLE ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, &WaitingUserList, 0, NULL);
                 /*if(ThreadSending)
                 {
                     WaitForSingleObject(ThreadSending, INFINITE);
                     CloseHandle(ThreadSending);
-                }
-                if(ThreadReceive)
+                    }
+                    if(ThreadReceive)
                 {
                     CloseHandle(ThreadReceive);
                 }*/
                 Start = FALSE;
-            }
+            } 
             if(Account)
             {
                 //rendering the message button
@@ -320,7 +321,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     ShowWindow(HandleSearch,SW_HIDE);
                     ShowWindow(ScrollBar, SW_HIDE); 
                 }
-            }     
+            }    
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);
             DeleteObject(BitMap);
@@ -589,6 +590,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if(CompanyBigLogo) {
             DestroyIcon(CompanyBigLogo);
         }
+        DeleteCriticalSection(&socketLock);
         PostQuitMessage(0);
         break;
         case WM_GETMINMAXINFO:
@@ -612,7 +614,8 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             g_scrollbar.page_size = items_per_page;
             break;
             
-        case WM_PAINT: {
+        case WM_PAINT:
+        {
             PAINTSTRUCT ps;
             DeviceContext_Child_1 = BeginPaint(hwnd, &ps);
             
@@ -635,6 +638,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             SetBkMode(Mdc_Child_1, TRANSPARENT);
             UpdateScrollbarRange(hwnd,ScrollBarRect,&g_scrollbar);
             DrawContentWithScroll(Mdc_Child_1,hwnd,ScrollBarRect,Message,&g_scrollbar);
+            
             BitBlt(DeviceContext_Child_1, 0, 0, ScrollBarRect.right - ScrollBarRect.left, 
             ScrollBarRect.bottom - ScrollBarRect.top, Mdc_Child_1, 0, 0, SRCCOPY);
             
@@ -702,7 +706,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
             else if((pt.x >=g_scrollbar.thumb_rect.left && pt.x <=g_scrollbar.thumb_rect.right))
             {
-                int track_height = ScrollBarRect.bottom - 40;
+                int track_height = ScrollBarRect.bottom - 80;
                 int range = g_scrollbar.max_val - g_scrollbar.min_val;
                 int new_pos = ((pt.y - 4) * range) / track_height;
                 UpdateScrollValue(hwnd, new_pos);
@@ -784,7 +788,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         MessageBox(NULL, "Window Creation Failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
         return 1;
     }
-
+    InitializeCriticalSection(&socketLock);
     ShowWindow(HandleWnd, nCmdShow);
     UpdateWindow(HandleWnd);
     
