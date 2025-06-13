@@ -250,7 +250,8 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
 
     FindAndUpdateUser(Message.Username, clientSocket, true,ClientsData);
 
-    while (TRUE) {
+    while (TRUE)
+    {
         memset(Message.GeneralPrivate, 0, sizeof(Message.GeneralPrivate));
         
         int resultnumberBool = recv(clientSocket, Message.GeneralPrivate, sizeof(Message.GeneralPrivate) - 1, 0);

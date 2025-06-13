@@ -107,11 +107,11 @@ unsigned __stdcall SendingThread(void *param)
     countclient = 0;
     int sendResult;
     char Buffer[100];
-    memset(Message, 0, sizeof(Message));
     while(TRUE)
     {
         EnterCriticalSection(&socketLock);
         char Choice[20];
+        memset(Message, 0, sizeof(Message));
         memset(Choice, 0, sizeof(Choice));
         if(MemoryDcSndTool.UiInbox)
         {  

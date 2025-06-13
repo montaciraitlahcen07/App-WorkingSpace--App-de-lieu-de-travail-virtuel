@@ -313,6 +313,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 }*/
                 if(UiInbox)
                 {
+                    InvalidateRect(ScrollBar, &ScrollBarRect, FALSE);
                     ShowWindow(HandleSearch,SW_SHOW);
                     ShowWindow(ScrollBar, SW_SHOW);
                 }
@@ -636,7 +637,6 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             HBITMAP memBitmap = CreateCompatibleBitmap(DeviceContext_Child_1, 
             ScrollBarRect.right - ScrollBarRect.left, ScrollBarRect.bottom - ScrollBarRect.top);
             HBITMAP oldBitmap = SelectObject(Mdc_Child_1, memBitmap);
-            
             HBRUSH Creme = CreateSolidBrush(RGB(250,245,230));
             FillRect(Mdc_Child_1, &ScrollBarRect, Creme);
             DeleteObject(Creme);
