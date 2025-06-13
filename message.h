@@ -26,12 +26,12 @@
     // create the child window of scrollbar
     typedef struct
     {
-        int min_val;
-        int max_val;
-        int current_val;
-        int page_size;
+        float min_val;
+        float max_val;
+        float current_val;
+        float page_size;
         BOOL is_dragging;
-        int drag_offset;
+        float drag_offset;
         RECT thumb_rect;
         BOOL thumb_hover;
         BOOL thumb_pressed;
@@ -40,7 +40,7 @@
     void CalculateThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize);
     void DrawScrollBar(HDC hdc, HWND hwnd,RECT WindowSize);
     BOOL PointInRect(POINT pt, RECT* rect);
-    void UpdateScrollValue(HWND hwnd, int new_val);
+    void UpdateScrollValue(HWND hwnd, float new_val);
     void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollbar);
     void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients Message[100],ScrollbarInfo *g_scrollbar);
     // creatign the interface when the user click on the button message inbox
@@ -311,16 +311,16 @@ void CalculateThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize)
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
     
-    int scrollbar_height = (client_rect.bottom -client_rect.top);
-    int range = g_scrollbar.max_val - g_scrollbar.min_val;
+    float scrollbar_height = (client_rect.bottom - client_rect.top - 4);
+    float range = g_scrollbar.max_val - g_scrollbar.min_val;
     
     if (range <= 0) range = 1;
     
-    int thumb_height = max(20, (g_scrollbar.page_size * scrollbar_height) / (range + g_scrollbar.page_size));
+    float thumb_height = max(20, (g_scrollbar.page_size * scrollbar_height) / (range + g_scrollbar.page_size));
 
-    int track_height = scrollbar_height - thumb_height;
+    float track_height = scrollbar_height - thumb_height;
     
-    int thumb_pos = 0;
+    float thumb_pos = 0;
     if (range > 0) {
         thumb_pos = (g_scrollbar.current_val * track_height) / range;
     }
@@ -381,16 +381,15 @@ BOOL PointInRect(POINT pt, RECT* rect) {
             pt.y >= rect->top && pt.y <= rect->bottom);
 }
 // updating the thumb is place in the scrollbar 
-void UpdateScrollValue(HWND hwnd, int new_val) {
+void UpdateScrollValue(HWND hwnd, float new_val) {
     new_val = max(g_scrollbar.min_val, min(g_scrollbar.max_val, new_val));
     if (new_val != g_scrollbar.current_val) {
         g_scrollbar.current_val = new_val;
-        InvalidateRect(hwnd, NULL, TRUE);
     }
 }
 int total_items;
-int window_height;
-int items_per_page;
+float window_height;
+float items_per_page;
 extern int i;
 void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollbar) {
     GetClientRect(hwnd,&ScrollBarRect);
@@ -400,30 +399,37 @@ void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollba
     items_per_page = window_height / 80;
     
     g_scrollbar->min_val = 0;
-    g_scrollbar->max_val = max(0, total_items - items_per_page);
-    g_scrollbar->page_size = items_per_page;   
+    if(total_items <= items_per_page)
+    {
+        g_scrollbar->max_val = 1; 
+        g_scrollbar->page_size = items_per_page;
+    } 
+    else
+    {
+        g_scrollbar->max_val = total_items - items_per_page + 1;
+        g_scrollbar->page_size = items_per_page;
+    }   
 }
 // to know how is the recipient in the visible area
 int VisibleRecipient[100] = {0};
 int CompVisibleRecipient = 0;
 char SelectedRecipient[100];
 int Index = -1;
-extern int i;
 void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients Message[100],ScrollbarInfo *g_scrollbar)
 {
-    int scroll_offset = g_scrollbar->current_val * 80;
+    float scroll_offset = g_scrollbar->current_val * 80;
     
-    int visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
+    float visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
     CompVisibleRecipient = 0;
     for (int j = 0; j < i;j++)
     { 
-        int item_y = (j * 80) - scroll_offset;
+        float item_y = (j * 80) - scroll_offset;
         
-        if (item_y < 0 || item_y > visible_height)
+        if (item_y < -80 || item_y > visible_height + 80)
         {
             continue;
         }
-        SetTextColor(Mdc_Child_1,RGB(0,0, 0));
+        SetTextColor(Mdc_Child_1,RGB(0,0,0));
         VisibleRecipient[CompVisibleRecipient] = j;
         CompVisibleRecipient++;
         RECT item_rect = {ScrollBarRect.left, item_y, ScrollBarRect.right, item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2};
@@ -460,5 +466,23 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
         SelectObject(Mdc_Child_1, OldPen);
         DeleteObject(Pen);
         
+    }
+    if (i == 0)
+    {
+        RECT no_users_rect = {
+            ScrollBarRect.left + (ScrollBarRect.right - ScrollBarRect.left) * 0.05, 
+            ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)/2 - (ScrollBarRect.bottom - ScrollBarRect.top)*0.11, 
+            ScrollBarRect.right - (ScrollBarRect.right - ScrollBarRect.left) * 0.052, 
+            ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)/2 
+        };
+        
+        HFONT Font = CreateFont(16,8, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, 
+                               DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, 
+                               DEFAULT_QUALITY, DEFAULT_PITCH|FF_SWISS, "Arial");
+        HFONT OldFont = (HFONT)SelectObject(Mdc_Child_1, Font);
+        SetTextColor(Mdc_Child_1, RGB(128, 128, 128));
+        DrawText(Mdc_Child_1, "No users available", -1, &no_users_rect, DT_SINGLELINE | DT_CENTER);
+        SelectObject(Mdc_Child_1, OldFont);
+        DeleteObject(Font);
     }
 }

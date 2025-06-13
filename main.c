@@ -116,7 +116,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             hwnd, NULL, IDhInstance, NULL
             );
             MemoryDcSndTool.ScrollBar = ScrollBar;
-            UpdateScrollbarRange(ScrollBar, ScrollBarRect, &g_scrollbar);
+            UpdateScrollbarRange(ScrollBar,ScrollBarRect, &g_scrollbar);
             
             // this is for the client winsock2 things
             WSADATA wsaData;
@@ -606,12 +606,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return 0;
 }
 LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
+    switch (msg)
+    {
         case WM_CREATE:
             g_scrollbar.min_val = 0;
-            g_scrollbar.max_val = max(0, total_items - items_per_page);;
             g_scrollbar.current_val = 0;
-            g_scrollbar.page_size = items_per_page;
+            if(total_items <= items_per_page)
+            {
+                g_scrollbar.max_val = 2; 
+                g_scrollbar.page_size = items_per_page;
+            } 
+            else
+            {
+                g_scrollbar.max_val = total_items - items_per_page + 1;
+                g_scrollbar.page_size = items_per_page;
+            }
+            InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             break;
             
         case WM_PAINT:
@@ -634,8 +644,8 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
             HPEN oldPen = SelectObject(Mdc_Child_1, borderPen);
             HBRUSH oldBrush = SelectObject(Mdc_Child_1, GetStockObject(NULL_BRUSH));
-            DrawScrollBar(Mdc_Child_1, hwnd,WindowSize);
             SetBkMode(Mdc_Child_1, TRANSPARENT);
+            DrawScrollBar(Mdc_Child_1, hwnd,WindowSize);
             UpdateScrollbarRange(hwnd,ScrollBarRect,&g_scrollbar);
             DrawContentWithScroll(Mdc_Child_1,hwnd,ScrollBarRect,Message,&g_scrollbar);
             
@@ -666,18 +676,20 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
             g_scrollbar.thumb_hover = PointInRect(pt, &g_scrollbar.thumb_rect);
             
-            if (was_hovering != g_scrollbar.thumb_hover) {
+            if(was_hovering != g_scrollbar.thumb_hover)
+            {
                 InvalidateRect(hwnd, &g_scrollbar.thumb_rect, FALSE);
             }
             
             if (g_scrollbar.is_dragging) {
                 RECT ScrollBarRect;
                 GetClientRect(hwnd, &ScrollBarRect);
-                int track_height = ScrollBarRect.bottom - 40;
-                int range = g_scrollbar.max_val - g_scrollbar.min_val;
+                float track_height = ScrollBarRect.bottom - 80;
+                float range = g_scrollbar.max_val - g_scrollbar.min_val;
                 
-                if (range > 0) {
-                    int new_pos = ((pt.y - 10 - g_scrollbar.drag_offset) * range) / track_height;
+                if (range > 0)
+                {
+                    float new_pos = ((pt.y - 4 - g_scrollbar.drag_offset) * range) / track_height;
                     UpdateScrollValue(hwnd, new_pos);
                 }
             }
@@ -706,9 +718,9 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
             else if((pt.x >=g_scrollbar.thumb_rect.left && pt.x <=g_scrollbar.thumb_rect.right))
             {
-                int track_height = ScrollBarRect.bottom - 80;
-                int range = g_scrollbar.max_val - g_scrollbar.min_val;
-                int new_pos = ((pt.y - 4) * range) / track_height;
+                float track_height = ScrollBarRect.bottom - 80;
+                float range = g_scrollbar.max_val - g_scrollbar.min_val;
+                float new_pos = ((pt.y - 4) * range) / track_height;
                 UpdateScrollValue(hwnd, new_pos);
                 InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             }
@@ -736,9 +748,10 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         
         case WM_MOUSEWHEEL: {
-            int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-            int step = (delta > 0) ? -1 : 1;
+            float delta = GET_WHEEL_DELTA_WPARAM(wParam);
+            float step = (delta > 0) ? -1.0f : 1.0f;
             UpdateScrollValue(hwnd, g_scrollbar.current_val + step);
+            InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             break;
         }
         
