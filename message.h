@@ -421,6 +421,7 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
     
     float visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
     CompVisibleRecipient = 0;
+    i = countclientStatus;
     for (int j = 0; j < i;j++)
     { 
         float item_y = (j * 80) - scroll_offset;

@@ -24,6 +24,8 @@ typedef struct
 {
     struct sockaddr_in Server;
     SOCKET ClientSocket;
+    struct sockaddr_in ServerStatus;
+    SOCKET StatusSocket;
     RECT WindowSize;
     HDC Mdc;
     char SelectedRecipient[100];

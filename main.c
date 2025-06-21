@@ -116,6 +116,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             hwnd, NULL, IDhInstance, NULL
             );
             MemoryDcSndTool.ScrollBar = ScrollBar;
+            SendingTrdStatus.ScrollBar = ScrollBar;
             UpdateScrollbarRange(ScrollBar,ScrollBarRect, &g_scrollbar);
             
             // this is for the client winsock2 things
@@ -136,9 +137,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             ConnectingTools.Server.sin_family=AF_INET;
             ConnectingTools.Server.sin_port=htons(2000);
             ConnectingTools.Server.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
-        
-        
-            int iResult=connect(ConnectingTools.ClientSocket,(const struct sockaddr *)&ConnectingTools.Server,sizeof(ConnectingTools.Server));
+            int ServerResult=connect(ConnectingTools.ClientSocket,(const struct sockaddr *)&ConnectingTools.Server,sizeof(ConnectingTools.Server));
+            // this socket is for status recv
+            struct sockaddr_in ClientsStatus;
+            ConnectingTools.StatusSocket=socket(AF_INET,SOCK_STREAM,0);
+            if(ConnectingTools.StatusSocket==INVALID_SOCKET)
+            {
+                printf("broken socket\n");
+                closesocket(ConnectingTools.StatusSocket);
+                return 1;
+            }
+            ConnectingTools.ServerStatus.sin_family=AF_INET;
+            ConnectingTools.ServerStatus.sin_port=htons(2000);
+            ConnectingTools.ServerStatus.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
+            int StatusResult=connect(ConnectingTools.StatusSocket,(const struct sockaddr *)&ConnectingTools.ServerStatus,sizeof(ConnectingTools.ServerStatus));
             break;
             case WM_PAINT:
             GetClientRect(hwnd,&WindowSize);
@@ -239,6 +251,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 // this is for creating threads to communicate with the server (communicate with other friend in the server (companie)
                 HANDLE ThreadSending = (HANDLE)_beginthreadex(NULL ,0,SendingThread,&SendingTools,0,NULL);
                 HANDLE ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, &WaitingUserList, 0, NULL);
+                HANDLE ThreadStatus = (HANDLE)_beginthreadex(NULL, 0,StatusThread,&SendingTrdStatus, 0, NULL);
                 /*if(ThreadSending)
                 {
                     WaitForSingleObject(ThreadSending, INFINITE);
@@ -622,6 +635,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 g_scrollbar.max_val = total_items - items_per_page + 1;
                 g_scrollbar.page_size = items_per_page;
             }
+            
             InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             break;
             
@@ -632,7 +646,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             
             GetClientRect(hwnd, &ScrollBarRect);
             MemoryDcSndTool.ScrollBarRect = ScrollBarRect;
-            
+            SendingTrdStatus.ScrolBarRect = ScrollBarRect;
             Mdc_Child_1 = CreateCompatibleDC(DeviceContext_Child_1);
             HBITMAP memBitmap = CreateCompatibleBitmap(DeviceContext_Child_1, 
             ScrollBarRect.right - ScrollBarRect.left, ScrollBarRect.bottom - ScrollBarRect.top);
