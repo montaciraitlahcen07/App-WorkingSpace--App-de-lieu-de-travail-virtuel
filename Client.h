@@ -24,7 +24,10 @@ char Recipient[100];
 // this is for storing all the clients is info
 typedef struct 
 {
-    char Username[100];
+    char Username[30];
+    char PassWord[30];
+    int age;
+    int salarie;
     SOCKET Clients;
     SOCKET StatusClient;
     bool IsActive;

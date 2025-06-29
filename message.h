@@ -431,6 +431,7 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
             continue;
         }
         SetTextColor(Mdc_Child_1,RGB(0,0,0));
+        // store recipient that is visible in the scrollbar window 
         VisibleRecipient[CompVisibleRecipient] = j;
         CompVisibleRecipient++;
         RECT item_rect = {ScrollBarRect.left, item_y, ScrollBarRect.right, item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2};

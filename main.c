@@ -6,7 +6,6 @@
 #include "WndClr.h"
 #include "Login.h"
 #include "authentification.h"
-#include "usersdata.h"
 #include "Account.h"
 #include "hoveringanimation.h"
 #include "checkmessagerectangle.h"
@@ -44,7 +43,7 @@ HBITMAP LogoHandle;
 
 // file is copy
 FILE *UserData_2=0;
-// Authentifaction
+// Authentification
 bool Green=FALSE;
  // for the account
  extern bool Account;
@@ -126,6 +125,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 printf("WSAStartup failed: %d\n", result);
                 return 1;
             }
+            /*struct hostent *host = gethostbyname("imad.stil.fun");
+            if (host != NULL) {
+            memcpy(&ConnectingTools.Server.sin_addr.S_un.S_addr,host->h_addr, host->h_length);
+            ConnectingTools.Server.sin_port = htons(8000);  // The port from Pinggy
+            } else {
+                printf("Failed to resolve hostname\n");
+            }*/
+            ConnectingTools.Server.sin_family=AF_INET;
+            ConnectingTools.Server.sin_port=htons(8000);
+            ConnectingTools.Server.sin_addr.S_un.S_addr=inet_addr("192.168.0.102");
             struct sockaddr_in ClientData;
             ConnectingTools.ClientSocket=socket(AF_INET,SOCK_STREAM,0);
             if(ConnectingTools.ClientSocket==INVALID_SOCKET)
@@ -134,11 +143,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 closesocket(ConnectingTools.ClientSocket);
                 return 1;
             }
-            ConnectingTools.Server.sin_family=AF_INET;
-            ConnectingTools.Server.sin_port=htons(2000);
-            ConnectingTools.Server.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
             int ServerResult=connect(ConnectingTools.ClientSocket,(const struct sockaddr *)&ConnectingTools.Server,sizeof(ConnectingTools.Server));
+            Sleep(100);
+            /*struct hostent *hostfirst = gethostbyname("moncef.stil.fun");
+            if (hostfirst != NULL)
+            {
+            memcpy(&ConnectingTools.ServerStatus.sin_addr.S_un.S_addr,hostfirst->h_addr, hostfirst->h_length);
+            ConnectingTools.ServerStatus.sin_port = htons(8000);  // The port from Pinggy
+            }
+            else
+            {
+                printf("Failed to resolve hostname\n");
+            }*/
             // this socket is for status recv
+            ConnectingTools.ServerStatus.sin_family=AF_INET;
+            ConnectingTools.ServerStatus.sin_port=htons(8001);
+            ConnectingTools.ServerStatus.sin_addr.S_un.S_addr=inet_addr("192.168.0.102");
             struct sockaddr_in ClientsStatus;
             ConnectingTools.StatusSocket=socket(AF_INET,SOCK_STREAM,0);
             if(ConnectingTools.StatusSocket==INVALID_SOCKET)
@@ -147,9 +167,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 closesocket(ConnectingTools.StatusSocket);
                 return 1;
             }
-            ConnectingTools.ServerStatus.sin_family=AF_INET;
-            ConnectingTools.ServerStatus.sin_port=htons(2000);
-            ConnectingTools.ServerStatus.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
             int StatusResult=connect(ConnectingTools.StatusSocket,(const struct sockaddr *)&ConnectingTools.ServerStatus,sizeof(ConnectingTools.ServerStatus));
             break;
             case WM_PAINT:
@@ -242,7 +259,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
             if(Green)
             {
-                Authentifaction(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,hwnd,&SendingTools,ConnectingTools);
+                Authentification(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,hwnd,&SendingTools,ConnectingTools);
             }
             Green=FALSE;
             baseRectangle(WindowSize,hwnd);
@@ -583,12 +600,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if(HoveringSearch && !WasHoveringSearch)
         {
             // increase the button is size
-            SetTimer(hwnd,SearchTimer,4,NULL);
+            SetTimer(hwnd,SearchTimer,9,NULL);
         }
         else if(!HoveringSearch && WasHoveringSearch)
         {
             // decrease the button is size
-            SetTimer(hwnd,SearchTimer,4,NULL); 
+            SetTimer(hwnd,SearchTimer,9,NULL); 
         }
         break;
         case WM_DESTROY:
@@ -738,7 +755,7 @@ LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 UpdateScrollValue(hwnd, new_pos);
                 InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             }
-            else
+            else if(pt.y >= 0)
             {
                 Index = pt.y/80;
                 if(Index >= 0 && Index<=100)
@@ -779,7 +796,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // data of the whole workers in the company 
     FILE *UserData=0;
     UserData_2=UserData;
-    FillingData(&UserData);
+    //FillingData(&UserData);
     IDhInstance = hInstance;
     WNDCLASS wndClass = {0};
     wndClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
