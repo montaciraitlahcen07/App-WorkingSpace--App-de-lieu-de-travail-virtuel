@@ -259,7 +259,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
             if(Green)
             {
-                Authentification(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,hwnd,&SendingTools,ConnectingTools);
+                Authentification(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,hwnd,&SendingTools,ConnectingTools,&Green);
             }
             Green=FALSE;
             baseRectangle(WindowSize,hwnd);
@@ -336,7 +336,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1 + (WindowSize.bottom - WindowSize.top)*0.14,(WindowSize.right-WindowSize.left)*0.1,
                     (WindowSize.bottom - WindowSize.top)*0.145,3,WindowSize);
                     //for button start searching for recipient
-                    CreateSearchButton(Mdc,CurrentHSearch,CurrentVSearch,WindowSize,ChatRect,2);
+                    //CreateSearchButton(Mdc,CurrentHSearch,CurrentVSearch,WindowSize,ChatRect,2);
                 }  
                 /*else if(UiGeneral)
                 {
@@ -457,8 +457,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     ChatRect.right = ChatRect.left + (WindowSize.right - WindowSize.left)*0.1;
                     ChatRect.bottom = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.04;
                     HandleSearch = CreateWindowEx(0,"EDIT","", 
-                    WS_CHILD | WS_VISIBLE | WS_BORDER, 
-                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.18,(WindowSize.bottom - WindowSize.top)*0.064,
+                    WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
+                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.06,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.2,(WindowSize.bottom - WindowSize.top)*0.064,
                     hwnd,0,IDhInstance, NULL);
                     ShowWindow(HandleSearch,SW_HIDE);
                 }
@@ -543,8 +543,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,ProjectTimer,4,NULL); 
         }
-
-
         // Disconnect hovering 
         WasHoveringDisconnect=HoveringDisconnect;
         CheckDisconnect=CheckDisconnectRect(Choice_5_Button,hwnd,Mx,My);
@@ -559,8 +557,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,DisconnectTimer,4,NULL); 
         }
-
-
         // Inbox hovering 
         WasHoveringInbox=HoveringInbox;
         CheckInbox=CheckInboxRect(Choice_1_Inbox_Button,hwnd,Mx,My);
@@ -575,8 +571,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,InboxTimer,4,NULL); 
         }
-
-
         // general hovering 
         WasHoveringGeneral=HoveringGeneral;
         CheckGeneral=CheckGeneralRect(Choice_1_General_Button,hwnd,Mx,My);
@@ -591,8 +585,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,GeneralTimer,4,NULL); 
         }
-
-
         // search hovering 
         WasHoveringSearch=HoveringSearch;
         CheckSearch=CheckSearchRect(SearchAnimation,hwnd,Mx,My);

@@ -291,3 +291,11 @@ unsigned __stdcall StatusThread(void *param)
     closesocket(ConnectingTools.StatusSocket);
     return 0;
 }
+/*
+// this is for using the bar search for a recipient 
+void SearchRecipient()
+{
+    char 
+    GetWindowText()
+}
+*/
