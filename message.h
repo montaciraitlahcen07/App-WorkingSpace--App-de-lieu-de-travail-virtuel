@@ -107,7 +107,7 @@
     }
     void CreateInboxUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,HINSTANCE IDhInstance)
     {
-        ChatRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.018;
+        ChatRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.021;
         ChatRect.top = WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043;
         ChatRect.right = ChatRect.left + (WindowSize.right - WindowSize.left)*0.1;
         ChatRect.bottom = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.04;
@@ -240,6 +240,7 @@ void DrawMessageBubbleLogoRight(HDC hdc, int x, int y, int width, int height, in
     DeleteObject(Font);
     DeleteObject(hPen);
 }
+/*
 // creating Search button it is located in the left of the bar of the search
 RECT SearchAnimation;
 void CreateSearchButton(HDC Mdc,float CurrentHSearch,float CurrentVSearch,RECT WindowSize,RECT ChatRect,int strokeWidth)
@@ -294,6 +295,7 @@ void CreateSearchButton(HDC Mdc,float CurrentHSearch,float CurrentVSearch,RECT W
     DeleteObject(Pen);
     DeleteObject(ButtonColor);
 }
+*/
 // create scrollbar for contact
 #define ID_CHILD_WINDOW 1015
 #define SCROLLBAR_WIDTH 12

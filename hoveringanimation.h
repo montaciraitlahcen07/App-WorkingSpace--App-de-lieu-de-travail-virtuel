@@ -270,6 +270,7 @@ void UpdateGeneralAnimation(bool HoveringGeneral,HWND HandleWnd,RECT WindowSize)
     }        
     InvalidateRect(HandleWnd,&WindowSize,FALSE);
 }
+/*
 // animation Search button when we click on inbox button
 void UpdateSearchAnimation(bool HoveringSearch,HWND HandleWnd,RECT WindowSize)
 {
@@ -299,3 +300,4 @@ void UpdateSearchAnimation(bool HoveringSearch,HWND HandleWnd,RECT WindowSize)
     }        
     InvalidateRect(HandleWnd,&WindowSize,FALSE);
 }
+*/

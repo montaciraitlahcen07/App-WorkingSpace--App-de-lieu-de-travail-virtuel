@@ -63,7 +63,7 @@ void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT
         RoundRect(Mdc,Autorisa.left-30,Autorisa.top,Autorisa.right+30,Autorisa.bottom-30,40,30);
         RECT CheckText=Autorisa;
         CheckText.top=CheckText.top+20;
-        DrawText(Mdc,"Fill the bars",-1,&CheckText,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+        DrawText(Mdc,"Incorrect",-1,&CheckText,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
         SelectObject(Mdc,OldFont);
         SelectObject(Mdc,OldPen);
         SelectObject(Mdc,OldBrush);

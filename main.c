@@ -2,6 +2,7 @@
 #include <windowsx.h>
 #include <stdbool.h>
 #include <math.h>
+#include <commctrl.h>
 // all file of the project 
 #include "WndClr.h"
 #include "Login.h"
@@ -12,7 +13,14 @@
 #include "Client.h"
 #include "message.h"
 #include "panelanimation.h"
+#ifndef EM_SETCUEBANNER
+#define EM_SETCUEBANNER 0x1501
+#endif
 
+#ifndef EM_GETCUEBANNER  
+#define EM_GETCUEBANNER 0x1502
+#endif
+#pragma comment(lib, "comctl32.lib")
 // boundaries of the window
 #define MIN_WIDTH 840
 #define MIN_HEIGHT 520
@@ -45,17 +53,86 @@ HBITMAP LogoHandle;
 FILE *UserData_2=0;
 // Authentification
 bool Green=FALSE;
- // for the account
- extern bool Account;
- //
- extern HICON CompanyLogo;
- extern HWND HandleLogo;
+// for the account
+extern bool Account;
+//
+extern HICON CompanyLogo;
+extern HWND HandleLogo;
 // for then click of the mouse
 int x,y;
 //
 bool Start = TRUE;
 bool StartR = TRUE;
 //
+WNDPROC OriginalEditProc = NULL;
+
+char buffer[256];
+LRESULT CALLBACK SearchEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch (msg)
+    {
+        case WM_PAINT:
+        {
+            LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if (strlen(buffer) == 0)
+            {
+                HDC hdc = GetDC(hwnd);
+                RECT rect;
+                GetClientRect(hwnd, &rect);
+                SetTextColor(hdc, RGB(128, 128, 128));
+                SetBkMode(hdc, TRANSPARENT);
+                rect.left += (rect.right - rect.left)*0.05;
+                DrawText(hdc, "Search...", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                ReleaseDC(hwnd, hdc);
+            }
+            return result;
+        }
+        
+    case WM_LBUTTONDOWN:
+        GetWindowText(hwnd, buffer, sizeof(buffer));
+        if (strlen(buffer) == 0)
+        {
+            return 0;
+        }
+        return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+    case WM_LBUTTONDBLCLK:
+        GetWindowText(hwnd, buffer, sizeof(buffer));
+        if (strlen(buffer) == 0)
+        {
+            return 0;
+        }
+        return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+    case WM_RBUTTONDOWN:
+    {
+        GetWindowText(hwnd, buffer, sizeof(buffer));
+        if (strlen(buffer) == 0)
+        {
+            return 0;
+        }
+        return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+    }
+    case EM_SETSEL:
+    {
+        GetWindowText(hwnd, buffer, sizeof(buffer));
+        if (strlen(buffer) == 0)
+        {
+            return 0;
+        }
+        return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+    }
+
+    case WM_CHAR:
+        {
+            LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, FALSE);
+            return result;
+        }
+        
+        default:
+        return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+    }
+}
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg)
     {
@@ -66,15 +143,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             WindowTop = WindowSize.top;
             WindowWidth = WindowSize.right - WindowSize.left;
             WindowHeight = WindowSize.bottom - WindowSize.top;            
-            InvalidateRect(hwnd, &WindowSize, FALSE);
             if(UiInbox)
             {
+                RECT rect;
+                GetClientRect(HandleSearch, &rect);
                 MoveWindow(ScrollBar,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
                 ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
                 (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
                 (WindowSize.bottom-WindowSize.top)*0.643,TRUE);
+                InvalidateRect(HandleSearch,&rect, FALSE);
             }
-           UpdateScrollbarRange(ScrollBar, ScrollBarRect, &g_scrollbar);
+            UpdateScrollbarRange(ScrollBar, ScrollBarRect, &g_scrollbar);
+            InvalidateRect(hwnd, &WindowSize, FALSE);
             break;  
             case WM_CREATE:
             GetClientRect(hwnd, &WindowSize);
@@ -134,7 +214,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }*/
             ConnectingTools.Server.sin_family=AF_INET;
             ConnectingTools.Server.sin_port=htons(8000);
-            ConnectingTools.Server.sin_addr.S_un.S_addr=inet_addr("192.168.0.102");
+            ConnectingTools.Server.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
             struct sockaddr_in ClientData;
             ConnectingTools.ClientSocket=socket(AF_INET,SOCK_STREAM,0);
             if(ConnectingTools.ClientSocket==INVALID_SOCKET)
@@ -158,7 +238,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // this socket is for status recv
             ConnectingTools.ServerStatus.sin_family=AF_INET;
             ConnectingTools.ServerStatus.sin_port=htons(8001);
-            ConnectingTools.ServerStatus.sin_addr.S_un.S_addr=inet_addr("192.168.0.102");
+            ConnectingTools.ServerStatus.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
             struct sockaddr_in ClientsStatus;
             ConnectingTools.StatusSocket=socket(AF_INET,SOCK_STREAM,0);
             if(ConnectingTools.StatusSocket==INVALID_SOCKET)
@@ -327,8 +407,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 {
                     CreateInboxUi(Mdc,hwnd,WindowSize,IDhInstance);
                     LineDifferenceMessage(Mdc,hwnd,WindowSize);
-                    MoveWindow(HandleSearch,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.18,(WindowSize.bottom - WindowSize.top)*0.064,TRUE);
-                    
+                    MoveWindow(HandleSearch,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.045,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.009,(WindowSize.right-WindowSize.left)*0.195,(WindowSize.bottom - WindowSize.top)*0.064,TRUE);
+                    /*
+                    else
+                    {
+
+                    }*/
                     DrawMessageBubbleLogoLeft(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.14,
                     (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1,(WindowSize.right-WindowSize.left)*0.125,
                     (WindowSize.bottom - WindowSize.top)*0.175, 3,WindowSize);
@@ -346,6 +430,29 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     InvalidateRect(ScrollBar, &ScrollBarRect, FALSE);
                     ShowWindow(HandleSearch,SW_SHOW);
                     ShowWindow(ScrollBar, SW_SHOW);
+                    SetFocus(HandleSearch); 
+                    /*
+                    char SearchRecipient[40];
+                    if(GetWindowText(HandleSearch,SearchRecipient,sizeof(SearchRecipient)) == 0)
+                    {
+                        PAINTSTRUCT ps;
+                        RECT rect;
+                        GetClientRect(HandleSearch, &rect);
+                        int width = (rect.right - rect.left);
+                        int height = (rect.bottom - rect.top);
+                        HDC hdc = GetDC(HandleSearch);
+                        HDC memDC = CreateCompatibleDC(hdc);
+                        HBITMAP memBitmap = CreateCompatibleBitmap(hdc,width,height);
+                        SelectObject(memDC, memBitmap);
+                        SetTextColor(Mdc, RGB(128, 128, 128));
+                        SetBkMode(Mdc, TRANSPARENT);                   
+                        rect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.045;
+                        rect.top = (WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.17 + (WindowSize.bottom - WindowSize.top)*0.043 + (WindowSize.bottom - WindowSize.top)*0.04) + (WindowSize.bottom - WindowSize.top)*0.009;
+                        rect.right = rect.left + (WindowSize.right-WindowSize.left)*0.195;
+                        rect.bottom = rect.top + (WindowSize.bottom - WindowSize.top)*0.055;
+                        DrawText(Mdc,"Search...", -1,&rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                        SetTextColor(Mdc, RGB(0,0,0));
+                    }*/
                 }
                 else
                 {
@@ -357,7 +464,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             SelectObject(Mdc, OldBitMap);
             DeleteObject(BitMap);
             DeleteDC(Mdc);
-            
             EndPaint(hwnd, &PaintWnd);
         break;
         case WM_COMMAND:
@@ -420,9 +526,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             case TimerPanel :
             PanelAnimationUp(hwnd,WindowSize);
             break;
+            /*
             case SearchTimer :
             UpdateSearchAnimation(HoveringSearch,hwnd,WindowSize);
             break;
+            */
         }
         InvalidateRect(hwnd,&AreaRedraw,FALSE);
         break;
@@ -456,11 +564,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     ChatRect.top = WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043;
                     ChatRect.right = ChatRect.left + (WindowSize.right - WindowSize.left)*0.1;
                     ChatRect.bottom = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.04;
-                    HandleSearch = CreateWindowEx(0,"EDIT","", 
+                    HandleSearch = CreateWindowEx(0,"EDIT",0, 
                     WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
-                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.06,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.2,(WindowSize.bottom - WindowSize.top)*0.064,
+                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.1,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.22,(WindowSize.bottom - WindowSize.top)*0.064,
                     hwnd,0,IDhInstance, NULL);
-                    ShowWindow(HandleSearch,SW_HIDE);
+                    if(HandleSearch)
+                    {
+                        OriginalEditProc = (WNDPROC)SetWindowLongPtr(HandleSearch, GWLP_WNDPROC, (LONG_PTR)SearchEditProc);
+                    }
                 }
             }
             else if((x>=Choice_1_General_Button.left && x<=Choice_1_General_Button.right) && (y>=Choice_1_General_Button.top && y<=Choice_1_General_Button.bottom ))
@@ -585,6 +696,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,GeneralTimer,4,NULL); 
         }
+        /*
         // search hovering 
         WasHoveringSearch=HoveringSearch;
         CheckSearch=CheckSearchRect(SearchAnimation,hwnd,Mx,My);
@@ -599,6 +711,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,SearchTimer,9,NULL); 
         }
+        */
         break;
         case WM_DESTROY:
         if(HandleSearch != 0)
@@ -820,7 +933,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         NULL, NULL, hInstance, NULL
     );
     
-    if (!HandleWnd) {
+    if(!HandleWnd)
+    {
         MessageBox(NULL, "Window Creation Failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
         return 1;
     }
@@ -829,7 +943,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UpdateWindow(HandleWnd);
     
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0)) {
+    while(GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }   
