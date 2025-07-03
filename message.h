@@ -415,78 +415,157 @@ void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollba
 // to know how is the recipient in the visible area
 int VisibleRecipient[100] = {0};
 int CompVisibleRecipient = 0;
+int ListSearchedRecipient[100] = {0};
+int CompSearchedRecipient = 0;
+int VisibleSearchedRecipient[100];
+int CompvisibleSearchedRecipient = 0;
 char SelectedRecipient[100];
 int Index = -1;
 void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients Message[100],ScrollbarInfo *g_scrollbar)
 {
-    float scroll_offset = g_scrollbar->current_val * 80;
-    
-    float visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
-    CompVisibleRecipient = 0;
-    i = countclientStatus;
-    for (int j = 0; j < i;j++)
-    { 
-        float item_y = (j * 80) - scroll_offset;
-        
-        if (item_y < -80 || item_y > visible_height + 80)
-        {
-            continue;
-        }
-        SetTextColor(Mdc_Child_1,RGB(0,0,0));
-        // store recipient that is visible in the scrollbar window 
-        VisibleRecipient[CompVisibleRecipient] = j;
-        CompVisibleRecipient++;
-        RECT item_rect = {ScrollBarRect.left, item_y, ScrollBarRect.right, item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2};
-        HPEN Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
-        HPEN OldPen=SelectObject(Mdc_Child_1,Pen);
-        MoveToEx(Mdc_Child_1,item_rect.left + (ScrollBarRect.right - ScrollBarRect.left)*0.08,item_rect.bottom,NULL);
-        LineTo(Mdc_Child_1,item_rect.right - (ScrollBarRect.right - ScrollBarRect.left)*0.11,item_rect.bottom);
-        SelectObject(Mdc_Child_1, OldPen);
-        DeleteObject(Pen);
-        Pen=CreatePen(BS_SOLID,3,RGB(180, 180, 190));
-        OldPen=SelectObject(Mdc_Child_1,Pen);
-        item_rect.top+=(ScrollBarRect.bottom - ScrollBarRect.top)*0.07;
-        item_rect.bottom-=(ScrollBarRect.bottom - ScrollBarRect.top)*0.04;
-        item_rect.right -= (ScrollBarRect.right - ScrollBarRect.left) * 0.3;
-        RECT IsActiveRect = item_rect;
-        IsActiveRect.top += (ScrollBarRect.bottom - ScrollBarRect.top)*0.065;
-        IsActiveRect.bottom += (ScrollBarRect.bottom - ScrollBarRect.top)*0.05;
-        HFONT Font=CreateFont( 14,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
-        DEFAULT_PITCH|FF_SWISS,"Arial");
-        HFONT OldFont=(HFONT)SelectObject(Mdc_Child_1,Font);
-        DrawText(Mdc_Child_1,Message[j].Username,-1, &item_rect, DT_SINGLELINE | DT_CENTER);
-        if(Message[j].IsActive)
-        {
-            SetTextColor(Mdc_Child_1,RGB(0,255, 0));
-            DrawText(Mdc_Child_1,"Online",-1,&IsActiveRect, DT_SINGLELINE | DT_CENTER);
-        }
-        else
-        {
-            SetTextColor(Mdc_Child_1,RGB(255,0, 0));
-            DrawText(Mdc_Child_1,"Offline",-1,&IsActiveRect, DT_SINGLELINE | DT_CENTER);
-        }
-        SelectObject(Mdc_Child_1,OldFont);
-        DeleteObject(Font);
-        SelectObject(Mdc_Child_1, OldPen);
-        DeleteObject(Pen);
-        
-    }
-    if (i == 0)
+    char buffer[50];
+    GetWindowText(HandleSearch, buffer, sizeof(buffer));
+    if (strlen(buffer) == 0)
     {
-        RECT no_users_rect = {
-            ScrollBarRect.left + (ScrollBarRect.right - ScrollBarRect.left) * 0.05, 
-            ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)/2 - (ScrollBarRect.bottom - ScrollBarRect.top)*0.11, 
-            ScrollBarRect.right - (ScrollBarRect.right - ScrollBarRect.left) * 0.052, 
-            ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)/2 
-        };
-        
-        HFONT Font = CreateFont(16,8, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, 
-                               DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, 
-                               DEFAULT_QUALITY, DEFAULT_PITCH|FF_SWISS, "Arial");
-        HFONT OldFont = (HFONT)SelectObject(Mdc_Child_1, Font);
-        SetTextColor(Mdc_Child_1, RGB(128, 128, 128));
-        DrawText(Mdc_Child_1, "No users available", -1, &no_users_rect, DT_SINGLELINE | DT_CENTER);
-        SelectObject(Mdc_Child_1, OldFont);
-        DeleteObject(Font);
+        float scroll_offset = g_scrollbar->current_val * 80;
+        float visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
+        CompVisibleRecipient = 0;
+        i = countclientStatus;
+        for (int j = 0; j < i;j++)
+        { 
+            float item_y = (j * 80) - scroll_offset;
+            
+            if (item_y < -80 || item_y > visible_height + 80)
+            {
+                continue;
+            }
+            SetTextColor(Mdc_Child_1,RGB(0,0,0));
+            // store recipient that is visible in the scrollbar window 
+            VisibleRecipient[CompVisibleRecipient] = j;
+            CompVisibleRecipient++;
+            RECT item_rect = {ScrollBarRect.left, item_y, ScrollBarRect.right, item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2};
+            HPEN Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
+            HPEN OldPen=SelectObject(Mdc_Child_1,Pen);
+            MoveToEx(Mdc_Child_1,item_rect.left + (ScrollBarRect.right - ScrollBarRect.left)*0.08,item_rect.bottom,NULL);
+            LineTo(Mdc_Child_1,item_rect.right - (ScrollBarRect.right - ScrollBarRect.left)*0.11,item_rect.bottom);
+            SelectObject(Mdc_Child_1, OldPen);
+            DeleteObject(Pen);
+            Pen=CreatePen(BS_SOLID,3,RGB(180, 180, 190));
+            OldPen=SelectObject(Mdc_Child_1,Pen);
+            item_rect.top+=(ScrollBarRect.bottom - ScrollBarRect.top)*0.07;
+            item_rect.bottom-=(ScrollBarRect.bottom - ScrollBarRect.top)*0.04;
+            item_rect.right -= (ScrollBarRect.right - ScrollBarRect.left) * 0.3;
+            RECT IsActiveRect = item_rect;
+            IsActiveRect.top += (ScrollBarRect.bottom - ScrollBarRect.top)*0.065;
+            IsActiveRect.bottom += (ScrollBarRect.bottom - ScrollBarRect.top)*0.05;
+            HFONT Font=CreateFont( 14,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+            DEFAULT_PITCH|FF_SWISS,"Arial");
+            HFONT OldFont=(HFONT)SelectObject(Mdc_Child_1,Font);
+            DrawText(Mdc_Child_1,Message[j].Username,-1, &item_rect, DT_SINGLELINE | DT_CENTER);
+            if(Message[j].IsActive)
+            {
+                SetTextColor(Mdc_Child_1,RGB(0,255, 0));
+                DrawText(Mdc_Child_1,"Online",-1,&IsActiveRect, DT_SINGLELINE | DT_CENTER);
+            }
+            else
+            {
+                SetTextColor(Mdc_Child_1,RGB(255,0, 0));
+                DrawText(Mdc_Child_1,"Offline",-1,&IsActiveRect, DT_SINGLELINE | DT_CENTER);
+            }
+            SelectObject(Mdc_Child_1,OldFont);
+            DeleteObject(Font);
+            SelectObject(Mdc_Child_1, OldPen);
+            DeleteObject(Pen);
+            
+        }
+        if (i == 0)
+        {
+            RECT no_users_rect = {
+                ScrollBarRect.left + (ScrollBarRect.right - ScrollBarRect.left) * 0.05, 
+                ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)/2 - (ScrollBarRect.bottom - ScrollBarRect.top)*0.11, 
+                ScrollBarRect.right - (ScrollBarRect.right - ScrollBarRect.left) * 0.052, 
+                ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)/2 
+            };
+            
+            HFONT Font = CreateFont(16,8, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, 
+                                   DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, 
+                                   DEFAULT_QUALITY, DEFAULT_PITCH|FF_SWISS, "Arial");
+            HFONT OldFont = (HFONT)SelectObject(Mdc_Child_1, Font);
+            SetTextColor(Mdc_Child_1, RGB(128, 128, 128));
+            DrawText(Mdc_Child_1, "No users available", -1, &no_users_rect, DT_SINGLELINE | DT_CENTER);
+            SelectObject(Mdc_Child_1, OldFont);
+            DeleteObject(Font);
+        }
+    }
+    else
+    {
+        int Cmp = FillingSearchRecipientList(HandleSearch,countclientStatus,Message,ListSearchedRecipient,CompSearchedRecipient);
+        float scroll_offset = g_scrollbar->current_val * 80;
+        float visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
+        CompvisibleSearchedRecipient = 0;
+        for (int j = 0; j <Cmp;j++)
+        { 
+            float item_y = (j * 80) - scroll_offset;
+            
+            if (item_y < -80 || item_y > visible_height + 80)
+            {
+                continue;
+            }
+            SetTextColor(Mdc_Child_1,RGB(0,0,0));
+            // store recipient that is visible in the scrollbar window 
+            VisibleSearchedRecipient[CompvisibleSearchedRecipient++] = j;
+            RECT item_rect = {ScrollBarRect.left, item_y, ScrollBarRect.right, item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2};
+            HPEN Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
+            HPEN OldPen=SelectObject(Mdc_Child_1,Pen);
+            MoveToEx(Mdc_Child_1,item_rect.left + (ScrollBarRect.right - ScrollBarRect.left)*0.08,item_rect.bottom,NULL);
+            LineTo(Mdc_Child_1,item_rect.right - (ScrollBarRect.right - ScrollBarRect.left)*0.11,item_rect.bottom);
+            SelectObject(Mdc_Child_1, OldPen);
+            DeleteObject(Pen);
+            Pen=CreatePen(BS_SOLID,3,RGB(180, 180, 190));
+            OldPen=SelectObject(Mdc_Child_1,Pen);
+            item_rect.top+=(ScrollBarRect.bottom - ScrollBarRect.top)*0.07;
+            item_rect.bottom-=(ScrollBarRect.bottom - ScrollBarRect.top)*0.04;
+            item_rect.right -= (ScrollBarRect.right - ScrollBarRect.left) * 0.3;
+            RECT IsActiveRect = item_rect;
+            IsActiveRect.top += (ScrollBarRect.bottom - ScrollBarRect.top)*0.065;
+            IsActiveRect.bottom += (ScrollBarRect.bottom - ScrollBarRect.top)*0.05;
+            HFONT Font=CreateFont( 14,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+            DEFAULT_PITCH|FF_SWISS,"Arial");
+            HFONT OldFont=(HFONT)SelectObject(Mdc_Child_1,Font);
+            DrawText(Mdc_Child_1,Message[ListSearchedRecipient[j]].Username,-1, &item_rect, DT_SINGLELINE | DT_CENTER);
+            if(Message[ListSearchedRecipient[j]].IsActive)
+            {
+                SetTextColor(Mdc_Child_1,RGB(0,255, 0));
+                DrawText(Mdc_Child_1,"Online",-1,&IsActiveRect, DT_SINGLELINE | DT_CENTER);
+            }
+            else
+            {
+                SetTextColor(Mdc_Child_1,RGB(255,0, 0));
+                DrawText(Mdc_Child_1,"Offline",-1,&IsActiveRect, DT_SINGLELINE | DT_CENTER);
+            }
+            SelectObject(Mdc_Child_1,OldFont);
+            DeleteObject(Font);
+            SelectObject(Mdc_Child_1, OldPen);
+            DeleteObject(Pen);
+            
+        }
+        if (Cmp == 0)
+        {
+            RECT no_users_rect = {
+                ScrollBarRect.left + (ScrollBarRect.right - ScrollBarRect.left) * 0.05, 
+                ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)/2 - (ScrollBarRect.bottom - ScrollBarRect.top)*0.11, 
+                ScrollBarRect.right - (ScrollBarRect.right - ScrollBarRect.left) * 0.052, 
+                ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)/2 
+            };
+            
+            HFONT Font = CreateFont(16,8, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, 
+                                   DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, 
+                                   DEFAULT_QUALITY, DEFAULT_PITCH|FF_SWISS, "Arial");
+            HFONT OldFont = (HFONT)SelectObject(Mdc_Child_1, Font);
+            SetTextColor(Mdc_Child_1, RGB(128, 128, 128));
+            DrawText(Mdc_Child_1, "No users available", -1, &no_users_rect, DT_SINGLELINE | DT_CENTER);
+            SelectObject(Mdc_Child_1, OldFont);
+            DeleteObject(Font);
+        }
     }
 }

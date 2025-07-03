@@ -16,7 +16,6 @@
 #ifndef EM_SETCUEBANNER
 #define EM_SETCUEBANNER 0x1501
 #endif
-
 #ifndef EM_GETCUEBANNER  
 #define EM_GETCUEBANNER 0x1502
 #endif
@@ -24,7 +23,6 @@
 // boundaries of the window
 #define MIN_WIDTH 840
 #define MIN_HEIGHT 520
-
 // the window is variable
 HWND HandleWnd;
 RECT WindowSize;
@@ -44,11 +42,9 @@ HWND ButtonHandle;
 #define ButtonID 1000
 HINSTANCE IDhInstance;
 bool ShowButton = TRUE;
-
 // logo montech company
 HBITMAP LogoHandle;
 //char *Image="C:\\Users\\Documents\\logo.bmp";
-
 // file is copy
 FILE *UserData_2=0;
 // Authentification
@@ -65,7 +61,6 @@ bool Start = TRUE;
 bool StartR = TRUE;
 //
 WNDPROC OriginalEditProc = NULL;
-
 char buffer[256];
 LRESULT CALLBACK SearchEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -103,15 +98,13 @@ LRESULT CALLBACK SearchEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
         }
         return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
-    case WM_RBUTTONDOWN:
-    {
-        GetWindowText(hwnd, buffer, sizeof(buffer));
-        if (strlen(buffer) == 0)
+    case WM_PASTE :
         {
-            return 0;
+            LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, FALSE);
+            InvalidateRect(HandleWnd,&ScrollBarRect,FALSE);
+            return result;
         }
-        return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
-    }
     case EM_SETSEL:
     {
         GetWindowText(hwnd, buffer, sizeof(buffer));
@@ -126,6 +119,7 @@ LRESULT CALLBACK SearchEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         {
             LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
             InvalidateRect(hwnd, NULL, FALSE);
+            InvalidateRect(HandleWnd,&ScrollBarRect,FALSE);
             return result;
         }
         

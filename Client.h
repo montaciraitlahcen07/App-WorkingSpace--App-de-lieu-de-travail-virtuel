@@ -16,11 +16,9 @@ typedef struct
     char username[100];
     char buffer[100];
 }Client;
-
 Client param;
 int ConnectClient=0;
 char Recipient[100];
-
 // this is for storing all the clients is info
 typedef struct 
 {
@@ -40,7 +38,7 @@ CRITICAL_SECTION socketLock;
 //
 unsigned __stdcall receivingClient(void *param);
 unsigned __stdcall SendingThread(void *param);
-
+int FillingSearchRecipientList(HWND HandleSearch,int countclient,Clients Message[100],int ListSearchedRecipient[100],int CompSearchedRecipient);
 unsigned __stdcall receivingClient(void *param)
 {
     char username[100];
@@ -199,7 +197,6 @@ unsigned __stdcall SendingThread(void *param)
             }
             // do it when i make the ui of sending message and get that message with getwindowtext
             strcpy(Buffer,"fen");
-            
             int lenb = strlen(Buffer);
             while (lenb > 0 && (Buffer[lenb-1] == '\n' || Buffer[lenb-1] == '\r' || 
             Buffer[lenb-1] == '\t' || Buffer[lenb-1] == ' '))
@@ -292,8 +289,17 @@ unsigned __stdcall StatusThread(void *param)
     return 0;
 }
 // this is for using the bar search for a recipient 
-void SearchRecipient()
+int FillingSearchRecipientList(HWND HandleSearch,int countclientStatus,Clients Message[100],int ListSearchedRecipient[100],int CompSearchedRecipient)
 {
-    //char 
-    //GetWindowText()
+    CompSearchedRecipient = 0;
+    char SearchedRecipient[100];
+    GetWindowText(HandleSearch,SearchedRecipient,sizeof(SearchedRecipient));
+    for(int i=0;i<countclientStatus;i++)
+    {
+        if(strstr(Message[i].Username,SearchedRecipient) != 0)
+        {
+            ListSearchedRecipient[CompSearchedRecipient++] = i;           
+        }
+    }
+    return CompSearchedRecipient;
 }
