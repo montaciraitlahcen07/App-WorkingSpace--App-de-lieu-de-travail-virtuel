@@ -59,10 +59,50 @@ int x,y;
 //
 bool Start = TRUE;
 bool StartR = TRUE;
+char buffer[256];
 //
 WNDPROC OriginalEditProc = NULL;
-char buffer[256];
-LRESULT CALLBACK SearchEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+WNDPROC OriginalUsernameBarProc = NULL;
+WNDPROC OriginalPasswordBarProc = NULL;
+// this WndProc is for Password bar
+LRESULT CALLBACK PasswordBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch(msg)
+    {
+        case WM_CHAR:
+        {
+            if(Login && GetFocus() == PLogin && wParam == VK_RETURN)
+            {
+                Green = TRUE;
+                InvalidateRect(HandleWnd,&WindowSize,FALSE);
+                return 0;
+            }
+            return CallWindowProc(OriginalPasswordBarProc, hwnd, msg, wParam, lParam);
+        }
+        default:
+        return CallWindowProc(OriginalPasswordBarProc, hwnd, msg, wParam, lParam);
+    }
+}
+// this WndProc is for Username bar
+LRESULT CALLBACK UsernameBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch(msg)
+    {
+        case WM_CHAR:
+        {
+            if(Login && GetFocus() == ULogin && wParam == VK_RETURN)
+            {
+                SetFocus(PLogin);
+                return 0;
+            }
+            return CallWindowProc(OriginalUsernameBarProc, hwnd, msg, wParam, lParam);
+        }
+        default:
+        return CallWindowProc(OriginalUsernameBarProc, hwnd, msg, wParam, lParam);
+    }
+}
+// this WndProc for the bar search window
+LRESULT CALLBACK SearchBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -127,6 +167,259 @@ LRESULT CALLBACK SearchEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
     }
 }
+// this WndProc is for Scroll bar window
+RECT RecipientClicked;
+#define Recipient_1 1011
+bool IndexRecipient_1 = FALSE;
+#define Recipient_2 1012
+bool IndexRecipient_2 = FALSE;
+#define Recipient_3 1013
+bool IndexRecipient_3 = FALSE;
+#define Recipient_4 1014
+bool IndexRecipient_4 = FALSE;
+#define Recipient_5 1015
+bool IndexRecipient_5 = FALSE;
+#define Recipient_6 1016
+bool IndexRecipient_6 = FALSE;
+#define Recipient_7 1017
+bool IndexRecipient_7 = FALSE;
+#define Recipient_8 1018
+bool IndexRecipient_8 = FALSE;
+LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg)
+    {
+        case WM_CREATE:
+            g_scrollbar.min_val = 0;
+            g_scrollbar.current_val = 0;
+            if(total_items <= items_per_page)
+            {
+                g_scrollbar.max_val = 2; 
+                g_scrollbar.page_size = items_per_page;
+            } 
+            else
+            {
+                g_scrollbar.max_val = total_items - items_per_page + 1;
+                g_scrollbar.page_size = items_per_page;
+            }
+            InvalidateRect(hwnd, &ScrollBarRect, FALSE);
+            break;
+        case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            DeviceContext_Child_1 = BeginPaint(hwnd, &ps);
+            GetClientRect(hwnd, &ScrollBarRect);
+            MemoryDcSndTool.ScrollBarRect = ScrollBarRect;
+            SendingTrdStatus.ScrolBarRect = ScrollBarRect;
+            Mdc_Child_1 = CreateCompatibleDC(DeviceContext_Child_1);
+            HBITMAP memBitmap = CreateCompatibleBitmap(DeviceContext_Child_1, 
+            ScrollBarRect.right - ScrollBarRect.left, ScrollBarRect.bottom - ScrollBarRect.top);
+            HBITMAP oldBitmap = SelectObject(Mdc_Child_1, memBitmap);
+            HBRUSH Creme = CreateSolidBrush(RGB(250,245,230));
+            FillRect(Mdc_Child_1, &ScrollBarRect, Creme);
+            DeleteObject(Creme);
+            HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+            HPEN oldPen = SelectObject(Mdc_Child_1, borderPen);
+            HBRUSH oldBrush = SelectObject(Mdc_Child_1, GetStockObject(NULL_BRUSH));
+            SetBkMode(Mdc_Child_1, TRANSPARENT);
+            /*if(IndexRecipient_1)
+            {
+                RecipientClicked.top = ScrollBarRect.top;
+                RecipientClicked.left = ScrollBarRect.left;
+                RecipientClicked.right = ScrollBarRect.right;
+                RecipientClicked.bottom = ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2;
+                HBRUSH Gray = CreateSolidBrush(RGB(220,220,220));
+                FillRect(Mdc_Child_1,&RecipientClicked,Gray);
+                SetTimer(ScrollBar,Recipient_1,1000,NULL);
+                IndexRecipient_1 = FALSE;
+                DeleteObject(Gray);
+            }
+            else if(IndexRecipient_2)
+            {
+                RecipientClicked.top = ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2;
+                RecipientClicked.left = ScrollBarRect.left;
+                RecipientClicked.right = ScrollBarRect.right;
+                RecipientClicked.bottom = ScrollBarRect.top + ((ScrollBarRect.bottom - ScrollBarRect.top)*0.2)*2;
+                HBRUSH Gray = CreateSolidBrush(RGB(220,220,220));
+                FillRect(Mdc_Child_1,&RecipientClicked,Gray);
+                SetTimer(ScrollBar,Recipient_2,100,NULL);
+                IndexRecipient_2 = FALSE;
+                DeleteObject(Gray);
+            }*/
+            DrawScrollBar(Mdc_Child_1, hwnd,WindowSize);
+            UpdateScrollbarRange(hwnd,ScrollBarRect,&g_scrollbar);
+            DrawContentWithScroll(Mdc_Child_1,hwnd,ScrollBarRect,Message,&g_scrollbar);
+            BitBlt(DeviceContext_Child_1, 0, 0, ScrollBarRect.right - ScrollBarRect.left, 
+            ScrollBarRect.bottom - ScrollBarRect.top, Mdc_Child_1, 0, 0, SRCCOPY);
+            SelectObject(Mdc_Child_1, oldBrush);
+            SelectObject(Mdc_Child_1, oldPen);
+            SelectObject(Mdc_Child_1, oldBitmap);
+            DeleteObject(borderPen);
+            DeleteObject(memBitmap);
+            DeleteDC(Mdc_Child_1);
+            
+            EndPaint(hwnd, &ps);
+            break;
+        }
+        case WM_SIZE:
+        {
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
+        }
+        case WM_MOUSEMOVE: {
+            POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            BOOL was_hovering = g_scrollbar.thumb_hover;
+            CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
+            g_scrollbar.thumb_hover = PointInRect(pt, &g_scrollbar.thumb_rect);
+            if(was_hovering != g_scrollbar.thumb_hover)
+            {
+                InvalidateRect(hwnd, &g_scrollbar.thumb_rect, FALSE);
+            }
+            if (g_scrollbar.is_dragging)
+            {
+                RECT ScrollBarRect;
+                GetClientRect(hwnd, &ScrollBarRect);
+                float track_height = ScrollBarRect.bottom - 80;
+                float range = g_scrollbar.max_val - g_scrollbar.min_val;
+                if (range > 0)
+                {
+                    float new_pos = ((pt.y - 4 - g_scrollbar.drag_offset) * range) / track_height;
+                    UpdateScrollValue(hwnd, new_pos);
+                }
+            }
+            InvalidateRect(hwnd, &ScrollBarRect, FALSE);
+            break;
+        }
+        case WM_LBUTTONDOWN:
+        {
+            RECT client_rect;
+            GetClientRect(hwnd, &client_rect);
+            POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            RECT track_rect = {
+            client_rect.right - SCROLLBAR_WIDTH - 2,
+            0,
+            client_rect.right - 2,
+            client_rect.bottom};
+            CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
+            if(PointInRect(pt, &g_scrollbar.thumb_rect)) {
+                g_scrollbar.is_dragging = TRUE;
+                g_scrollbar.thumb_pressed = TRUE;
+                g_scrollbar.drag_offset = pt.y - g_scrollbar.thumb_rect.top;
+                SetCapture(hwnd);
+                InvalidateRect(hwnd, &g_scrollbar.thumb_rect, FALSE);
+            }
+            else if((pt.x >=g_scrollbar.thumb_rect.left && pt.x <=g_scrollbar.thumb_rect.right))
+            {
+                float track_height = ScrollBarRect.bottom - 80;
+                float range = g_scrollbar.max_val - g_scrollbar.min_val;
+                float new_pos = ((pt.y - 4) * range) / track_height;
+                UpdateScrollValue(hwnd, new_pos);
+                InvalidateRect(hwnd, &ScrollBarRect, FALSE);
+            }
+            else if(pt.y >= 0)
+            {
+                Index = pt.y/80;
+                char EmptyFull[50];
+                GetWindowText(HandleSearch,EmptyFull,sizeof(EmptyFull));
+                if(Index >= 0 && Index<=100 && strlen(EmptyFull) == 0)
+                {
+                    strcpy(SelectedRecipient,Message[VisibleRecipient[Index]].Username);
+                    // taking a copy into receiving thread
+                    strcpy(ConnectingTools.SelectedRecipient,Message[VisibleRecipient[Index]].Username);
+                }
+                else if(Index >= 0 && Index<=100 && strlen(EmptyFull) != 0)
+                {
+
+                    strcpy(SelectedRecipient,Message[VisibleSearchedRecipient[Index]].Username);
+                    // taking a copy into receiving thread
+                    strcpy(ConnectingTools.SelectedRecipient,Message[VisibleSearchedRecipient[Index]].Username);
+                }
+                /*
+                switch(Index)
+                {
+                    case 0:
+                    IndexRecipient_1 = TRUE;
+                    InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);             
+                    break;
+                    case 1:
+                    IndexRecipient_2 = TRUE;
+                    break;
+                    case 2:
+                    IndexRecipient_3 = TRUE;
+                    break;
+                    case 3:
+                    IndexRecipient_4 = TRUE;
+                    break;
+                    case 4:
+                    IndexRecipient_5 = TRUE;
+                    break;
+                    case 5:
+                    IndexRecipient_6 = TRUE;
+                    break;
+                    case 6:
+                    IndexRecipient_7 = TRUE;
+                    break;
+                    case 7:
+                    break;
+                    case 8:
+                    break;
+                }*/
+            }
+
+            break;
+        }
+        case WM_LBUTTONUP:
+        {
+            if (g_scrollbar.is_dragging) {
+                g_scrollbar.is_dragging = FALSE;
+                g_scrollbar.thumb_pressed = FALSE;
+                ReleaseCapture();
+                InvalidateRect(hwnd, &g_scrollbar.thumb_rect, FALSE);
+            }
+            break;
+        }
+        case WM_MOUSEWHEEL:
+        {
+            float delta = GET_WHEEL_DELTA_WPARAM(wParam);
+            float step = (delta > 0) ? -1.0f : 1.0f;
+            UpdateScrollValue(hwnd, g_scrollbar.current_val + step);
+            InvalidateRect(hwnd, &ScrollBarRect, FALSE);
+            break;
+        }
+        /*
+        case WM_TIMER :
+        switch(wParam)
+        {
+            case Recipient_1 :
+            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
+            InvalidateRect(HandleWnd,&WindowSize,FALSE);
+            break;
+            case Recipient_2 :
+            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
+            InvalidateRect(HandleWnd,&WindowSize,FALSE);
+            break;
+            case Recipient_3 :
+            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
+            InvalidateRect(HandleWnd,&WindowSize,FALSE);
+            break;
+            case Recipient_4 :
+            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
+            InvalidateRect(HandleWnd,&WindowSize,FALSE);
+            break;
+            case Recipient_5 :
+            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
+            InvalidateRect(HandleWnd,&WindowSize,FALSE);
+            break;
+            case Recipient_6 :
+            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
+            InvalidateRect(HandleWnd,&WindowSize,FALSE);
+            break;
+        }*/
+        default:
+            return DefWindowProc(hwnd, msg, wParam, lParam);
+    }
+    return 0;
+}
+// this WndProc is for the main window 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg)
     {
@@ -154,7 +447,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             GetClientRect(hwnd, &WindowSize);
             ButtonHandle = CreateWindowEx( 0,"BUTTON","Log in",WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_FLAT,
             0, 0, 100, 32,hwnd,(HMENU)ButtonID,IDhInstance,NULL); 
-
             // thoose are for rendering the logo of the company in the first page
             int logoSize = min(WindowWidth, WindowHeight) * 0.2;
             CompanyLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,logoSize,logoSize,LR_LOADFROMFILE);   
@@ -164,7 +456,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             (WindowSize.right-WindowSize.left)*0.3,(WindowSize.bottom-WindowSize.top)*0.45,
             hwnd,0,0,NULL);
             SendMessage(HandleLogo,STM_SETICON,(WPARAM)CompanyLogo,0); 
-
             // company big logo in the account page
             int BiglogoSize = min(WindowWidth, WindowHeight) * 0.5;
             CompanyBigLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,
@@ -176,7 +467,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             hwnd,0,0,NULL);
             SendMessage(HandleBigLogo,STM_SETICON,(WPARAM)CompanyBigLogo,0); 
             ShowWindow(HandleBigLogo,SW_HIDE);
-            
             ScrollBar = CreateWindowEx(
             0,
             "CustomScrollChildWindow",
@@ -191,7 +481,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             MemoryDcSndTool.ScrollBar = ScrollBar;
             SendingTrdStatus.ScrollBar = ScrollBar;
             UpdateScrollbarRange(ScrollBar,ScrollBarRect, &g_scrollbar);
-            
             // this is for the client winsock2 things
             WSADATA wsaData;
             int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -413,40 +702,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     DrawMessageBubbleLogoRight(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.1 + (WindowSize.right-WindowSize.left)*0.148,
                     (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1 + (WindowSize.bottom - WindowSize.top)*0.14,(WindowSize.right-WindowSize.left)*0.1,
                     (WindowSize.bottom - WindowSize.top)*0.145,3,WindowSize);
-                    //for button start searching for recipient
-                    //CreateSearchButton(Mdc,CurrentHSearch,CurrentVSearch,WindowSize,ChatRect,2);
                 }  
-                /*else if(UiGeneral)
-                {
-                }*/
                 if(UiInbox)
                 {
                     InvalidateRect(ScrollBar, &ScrollBarRect, FALSE);
                     ShowWindow(HandleSearch,SW_SHOW);
                     ShowWindow(ScrollBar, SW_SHOW);
                     SetFocus(HandleSearch); 
-                    /*
-                    char SearchRecipient[40];
-                    if(GetWindowText(HandleSearch,SearchRecipient,sizeof(SearchRecipient)) == 0)
-                    {
-                        PAINTSTRUCT ps;
-                        RECT rect;
-                        GetClientRect(HandleSearch, &rect);
-                        int width = (rect.right - rect.left);
-                        int height = (rect.bottom - rect.top);
-                        HDC hdc = GetDC(HandleSearch);
-                        HDC memDC = CreateCompatibleDC(hdc);
-                        HBITMAP memBitmap = CreateCompatibleBitmap(hdc,width,height);
-                        SelectObject(memDC, memBitmap);
-                        SetTextColor(Mdc, RGB(128, 128, 128));
-                        SetBkMode(Mdc, TRANSPARENT);                   
-                        rect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.045;
-                        rect.top = (WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.17 + (WindowSize.bottom - WindowSize.top)*0.043 + (WindowSize.bottom - WindowSize.top)*0.04) + (WindowSize.bottom - WindowSize.top)*0.009;
-                        rect.right = rect.left + (WindowSize.right-WindowSize.left)*0.195;
-                        rect.bottom = rect.top + (WindowSize.bottom - WindowSize.top)*0.055;
-                        DrawText(Mdc,"Search...", -1,&rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-                        SetTextColor(Mdc, RGB(0,0,0));
-                    }*/
                 }
                 else
                 {
@@ -520,11 +782,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             case TimerPanel :
             PanelAnimationUp(hwnd,WindowSize);
             break;
-            /*
-            case SearchTimer :
-            UpdateSearchAnimation(HoveringSearch,hwnd,WindowSize);
-            break;
-            */
         }
         InvalidateRect(hwnd,&AreaRedraw,FALSE);
         break;
@@ -564,7 +821,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     hwnd,0,IDhInstance, NULL);
                     if(HandleSearch)
                     {
-                        OriginalEditProc = (WNDPROC)SetWindowLongPtr(HandleSearch, GWLP_WNDPROC, (LONG_PTR)SearchEditProc);
+                        OriginalEditProc = (WNDPROC)SetWindowLongPtr(HandleSearch, GWLP_WNDPROC, (LONG_PTR)SearchBarProc);
                     }
                 }
             }
@@ -585,7 +842,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         GetClientRect(hwnd,&WindowSize);
         Mx=LOWORD(lParam);
         My=HIWORD(lParam);
-
         // message hovering
         WasHoveringMessage=HoveringMessage;
         CheckMessage=CheckMessageRect(Choice_1_Button,hwnd,Mx,My);
@@ -600,8 +856,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,MessageTimer,4,NULL); 
         }
-
-
         // online hovering 
         WasHoveringOnline=HoveringOnline;
         CheckOnline=CheckOnlineRect(Choice_2_Button,hwnd,Mx,My);
@@ -616,8 +870,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,OnlineTimer,4,NULL); 
         }
-
-
         // Task hovering 
         WasHoveringTask=HoveringTask;
         CheckTask=CheckTaskRect(Choice_3_Button,hwnd,Mx,My);
@@ -632,8 +884,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,TaskTimer,4,NULL); 
         }
-
-
         // Project hovering 
         WasHoveringProject=HoveringProject;
         CheckProject=CheckProjectRect(Choice_4_Button,hwnd,Mx,My);
@@ -690,23 +940,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,GeneralTimer,4,NULL); 
         }
-        /*
-        // search hovering 
-        WasHoveringSearch=HoveringSearch;
-        CheckSearch=CheckSearchRect(SearchAnimation,hwnd,Mx,My);
-        HoveringSearch=CheckSearch;
-        if(HoveringSearch && !WasHoveringSearch)
-        {
-            // increase the button is size
-            SetTimer(hwnd,SearchTimer,9,NULL);
-        }
-        else if(!HoveringSearch && WasHoveringSearch)
-        {
-            // decrease the button is size
-            SetTimer(hwnd,SearchTimer,9,NULL); 
-        }
-        */
         break;
+        
         case WM_DESTROY:
         if(HandleSearch != 0)
         {
@@ -735,167 +970,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
     return 0;
 }
-LRESULT CALLBACK ChildWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg)
-    {
-        case WM_CREATE:
-            g_scrollbar.min_val = 0;
-            g_scrollbar.current_val = 0;
-            if(total_items <= items_per_page)
-            {
-                g_scrollbar.max_val = 2; 
-                g_scrollbar.page_size = items_per_page;
-            } 
-            else
-            {
-                g_scrollbar.max_val = total_items - items_per_page + 1;
-                g_scrollbar.page_size = items_per_page;
-            }
-            
-            InvalidateRect(hwnd, &ScrollBarRect, FALSE);
-            break;
-            
-        case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            DeviceContext_Child_1 = BeginPaint(hwnd, &ps);
-            
-            GetClientRect(hwnd, &ScrollBarRect);
-            MemoryDcSndTool.ScrollBarRect = ScrollBarRect;
-            SendingTrdStatus.ScrolBarRect = ScrollBarRect;
-            Mdc_Child_1 = CreateCompatibleDC(DeviceContext_Child_1);
-            HBITMAP memBitmap = CreateCompatibleBitmap(DeviceContext_Child_1, 
-            ScrollBarRect.right - ScrollBarRect.left, ScrollBarRect.bottom - ScrollBarRect.top);
-            HBITMAP oldBitmap = SelectObject(Mdc_Child_1, memBitmap);
-            HBRUSH Creme = CreateSolidBrush(RGB(250,245,230));
-            FillRect(Mdc_Child_1, &ScrollBarRect, Creme);
-            DeleteObject(Creme);
-
-            HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-            HPEN oldPen = SelectObject(Mdc_Child_1, borderPen);
-            HBRUSH oldBrush = SelectObject(Mdc_Child_1, GetStockObject(NULL_BRUSH));
-            SetBkMode(Mdc_Child_1, TRANSPARENT);
-            DrawScrollBar(Mdc_Child_1, hwnd,WindowSize);
-            UpdateScrollbarRange(hwnd,ScrollBarRect,&g_scrollbar);
-            DrawContentWithScroll(Mdc_Child_1,hwnd,ScrollBarRect,Message,&g_scrollbar);
-            
-            BitBlt(DeviceContext_Child_1, 0, 0, ScrollBarRect.right - ScrollBarRect.left, 
-            ScrollBarRect.bottom - ScrollBarRect.top, Mdc_Child_1, 0, 0, SRCCOPY);
-            
-            SelectObject(Mdc_Child_1, oldBrush);
-            SelectObject(Mdc_Child_1, oldPen);
-            SelectObject(Mdc_Child_1, oldBitmap);
-            DeleteObject(borderPen);
-            DeleteObject(memBitmap);
-            DeleteDC(Mdc_Child_1);
-            
-            EndPaint(hwnd, &ps);
-            break;
-        }
-        
-        case WM_SIZE: {
-            
-            InvalidateRect(hwnd, NULL, TRUE);
-            break;
-        }
-        
-        case WM_MOUSEMOVE: {
-            POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-            BOOL was_hovering = g_scrollbar.thumb_hover;
-            
-            CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
-            g_scrollbar.thumb_hover = PointInRect(pt, &g_scrollbar.thumb_rect);
-            
-            if(was_hovering != g_scrollbar.thumb_hover)
-            {
-                InvalidateRect(hwnd, &g_scrollbar.thumb_rect, FALSE);
-            }
-            
-            if (g_scrollbar.is_dragging) {
-                RECT ScrollBarRect;
-                GetClientRect(hwnd, &ScrollBarRect);
-                float track_height = ScrollBarRect.bottom - 80;
-                float range = g_scrollbar.max_val - g_scrollbar.min_val;
-                
-                if (range > 0)
-                {
-                    float new_pos = ((pt.y - 4 - g_scrollbar.drag_offset) * range) / track_height;
-                    UpdateScrollValue(hwnd, new_pos);
-                }
-            }
-            InvalidateRect(hwnd, &ScrollBarRect, FALSE);
-            break;
-        }
-        
-        case WM_LBUTTONDOWN:
-        {
-            RECT client_rect;
-            GetClientRect(hwnd, &client_rect);
-            POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-            RECT track_rect = {
-            client_rect.right - SCROLLBAR_WIDTH - 2,
-            0,
-            client_rect.right - 2,
-            client_rect.bottom};
-            
-            CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
-            if(PointInRect(pt, &g_scrollbar.thumb_rect)) {
-                g_scrollbar.is_dragging = TRUE;
-                g_scrollbar.thumb_pressed = TRUE;
-                g_scrollbar.drag_offset = pt.y - g_scrollbar.thumb_rect.top;
-                SetCapture(hwnd);
-                InvalidateRect(hwnd, &g_scrollbar.thumb_rect, FALSE);
-            }
-            else if((pt.x >=g_scrollbar.thumb_rect.left && pt.x <=g_scrollbar.thumb_rect.right))
-            {
-                float track_height = ScrollBarRect.bottom - 80;
-                float range = g_scrollbar.max_val - g_scrollbar.min_val;
-                float new_pos = ((pt.y - 4) * range) / track_height;
-                UpdateScrollValue(hwnd, new_pos);
-                InvalidateRect(hwnd, &ScrollBarRect, FALSE);
-            }
-            else if(pt.y >= 0)
-            {
-                Index = pt.y/80;
-                if(Index >= 0 && Index<=100)
-                {
-                    strcpy(SelectedRecipient,Message[VisibleRecipient[Index]].Username);
-                    // taking a copy into receiving thread
-                    strcpy(ConnectingTools.SelectedRecipient,Message[VisibleRecipient[Index]].Username);
-                }
-            }
-            break;
-        }
-        
-        case WM_LBUTTONUP: {
-            if (g_scrollbar.is_dragging) {
-                g_scrollbar.is_dragging = FALSE;
-                g_scrollbar.thumb_pressed = FALSE;
-                ReleaseCapture();
-                InvalidateRect(hwnd, &g_scrollbar.thumb_rect, FALSE);
-            }
-            break;
-        }
-        
-        case WM_MOUSEWHEEL: {
-            float delta = GET_WHEEL_DELTA_WPARAM(wParam);
-            float step = (delta > 0) ? -1.0f : 1.0f;
-            UpdateScrollValue(hwnd, g_scrollbar.current_val + step);
-            InvalidateRect(hwnd, &ScrollBarRect, FALSE);
-            break;
-        }
-        
-        default:
-            return DefWindowProc(hwnd, msg, wParam, lParam);
-    }
-    return 0;
-}
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
     // data of the whole workers in the company 
     FILE *UserData=0;
     UserData_2=UserData;
-    //FillingData(&UserData);
     IDhInstance = hInstance;
     WNDCLASS wndClass = {0};
     wndClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
@@ -910,11 +989,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
     const char* CHILD_CLASS_NAME = "CustomScrollChildWindow";
     WNDCLASS child_wc = {0};
-    child_wc.lpfnWndProc = ChildWindowProc; 
+    child_wc.lpfnWndProc = ScrollBarWindowProc; 
     child_wc.hInstance = hInstance;
     child_wc.lpszClassName = CHILD_CLASS_NAME;
-    child_wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    child_wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    child_wc.hCursor = LoadCursor(NULL, IDC_HAND);
     RegisterClass(&child_wc);
     
     HandleWnd = CreateWindowEx(
@@ -926,7 +1004,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         CW_USEDEFAULT, CW_USEDEFAULT,
         NULL, NULL, hInstance, NULL
     );
-    
     if(!HandleWnd)
     {
         MessageBox(NULL, "Window Creation Failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
@@ -935,7 +1012,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     InitializeCriticalSection(&socketLock);
     ShowWindow(HandleWnd, nCmdShow);
     UpdateWindow(HandleWnd);
-    
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);

@@ -458,7 +458,7 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
             RECT IsActiveRect = item_rect;
             IsActiveRect.top += (ScrollBarRect.bottom - ScrollBarRect.top)*0.065;
             IsActiveRect.bottom += (ScrollBarRect.bottom - ScrollBarRect.top)*0.05;
-            HFONT Font=CreateFont( 14,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+            HFONT Font=CreateFont(14,10,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
             DEFAULT_PITCH|FF_SWISS,"Arial");
             HFONT OldFont=(HFONT)SelectObject(Mdc_Child_1,Font);
             DrawText(Mdc_Child_1,Message[j].Username,-1, &item_rect, DT_SINGLELINE | DT_CENTER);
@@ -475,8 +475,7 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
             SelectObject(Mdc_Child_1,OldFont);
             DeleteObject(Font);
             SelectObject(Mdc_Child_1, OldPen);
-            DeleteObject(Pen);
-            
+            DeleteObject(Pen);           
         }
         if (i == 0)
         {
@@ -529,7 +528,7 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
             RECT IsActiveRect = item_rect;
             IsActiveRect.top += (ScrollBarRect.bottom - ScrollBarRect.top)*0.065;
             IsActiveRect.bottom += (ScrollBarRect.bottom - ScrollBarRect.top)*0.05;
-            HFONT Font=CreateFont( 14,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+            HFONT Font=CreateFont( 14,10,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
             DEFAULT_PITCH|FF_SWISS,"Arial");
             HFONT OldFont=(HFONT)SelectObject(Mdc_Child_1,Font);
             DrawText(Mdc_Child_1,Message[ListSearchedRecipient[j]].Username,-1, &item_rect, DT_SINGLELINE | DT_CENTER);
@@ -549,7 +548,7 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
             DeleteObject(Pen);
             
         }
-        if (Cmp == 0)
+        if(Cmp == 0)
         {
             RECT no_users_rect = {
                 ScrollBarRect.left + (ScrollBarRect.right - ScrollBarRect.left) * 0.05, 

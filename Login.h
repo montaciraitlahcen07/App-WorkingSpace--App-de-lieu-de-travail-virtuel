@@ -14,6 +14,11 @@ HWND LogInButton=0;
 RECT LoginRect;
 // showing and hiding log in controle
 bool LogInCtl=FALSE;
+// for username child window 
+extern WNDPROC OriginalUsernameBarProc;
+extern WNDPROC OriginalPasswordBarProc;
+LRESULT CALLBACK UsernameBarProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK PasswordBarProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void DrawLoginPage(HINSTANCE IDhInstance,int WindowLeft,int WindowTop,int WindowWidth,int WindowHeight,HWND HandleWnd,HDC Mdc)
 {
     LoginTitle.left=WindowLeft+(WindowWidth/2)-70;
@@ -53,6 +58,16 @@ void CreateLoginControle(HINSTANCE IDhInstance,HWND HandleWnd,HDC Mdc,RECT Windo
         WindowSize.left+(WindowSize.right/2)-99,WindowSize.top+(WindowSize.bottom/2)+3,205,34,
         HandleWnd,0,IDhInstance, NULL);
     }
+    if(ULogin)
+    {
+        OriginalUsernameBarProc = (WNDPROC)SetWindowLongPtr(ULogin, GWLP_WNDPROC, (LONG_PTR)UsernameBarProc);
+    }
+    if(PLogin)
+    {
+        OriginalPasswordBarProc = (WNDPROC)SetWindowLongPtr(PLogin, GWLP_WNDPROC, (LONG_PTR)PasswordBarProc);
+    }
+    // set focus on username bar
+    SetFocus(ULogin);
 }
 void CreateButton(HINSTANCE IDhInstance,HWND HandleWnd,HDC Mdc,RECT WindowSize)
 {
