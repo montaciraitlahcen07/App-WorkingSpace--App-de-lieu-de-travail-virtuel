@@ -181,9 +181,10 @@ unsigned __stdcall SendingThread(void *param)
             GETBACK :
             if(!Send)
             {
-                Sleep(50);
+                Sleep(100);
                 goto GETBACK;
             }
+            // i need here to send the recipient name into the server to send to me the file of our conversation (i will add this feature after i try simple way)
             int lenRecipient = strlen(ConnectingTools.SelectedRecipient);
             while (lenRecipient > 0 && (ConnectingTools.SelectedRecipient[lenRecipient-1] == '\n' || ConnectingTools.SelectedRecipient[lenRecipient-1] == '\r' || 
             ConnectingTools.SelectedRecipient[lenRecipient-1] == '\t' || ConnectingTools.SelectedRecipient[lenRecipient-1] == ' '))
@@ -196,7 +197,6 @@ unsigned __stdcall SendingThread(void *param)
                 continue;
             }
             // do it when i make the ui of sending message and get that message with getwindowtext
-            strcpy(Buffer,"fen");
             int lenb = strlen(Buffer);
             while (lenb > 0 && (Buffer[lenb-1] == '\n' || Buffer[lenb-1] == '\r' || 
             Buffer[lenb-1] == '\t' || Buffer[lenb-1] == ' '))

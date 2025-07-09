@@ -64,6 +64,114 @@ char buffer[256];
 WNDPROC OriginalEditProc = NULL;
 WNDPROC OriginalUsernameBarProc = NULL;
 WNDPROC OriginalPasswordBarProc = NULL;
+WNDPROC OriginalMessageBarProc = NULL;
+// 
+extern RECT MessageBarRect;
+LRESULT CALLBACK MessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch(msg)
+    {
+        case WM_PAINT :
+        {
+            LRESULT result = CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                HDC hdc = GetDC(hwnd);
+                RECT rect;
+                GetClientRect(hwnd,&rect);
+                SetTextColor(hdc, RGB(128, 128, 128));
+                SetBkMode(hdc, TRANSPARENT);
+                rect.left += (rect.right - rect.left)*0.021;
+                DrawText(hdc, "Type a message...", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                ReleaseDC(hwnd, hdc);
+            }
+            return result;
+        }
+        case WM_CHAR:
+        {
+            if(UiInbox && GetFocus() == MessageBarHandle && wParam == VK_RETURN)
+            {
+                // check this to send message 
+                /*GetWindowText(hwnd, buffer, sizeof(buffer));
+                if(strlen(buffer) != 0)
+                {
+                    Send  = TRUE;
+                }*/
+                InvalidateRect(HandleWnd,&WindowSize,FALSE);
+                return 0;
+            }
+            InvalidateRect(MessageBarHandle,NULL,FALSE);
+            return CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
+        }
+        /*case WM_LBUTTONDBLCLK:
+        GetWindowText(hwnd, buffer, sizeof(buffer));
+        if(strlen(buffer) == 0)
+        {
+            return 0;
+        }
+        InvalidateRect(hwnd, NULL, FALSE);
+        return CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);*/
+        case WM_LBUTTONDOWN:
+        {
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                SetFocus(hwnd);
+                InvalidateRect(hwnd, NULL, FALSE);
+                InvalidateRect(HandleSearch, NULL, FALSE);
+                return 0;
+            }
+            InvalidateRect(hwnd, NULL, FALSE);
+            InvalidateRect(HandleSearch, NULL, FALSE);
+            return CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
+        }
+        case WM_LBUTTONDBLCLK:
+        {
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                SetFocus(hwnd);
+                InvalidateRect(hwnd, NULL, FALSE);
+                return 0;
+            }
+            InvalidateRect(hwnd, NULL, FALSE);
+            return CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
+        }
+        case WM_PASTE:
+        {
+            LRESULT result = CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, FALSE);
+            return result;
+        }
+        case EM_SETSEL:
+        {
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                InvalidateRect(hwnd, NULL, FALSE);
+                return 0;
+            }
+            LRESULT result = CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, FALSE);
+            return result;
+        }
+        case WM_SETFOCUS:
+        {
+            LRESULT result = CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, FALSE);
+            return result;
+        }
+        case WM_KILLFOCUS:
+        {
+            LRESULT result = CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, FALSE);
+            return result;
+        }
+        default:
+        return CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
+    }
+}
 // this WndProc is for Password bar
 LRESULT CALLBACK PasswordBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -110,7 +218,7 @@ LRESULT CALLBACK SearchBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         {
             LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
             GetWindowText(hwnd, buffer, sizeof(buffer));
-            if (strlen(buffer) == 0)
+            if(strlen(buffer) == 0)
             {
                 HDC hdc = GetDC(hwnd);
                 RECT rect;
@@ -122,52 +230,74 @@ LRESULT CALLBACK SearchBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
                 ReleaseDC(hwnd, hdc);
             }
             return result;
-        }
-        
+        }   
     case WM_LBUTTONDOWN:
-        GetWindowText(hwnd, buffer, sizeof(buffer));
-        if (strlen(buffer) == 0)
         {
-            return 0;
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                SetFocus(hwnd);
+                InvalidateRect(hwnd, NULL, FALSE);
+                InvalidateRect(MessageBarHandle, NULL, FALSE);
+                return 0;
+            }
+            InvalidateRect(hwnd, NULL, FALSE);
+            InvalidateRect(MessageBarHandle, NULL, FALSE);
+            return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
         }
-        return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
-    case WM_LBUTTONDBLCLK:
-        GetWindowText(hwnd, buffer, sizeof(buffer));
-        if (strlen(buffer) == 0)
+        case WM_LBUTTONDBLCLK:
         {
-            return 0;
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                SetFocus(hwnd);
+                InvalidateRect(hwnd, NULL, FALSE);
+                return 0;
+            }
+            InvalidateRect(hwnd, NULL, FALSE);
+            return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
         }
-        return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
-    case WM_PASTE :
+        case WM_PASTE:
         {
             LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
             InvalidateRect(hwnd, NULL, FALSE);
-            InvalidateRect(HandleWnd,&ScrollBarRect,FALSE);
             return result;
         }
-    case EM_SETSEL:
-    {
-        GetWindowText(hwnd, buffer, sizeof(buffer));
-        if (strlen(buffer) == 0)
+        case EM_SETSEL:
         {
-            return 0;
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                InvalidateRect(hwnd, NULL, FALSE);
+                return 0;
+            }
+            LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, FALSE);
+            return result;
         }
-        return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
-    }
-
-    case WM_CHAR:
+        case WM_CHAR:
         {
             LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
             InvalidateRect(hwnd, NULL, FALSE);
-            InvalidateRect(HandleWnd,&ScrollBarRect,FALSE);
             return result;
         }
-        
+        case WM_SETFOCUS:
+        {
+            LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, FALSE);
+            return result;
+        }
+        case WM_KILLFOCUS:
+        {
+            LRESULT result = CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, FALSE);
+            return result;
+        }
         default:
         return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
     }
 }
-// this WndProc is for Scroll bar window
+/*// this WndProc is for Scroll bar window
 RECT RecipientClicked;
 #define Recipient_1 1011
 bool IndexRecipient_1 = FALSE;
@@ -184,7 +314,9 @@ bool IndexRecipient_6 = FALSE;
 #define Recipient_7 1017
 bool IndexRecipient_7 = FALSE;
 #define Recipient_8 1018
-bool IndexRecipient_8 = FALSE;
+bool IndexRecipient_8 = FALSE;*/
+// condition for bubble logo
+bool BubbleLogo = FALSE;
 LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg)
     {
@@ -300,13 +432,16 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             client_rect.right - 2,
             client_rect.bottom};
             CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
-            if(PointInRect(pt, &g_scrollbar.thumb_rect)) {
+            // this is when i click on the thumb
+            if(PointInRect(pt, &g_scrollbar.thumb_rect))
+            {
                 g_scrollbar.is_dragging = TRUE;
                 g_scrollbar.thumb_pressed = TRUE;
                 g_scrollbar.drag_offset = pt.y - g_scrollbar.thumb_rect.top;
                 SetCapture(hwnd);
                 InvalidateRect(hwnd, &g_scrollbar.thumb_rect, FALSE);
             }
+            // this is when i click below the thumb or above it not in it 
             else if((pt.x >=g_scrollbar.thumb_rect.left && pt.x <=g_scrollbar.thumb_rect.right))
             {
                 float track_height = ScrollBarRect.bottom - 80;
@@ -315,22 +450,37 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                 UpdateScrollValue(hwnd, new_pos);
                 InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             }
+            // this is when i click on a recipient to chat with him 
             else if(pt.y >= 0)
             {
+                // this is for hiding the two logo of a message when i click on a recipient 
+                if(!BubbleLogo)
+                {
+                    BubbleLogo = TRUE;
+                    // creating message bar 
+                    RECT MessageBarRect;
+                    GetClientRect(HandleWnd, &MessageBarRect);
+                    MessageBarHandle = CreateWindowEx(0,"EDIT",0, 
+                    WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
+                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375,MessageBarRect.bottom - (MessageBarRect.bottom - MessageBarRect.top)*0.09,
+                    (MessageBarRect.right - MessageBarRect.left)*0.41,(MessageBarRect.bottom - MessageBarRect.top)*0.07,
+                    HandleWnd,0,IDhInstance, NULL);
+                    if(MessageBarHandle)
+                    {
+                        OriginalMessageBarProc = (WNDPROC)SetWindowLongPtr(MessageBarHandle, GWLP_WNDPROC, (LONG_PTR)MessageBarProc);
+                    }
+                }
                 Index = pt.y/80;
                 char EmptyFull[50];
                 GetWindowText(HandleSearch,EmptyFull,sizeof(EmptyFull));
                 if(Index >= 0 && Index<=100 && strlen(EmptyFull) == 0)
                 {
-                    strcpy(SelectedRecipient,Message[VisibleRecipient[Index]].Username);
                     // taking a copy into receiving thread
                     strcpy(ConnectingTools.SelectedRecipient,Message[VisibleRecipient[Index]].Username);
                 }
                 else if(Index >= 0 && Index<=100 && strlen(EmptyFull) != 0)
                 {
-
-                    strcpy(SelectedRecipient,Message[VisibleSearchedRecipient[Index]].Username);
-                    // taking a copy into receiving thread
+                    // taking a copy into receiving thread and use it to draw the recipient conversation 
                     strcpy(ConnectingTools.SelectedRecipient,Message[VisibleSearchedRecipient[Index]].Username);
                 }
                 /*
@@ -364,7 +514,10 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                     break;
                 }*/
             }
-
+            SetFocus(MessageBarHandle);
+            InvalidateRect(MessageBarHandle,NULL,FALSE);
+            InvalidateRect(HandleWnd,&WindowSize,FALSE);
+            InvalidateRect(HandleSearch,NULL,FALSE);
             break;
         }
         case WM_LBUTTONUP:
@@ -696,19 +849,37 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     {
 
                     }*/
-                    DrawMessageBubbleLogoLeft(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.14,
-                    (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1,(WindowSize.right-WindowSize.left)*0.125,
-                    (WindowSize.bottom - WindowSize.top)*0.175, 3,WindowSize);
-                    DrawMessageBubbleLogoRight(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.1 + (WindowSize.right-WindowSize.left)*0.148,
-                    (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1 + (WindowSize.bottom - WindowSize.top)*0.14,(WindowSize.right-WindowSize.left)*0.1,
-                    (WindowSize.bottom - WindowSize.top)*0.145,3,WindowSize);
+                    if(!BubbleLogo)
+                    {
+                        DrawMessageBubbleLogoLeft(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.14,
+                        (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1,(WindowSize.right-WindowSize.left)*0.125,
+                        (WindowSize.bottom - WindowSize.top)*0.175, 3,WindowSize);
+                        DrawMessageBubbleLogoRight(Mdc, Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.285 + (WindowSize.right-WindowSize.left)*0.1 + (WindowSize.right-WindowSize.left)*0.148,
+                        (WindowSize.bottom - WindowSize.top)/2 -(WindowSize.bottom - WindowSize.top)*0.1 + (WindowSize.bottom - WindowSize.top)*0.14,(WindowSize.right-WindowSize.left)*0.1,
+                        (WindowSize.bottom - WindowSize.top)*0.145,3,WindowSize);
+                    }
+                    else if(BubbleLogo)
+                    {
+                        // put here a function who draw the recipient 
+                        ShowWindow(MessageBarHandle,SW_SHOW);
+                        MoveWindow(MessageBarHandle,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09,
+                        (WindowSize.right - WindowSize.left)*0.41,(WindowSize.bottom - WindowSize.top)*0.07,TRUE);
+                        UiInboxConversation(HandleWnd,Mdc,ConnectingTools,WindowSize,PanelRect);
+                    }
                 }  
+                else if(!UiInbox)
+                {
+                    ShowWindow(MessageBarHandle,SW_HIDE);
+                }
                 if(UiInbox)
                 {
                     InvalidateRect(ScrollBar, &ScrollBarRect, FALSE);
                     ShowWindow(HandleSearch,SW_SHOW);
                     ShowWindow(ScrollBar, SW_SHOW);
-                    SetFocus(HandleSearch); 
+                    if(!BubbleLogo)
+                    {
+                        SetFocus(HandleSearch); 
+                    }
                 }
                 else
                 {
@@ -837,6 +1008,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
         }
         InvalidateRect(hwnd,&WindowSize,FALSE);
+        InvalidateRect(HandleSearch,NULL,FALSE);
         break;
         case WM_MOUSEMOVE :
         GetClientRect(hwnd,&WindowSize);

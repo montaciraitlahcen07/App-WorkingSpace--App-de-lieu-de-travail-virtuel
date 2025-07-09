@@ -43,6 +43,7 @@
     void UpdateScrollValue(HWND hwnd, float new_val);
     void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollbar);
     void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients Message[100],ScrollbarInfo *g_scrollbar);
+    void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT WindowSize,RECT PanelRect);
     // creatign the interface when the user click on the button message inbox
     void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,float CurrentVInbox,float CurrentHGeneral,float CurrentVGeneral)
     {
@@ -419,7 +420,6 @@ int ListSearchedRecipient[100] = {0};
 int CompSearchedRecipient = 0;
 int VisibleSearchedRecipient[100];
 int CompvisibleSearchedRecipient = 0;
-char SelectedRecipient[100];
 int Index = -1;
 void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients Message[100],ScrollbarInfo *g_scrollbar)
 {
@@ -567,4 +567,33 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
             DeleteObject(Font);
         }
     }
+}
+// this function it draw the converstion with recipient (adding the feature in it which is using file of the past conversation )
+HWND MessageBarHandle;
+void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT WindowSize,RECT PanelRect)
+{
+    HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
+    HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
+    SetBkMode(Mdc,TRANSPARENT);
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    GetClientRect(HandleWnd,&WindowSize); 
+    RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.305,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.018,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.834,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.07,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+    // imoji circle Button
+    Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.296,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.326,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285);
+    // Attach Button
+    Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.335,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3655,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285);
+    // send message button 
+    RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425,
+    WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
+    (WindowSize.right - WindowSize.left)*0.02,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05,
+    (WindowSize.right - WindowSize.left)*0.0175,(WindowSize.bottom - WindowSize.top)*0.026); 
+    SelectObject(Mdc,OldButtonColor);
+    SelectObject(Mdc,OldPen);
+    DeleteObject(Pen);
+    DeleteObject(OldButtonColor);
 }
