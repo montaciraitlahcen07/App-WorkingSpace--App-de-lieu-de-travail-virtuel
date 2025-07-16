@@ -92,12 +92,11 @@ LRESULT CALLBACK MessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         {
             if(UiInbox && GetFocus() == MessageBarHandle && wParam == VK_RETURN)
             {
-                // check this to send message 
-                /*GetWindowText(hwnd, buffer, sizeof(buffer));
+                GetWindowText(hwnd, buffer, sizeof(buffer));
                 if(strlen(buffer) != 0)
                 {
-                    Send  = TRUE;
-                }*/
+                    Send = TRUE;
+                }
                 InvalidateRect(HandleWnd,&WindowSize,FALSE);
                 return 0;
             }
@@ -469,6 +468,8 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                     {
                         OriginalMessageBarProc = (WNDPROC)SetWindowLongPtr(MessageBarHandle, GWLP_WNDPROC, (LONG_PTR)MessageBarProc);
                     }
+                    // taking a copy for the sending thread
+                    SendingTools.MessageBarHandle = MessageBarHandle;
                 }
                 Index = pt.y/80;
                 char EmptyFull[50];
@@ -476,12 +477,12 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                 if(Index >= 0 && Index<=100 && strlen(EmptyFull) == 0)
                 {
                     // taking a copy into receiving thread
-                    strcpy(ConnectingTools.SelectedRecipient,Message[VisibleRecipient[Index]].Username);
+                    strcpy(ConnectingTools.PrivateMessage.SelectedRecipient,Message[VisibleRecipient[Index]].Username);
                 }
                 else if(Index >= 0 && Index<=100 && strlen(EmptyFull) != 0)
                 {
                     // taking a copy into receiving thread and use it to draw the recipient conversation 
-                    strcpy(ConnectingTools.SelectedRecipient,Message[VisibleSearchedRecipient[Index]].Username);
+                    strcpy(ConnectingTools.PrivateMessage.SelectedRecipient,Message[VisibleSearchedRecipient[Index]].Username);
                 }
                 /*
                 switch(Index)
@@ -864,7 +865,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                         ShowWindow(MessageBarHandle,SW_SHOW);
                         MoveWindow(MessageBarHandle,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09,
                         (WindowSize.right - WindowSize.left)*0.41,(WindowSize.bottom - WindowSize.top)*0.07,TRUE);
-                        UiInboxConversation(HandleWnd,Mdc,ConnectingTools,WindowSize,PanelRect);
+                        UiInboxConversation(HandleWnd,Mdc,ConnectingTools,WindowSize,PanelRect,CurrentHEmoji,CurrentVEmoji,CurrentHAttach,CurrentVAttach,CurrentHSend,CurrentVSend);
                     }
                 }  
                 else if(!UiInbox)
@@ -952,6 +953,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
             case TimerPanel :
             PanelAnimationUp(hwnd,WindowSize);
+            break;
+            case EmojiTimer :
+            UpdateEmojiAnimation(HoveringEmoji,hwnd,WindowSize);
+            break;
+            case AttachTimer :
+            UpdateAttachAnimation(HoveringAttach,hwnd,WindowSize);
+            break;
+            case SendTimer :
+            UpdateSendAnimation(HoveringSend,hwnd,WindowSize);
             break;
         }
         InvalidateRect(hwnd,&AreaRedraw,FALSE);
@@ -1112,8 +1122,62 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // decrease the button is size
             SetTimer(hwnd,GeneralTimer,4,NULL); 
         }
+        // Emoji hovering 
+        Emoji_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.296 - CurrentHEmoji;
+        Emoji_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - CurrentVEmoji;
+        Emoji_Button.right =  Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.326 + CurrentHEmoji;
+        Emoji_Button.bottom =  WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + CurrentVEmoji;
+        WasHoveringEmoji=HoveringEmoji;
+        CheckEmoji=CheckEmojiRect(Emoji_Button,hwnd,Mx,My);
+        HoveringEmoji=CheckEmoji;
+        if(HoveringEmoji && !WasHoveringEmoji)
+        {
+            // increase the button is size
+            SetTimer(hwnd,EmojiTimer,17,NULL);
+        }
+        else if(!HoveringEmoji && WasHoveringEmoji)
+        {
+            // decrease the button is size
+            SetTimer(hwnd,EmojiTimer,17,NULL); 
+        }
+        // Attach hovering 
+        Attach_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.335 - CurrentHAttach;
+        Attach_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - CurrentVAttach;
+        Attach_Button.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3655 + CurrentHAttach;
+        Attach_Button.bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + CurrentVAttach;
+        WasHoveringAttach=HoveringAttach;
+        CheckAttach=CheckAttachRect(Attach_Button,hwnd,Mx,My);
+        HoveringAttach=CheckAttach;
+        if(HoveringAttach && !WasHoveringAttach)
+        {
+            // increase the button is size
+            SetTimer(hwnd,AttachTimer,17,NULL);
+        }
+        else if(!HoveringAttach && WasHoveringAttach)
+        {
+            // decrease the button is size
+            SetTimer(hwnd,AttachTimer,17,NULL); 
+        }
+        // Send hovering 
+        Send_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
+        Send_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
+        Send_Button.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
+        (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
+        Send_Button.bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
+        WasHoveringSend=HoveringSend;
+        CheckSend=CheckSendRect(Send_Button,hwnd,Mx,My);
+        HoveringSend=CheckSend;
+        if(HoveringSend && !WasHoveringSend)
+        {
+            // increase the button is size
+            SetTimer(hwnd,SendTimer,17,NULL);
+        }
+        else if(!HoveringSend && WasHoveringSend)
+        {
+            // decrease the button is size
+            SetTimer(hwnd,SendTimer,17,NULL); 
+        }
         break;
-        
         case WM_DESTROY:
         if(HandleSearch != 0)
         {
@@ -1121,10 +1185,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         HandleSearch = 0;
         }    
         // Clean up any other resources (icons, etc.)
-        if(CompanyLogo) {
+        if(CompanyLogo)
+        {
             DestroyIcon(CompanyLogo);
         }
-        if(CompanyBigLogo) {
+        if(CompanyBigLogo)
+        {
             DestroyIcon(CompanyBigLogo);
         }
         DeleteCriticalSection(&socketLock);

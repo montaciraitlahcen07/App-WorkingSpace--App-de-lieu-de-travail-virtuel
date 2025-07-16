@@ -53,7 +53,6 @@ bool HoveringInbox=FALSE;
 bool WasHoveringInbox=FALSE;
 bool CheckInbox=FALSE;
 
-
 // General variable
 #define GeneralTimer 1009
 float CurrentHGeneral=0.0f;
@@ -62,7 +61,7 @@ bool HoveringGeneral=FALSE;
 bool WasHoveringGeneral=FALSE;
 bool CheckGeneral=FALSE;
 
-//for search button 
+/*//for search button 
 #define HOVER_HSearch 5
 #define HOVER_VSearch 3
 #define SearchTimer 1010
@@ -70,8 +69,33 @@ float CurrentHSearch=0.0f;
 float CurrentVSearch=0.0f;
 bool HoveringSearch=FALSE;
 bool WasHoveringSearch=FALSE;
-bool CheckSearch=FALSE;
+bool CheckSearch=FALSE;*/
 
+// Emoji variable
+#define EmojiTimer 1019
+float CurrentHEmoji=0.0f;
+float CurrentVEmoji=0.0f;
+bool HoveringEmoji=FALSE;
+bool WasHoveringEmoji=FALSE;
+bool CheckEmoji=FALSE;
+#define HOVER_H_C 4
+#define HOVER_V_C 4
+
+// Attach variable
+#define AttachTimer 1020
+float CurrentHAttach=0.0f;
+float CurrentVAttach=0.0f;
+bool HoveringAttach=FALSE;
+bool WasHoveringAttach=FALSE;
+bool CheckAttach=FALSE;
+
+// Send variable
+#define SendTimer 1021
+float CurrentHSend=0.0f;
+float CurrentVSend=0.0f;
+bool HoveringSend=FALSE;
+bool WasHoveringSend=FALSE;
+bool CheckSend=FALSE;
 // Animation message
 void UpdateMessageAnimation(bool HoveringMessage,HWND HandleWnd)
 {
@@ -301,3 +325,90 @@ void UpdateSearchAnimation(bool HoveringSearch,HWND HandleWnd,RECT WindowSize)
     InvalidateRect(HandleWnd,&WindowSize,FALSE);
 }
 */
+// animation Emoji
+void UpdateEmojiAnimation(bool HoveringEmoji,HWND HandleWnd,RECT WindowSize)
+{
+    float IncremmentHEmoji=HOVER_H_C/3;
+    float IncremmentVEmoji=HOVER_V_C/3;
+    if(HoveringEmoji)
+    {
+        CurrentHEmoji+=IncremmentHEmoji;
+        CurrentVEmoji+=IncremmentVEmoji;
+        if(CurrentHEmoji >=HOVER_H_C)
+        {
+            CurrentHEmoji=HOVER_H_C;
+            CurrentVEmoji=HOVER_V_C;
+            KillTimer(HandleWnd,EmojiTimer);
+        }
+    }
+    else
+    {
+        CurrentHEmoji-=IncremmentHEmoji;
+        CurrentVEmoji-=IncremmentVEmoji;
+        if(CurrentHEmoji <=0)
+        {
+            CurrentHEmoji=0;
+            CurrentVEmoji=0;
+            KillTimer(HandleWnd,EmojiTimer);
+        }
+    }        
+    InvalidateRect(HandleWnd,&WindowSize,FALSE);
+}
+// animation Attach
+void UpdateAttachAnimation(bool HoveringAttach,HWND HandleWnd,RECT WindowSize)
+{
+    float IncremmentHAttach=HOVER_H_C/3;
+    float IncremmentVAttach=HOVER_V_C/3;
+    if(HoveringAttach)
+    {
+        CurrentHAttach+=IncremmentHAttach;
+        CurrentVAttach+=IncremmentVAttach;
+        if(CurrentHAttach >=HOVER_H_C)
+        {
+            CurrentHAttach=HOVER_H_C;
+            CurrentVAttach=HOVER_V_C;
+            KillTimer(HandleWnd,AttachTimer);
+        }
+    }
+    else
+    {
+        CurrentHAttach-=IncremmentHAttach;
+        CurrentVAttach-=IncremmentVAttach;
+        if(CurrentHAttach <=0)
+        {
+            CurrentHAttach=0;
+            CurrentVAttach=0;
+            KillTimer(HandleWnd,AttachTimer);
+        }
+    }        
+    InvalidateRect(HandleWnd,&WindowSize,FALSE);
+}
+// animation Send
+void UpdateSendAnimation(bool HoveringSend,HWND HandleWnd,RECT WindowSize)
+{
+    float IncremmentHSend=HOVER_H_C/3;
+    float IncremmentVSend=HOVER_V_C/3;
+    if(HoveringSend)
+    {
+        CurrentHSend+=IncremmentHSend;
+        CurrentVSend+=IncremmentVSend;
+        if(CurrentHSend >=HOVER_H_C)
+        {
+            CurrentHSend=HOVER_H_C;
+            CurrentVSend=HOVER_V_C;
+            KillTimer(HandleWnd,SendTimer);
+        }
+    }
+    else
+    {
+        CurrentHSend-=IncremmentHSend;
+        CurrentVSend-=IncremmentVSend;
+        if(CurrentHSend <=0)
+        {
+            CurrentHSend=0;
+            CurrentVSend=0;
+            KillTimer(HandleWnd,SendTimer);
+        }
+    }        
+    InvalidateRect(HandleWnd,&WindowSize,FALSE);
+}

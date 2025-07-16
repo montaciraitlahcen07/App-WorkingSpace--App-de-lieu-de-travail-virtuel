@@ -19,8 +19,15 @@ typedef struct
     HWND ScrollBar;
     char username[30];
     char password[30];
+    HWND MessageBarHandle;
 }SndTrd;
 SndTrd SendingTools;
+typedef struct
+{
+    char SelectedRecipient[100];
+    char Buffer[200];
+}InboxMessage;
+InboxMessage PrivateMessage;
 typedef struct 
 {
     struct sockaddr_in Server;
@@ -29,7 +36,7 @@ typedef struct
     SOCKET StatusSocket;
     RECT WindowSize;
     HDC Mdc;
-    char SelectedRecipient[100];
+    InboxMessage PrivateMessage;
 }CntTrd;
 CntTrd ConnectingTools;
 //

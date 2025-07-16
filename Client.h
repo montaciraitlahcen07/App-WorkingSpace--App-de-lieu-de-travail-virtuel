@@ -129,6 +129,7 @@ unsigned __stdcall SendingThread(void *param)
             } 
             else
             {
+                char o;
                 GetClientRect(MemoryDcSndTool.ScrollBar,&MemoryDcSndTool.ScrollBarRect);
                 HPEN Pen=CreatePen(BS_SOLID,2,RGB(0,0,0));
                 HPEN OldPen=SelectObject(MemoryDcSndTool.Mdc_Child_1,Pen);
@@ -185,28 +186,33 @@ unsigned __stdcall SendingThread(void *param)
                 goto GETBACK;
             }
             // i need here to send the recipient name into the server to send to me the file of our conversation (i will add this feature after i try simple way)
-            int lenRecipient = strlen(ConnectingTools.SelectedRecipient);
-            while (lenRecipient > 0 && (ConnectingTools.SelectedRecipient[lenRecipient-1] == '\n' || ConnectingTools.SelectedRecipient[lenRecipient-1] == '\r' || 
-            ConnectingTools.SelectedRecipient[lenRecipient-1] == '\t' || ConnectingTools.SelectedRecipient[lenRecipient-1] == ' '))
+            int lenRecipient = strlen(ConnectingTools.PrivateMessage.SelectedRecipient);
+            while(lenRecipient > 0 && (ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\n' || ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\r' || 
+            ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\t' || ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == ' '))
             {
-                ConnectingTools.SelectedRecipient[--lenRecipient] = '\0';
+                ConnectingTools.PrivateMessage.SelectedRecipient[--lenRecipient] = '\0';
             }
-            sendResult = send(ConnectingTools.ClientSocket, ConnectingTools.SelectedRecipient, strlen(ConnectingTools.SelectedRecipient), 0);
+            /*sendResult = send(ConnectingTools.ClientSocket, ConnectingTools.SelectedRecipient, strlen(ConnectingTools.SelectedRecipient), 0);
             if(sendResult == SOCKET_ERROR)
             {
                 continue;
-            }
-            // do it when i make the ui of sending message and get that message with getwindowtext
-            int lenb = strlen(Buffer);
-            while (lenb > 0 && (Buffer[lenb-1] == '\n' || Buffer[lenb-1] == '\r' || 
-            Buffer[lenb-1] == '\t' || Buffer[lenb-1] == ' '))
+            }*/
+           // taking the message from message bar
+            GetWindowText(SendingTools.MessageBarHandle,ConnectingTools.PrivateMessage.Buffer,sizeof(ConnectingTools.PrivateMessage.Buffer));
+            int lenb = strlen(ConnectingTools.PrivateMessage.Buffer);
+            while (lenb > 0 && (ConnectingTools.PrivateMessage.Buffer[lenb-1] == '\n' || ConnectingTools.PrivateMessage.Buffer[lenb-1] == '\r' || 
+            ConnectingTools.PrivateMessage.Buffer[lenb-1] == '\t' || ConnectingTools.PrivateMessage.Buffer[lenb-1] == ' '))
             {
-                Buffer[--lenb] = '\0';
+                ConnectingTools.PrivateMessage.Buffer[--lenb] = '\0';
             }
-            sendResult = send(ConnectingTools.ClientSocket, Buffer, strlen(Buffer), 0);
-            if(sendResult == SOCKET_ERROR)
+            if(lenb !=0)
             {
-                continue;
+                sendResult = send(ConnectingTools.ClientSocket,(char*)&ConnectingTools.PrivateMessage, sizeof(ConnectingTools.PrivateMessage), 0);
+                if(sendResult == SOCKET_ERROR)
+                {
+                    continue;
+                }
+                SetWindowText(SendingTools.MessageBarHandle,"");
             }
             Send = FALSE;
             Sleep(100);

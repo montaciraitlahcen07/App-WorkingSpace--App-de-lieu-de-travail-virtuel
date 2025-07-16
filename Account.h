@@ -4,35 +4,33 @@ bool Account=FALSE;
 // Message
 RECT Choice_1;
 RECT Choice_1_Button;
-
 // online
 RECT Choice_2;
 RECT Choice_2_Button;
-
 // Task
 RECT Choice_3;
 RECT Choice_3_Button;
-
 // Project
 RECT Choice_4;
 RECT Choice_4_Button;
-
 // Disconnect
 RECT Choice_5;
 RECT Choice_5_Button;
-
 // Panel
 RECT PanelRect;
-
+// Emoji
+RECT Emoji_Button;
+// Attach
+RECT Attach_Button;
+// Send
+RECT Send_Button;
 //Comapany Big logo
 HICON CompanyBigLogo;
 HWND HandleBigLogo;
-
 #define MAX_BUTTON_WIDTH 160
 #define MAX_BUTTON_HEIGHT 52
 #define MIN_BUTTON_WIDTH 120
 #define MIN_BUTTON_HEIGHT 35
-
 // a function for measuring my window 
 int MeasureWindowSize(int size, int min, int max) {
     if (size < min) return min;

@@ -74,3 +74,30 @@ bool CheckSearchRect(RECT SearchAnimation,HWND HandleWnd,int Mx,int My)
     return FALSE;
 }
 */
+// emoji button is hovering check
+bool CheckEmojiRect(RECT Emoji_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=Emoji_Button.left && Mx<=Emoji_Button.right) && (My >=Emoji_Button.top && My<=Emoji_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+// Attach button is hovering check
+bool CheckAttachRect(RECT Send_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=Attach_Button.left && Mx<=Attach_Button.right) && (My >=Attach_Button.top && My<=Attach_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+// Send button is hovering check
+bool CheckSendRect(RECT Send_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=Send_Button.left && Mx<=Send_Button.right) && (My >=Send_Button.top && My<=Send_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
