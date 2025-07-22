@@ -379,6 +379,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             DrawScrollBar(Mdc_Child_1, hwnd,WindowSize);
             UpdateScrollbarRange(hwnd,ScrollBarRect,&g_scrollbar);
             DrawContentWithScroll(Mdc_Child_1,hwnd,ScrollBarRect,Message,&g_scrollbar);
+            BuildVisibleItemsList(Mdc_Child_1, hwnd, ScrollBarRect,Message,&g_scrollbar);
             BitBlt(DeviceContext_Child_1, 0, 0, ScrollBarRect.right - ScrollBarRect.left, 
             ScrollBarRect.bottom - ScrollBarRect.top, Mdc_Child_1, 0, 0, SRCCOPY);
             SelectObject(Mdc_Child_1, oldBrush);
@@ -431,6 +432,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             client_rect.right - 2,
             client_rect.bottom};
             CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
+            client_rect.right -= SCROLLBAR_WIDTH - 2;
             // this is when i click on the thumb
             if(PointInRect(pt, &g_scrollbar.thumb_rect))
             {
@@ -450,7 +452,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                 InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             }
             // this is when i click on a recipient to chat with him 
-            else if(pt.y >= 0)
+            else if(pt.y >= 0 && PointInRect(pt,&client_rect))
             {
                 // this is for hiding the two logo of a message when i click on a recipient 
                 if(!BubbleLogo)
@@ -471,59 +473,31 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                     // taking a copy for the sending thread
                     SendingTools.MessageBarHandle = MessageBarHandle;
                 }
-                Index = pt.y/80;
                 char EmptyFull[50];
+                int Index = GetClickedRecipient(pt);
                 GetWindowText(HandleSearch,EmptyFull,sizeof(EmptyFull));
-                if(Index >= 0 && Index<=100 && strlen(EmptyFull) == 0)
+                if(Index >= 0 && strlen(EmptyFull) == 0)
                 {
                     // taking a copy into receiving thread
-                    strcpy(ConnectingTools.PrivateMessage.SelectedRecipient,Message[VisibleRecipient[Index]].Username);
+                    strcpy(ConnectingTools.PrivateMessage.SelectedRecipient,Message[Index].Username);
                 }
-                else if(Index >= 0 && Index<=100 && strlen(EmptyFull) != 0)
+                else if(Index >= 0 && strlen(EmptyFull) != 0)
                 {
                     // taking a copy into receiving thread and use it to draw the recipient conversation 
-                    strcpy(ConnectingTools.PrivateMessage.SelectedRecipient,Message[VisibleSearchedRecipient[Index]].Username);
-                }
-                /*
-                switch(Index)
-                {
-                    case 0:
-                    IndexRecipient_1 = TRUE;
-                    InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);             
-                    break;
-                    case 1:
-                    IndexRecipient_2 = TRUE;
-                    break;
-                    case 2:
-                    IndexRecipient_3 = TRUE;
-                    break;
-                    case 3:
-                    IndexRecipient_4 = TRUE;
-                    break;
-                    case 4:
-                    IndexRecipient_5 = TRUE;
-                    break;
-                    case 5:
-                    IndexRecipient_6 = TRUE;
-                    break;
-                    case 6:
-                    IndexRecipient_7 = TRUE;
-                    break;
-                    case 7:
-                    break;
-                    case 8:
-                    break;
-                }*/
+                    strcpy(ConnectingTools.PrivateMessage.SelectedRecipient,Message[Index].Username);
+                }          
             }
             SetFocus(MessageBarHandle);
             InvalidateRect(MessageBarHandle,NULL,FALSE);
             InvalidateRect(HandleWnd,&WindowSize,FALSE);
             InvalidateRect(HandleSearch,NULL,FALSE);
+            InvalidateRect(hwnd,NULL,FALSE);
             break;
         }
         case WM_LBUTTONUP:
         {
-            if (g_scrollbar.is_dragging) {
+            if(g_scrollbar.is_dragging)
+            {
                 g_scrollbar.is_dragging = FALSE;
                 g_scrollbar.thumb_pressed = FALSE;
                 ReleaseCapture();
@@ -539,42 +513,14 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             break;
         }
-        /*
-        case WM_TIMER :
-        switch(wParam)
-        {
-            case Recipient_1 :
-            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
-            InvalidateRect(HandleWnd,&WindowSize,FALSE);
-            break;
-            case Recipient_2 :
-            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
-            InvalidateRect(HandleWnd,&WindowSize,FALSE);
-            break;
-            case Recipient_3 :
-            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
-            InvalidateRect(HandleWnd,&WindowSize,FALSE);
-            break;
-            case Recipient_4 :
-            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
-            InvalidateRect(HandleWnd,&WindowSize,FALSE);
-            break;
-            case Recipient_5 :
-            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
-            InvalidateRect(HandleWnd,&WindowSize,FALSE);
-            break;
-            case Recipient_6 :
-            InvalidateRect(ScrollBar,&ScrollBarRect,FALSE);
-            InvalidateRect(HandleWnd,&WindowSize,FALSE);
-            break;
-        }*/
         default:
             return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     return 0;
 }
 // this WndProc is for the main window 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
     switch (msg)
     {
             case WM_SIZE:
@@ -779,7 +725,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 Authentification(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,hwnd,&SendingTools,ConnectingTools,&Green);
             }
             Green=FALSE;
-            baseRectangle(WindowSize,hwnd);
             if(Start)
             {
                 // this is for creating threads to communicate with the server (communicate with other friend in the server (companie)
@@ -799,16 +744,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             } 
             if(Account)
             {
+                float FontReturn = baseRectangle(WindowSize,hwnd);
+                bool FontSize = (FontReturn >= 106?TRUE:FALSE);
                 //rendering the message button
-                CreateMessageAccount(Mdc,CurrentHMessage,CurrentVMessage,WindowSize);
+                CreateMessageAccount(Mdc,CurrentHMessage,CurrentVMessage,WindowSize,FontSize);
                 //rendering the online button
-                CreateOnlineAccount(Mdc,CurrentHOnline,CurrentVOnline,WindowSize);
+                CreateOnlineAccount(Mdc,CurrentHOnline,CurrentVOnline,WindowSize,FontSize);
                 //rendering  the task button
-                CreateTaskAccount(Mdc,CurrentHTask,CurrentVTask,WindowSize);
+                CreateTaskAccount(Mdc,CurrentHTask,CurrentVTask,WindowSize,FontSize);
                 // rendering  the project button
-                CreateProjectAccount(Mdc,CurrentHProject,CurrentVProject,WindowSize);
+                CreateProjectAccount(Mdc,CurrentHProject,CurrentVProject,WindowSize,FontSize);
                 // rendering  the disconnect button
-                CreateDisconnectAccount(Mdc,CurrentHDisconnect,CurrentVDisconnect,WindowSize);
+                CreateDisconnectAccount(Mdc,CurrentHDisconnect,CurrentVDisconnect,WindowSize,FontSize);
                 // rendering the panel 
                 CreatePanel(Mdc,WindowSize,hwnd,AddLenght);
                 // the line 
@@ -837,7 +784,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 // for message is click 
                 if(UiMessage)
                 {
-                    CreateMessageUi(Mdc,hwnd,WindowSize,CurrentHInbox,CurrentVInbox,CurrentHGeneral,CurrentVGeneral);
+                    float FontReturn = baseRectangle(WindowSize,hwnd);
+                    bool FontSize = (FontReturn >= 106?TRUE:FALSE);
+                    CreateMessageUi(Mdc,hwnd,WindowSize,CurrentHInbox,CurrentVInbox,CurrentHGeneral,CurrentVGeneral,FontSize);
                 }
                 // when the user click on the inbox or general button this created the ui
                 if(UiInbox)
@@ -978,13 +927,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         else if(MessageButtonClicked)
         {
+            // i need to make a condition in the end of the condition messagebuttonclicked about turning messagebuttonclicked into false
+            //MessageButtonClicked = FALSE;
             // this is for checking the inbox button 
             if((x>=Choice_1_Inbox_Button.left && x<=Choice_1_Inbox_Button.right) && (y>=Choice_1_Inbox_Button.top && y<=Choice_1_Inbox_Button.bottom ))
             {
                 UiInbox = TRUE;
                 MemoryDcSndTool.UiInbox = UiInbox;
                 UiMessage = FALSE;
-                MessageButtonClicked = FALSE;
                 UiGeneral = FALSE;
                 MemoryDcSndTool.UiGeneral = UiGeneral;
                 SetTimer(hwnd,TimerPanel,30,NULL);
@@ -1013,8 +963,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 UiMessage = FALSE;
                 UiInbox = FALSE;
                 MemoryDcSndTool.UiInbox = UiInbox;
-                MessageButtonClicked = FALSE;
                 SetTimer(hwnd,TimerPanel,30,NULL);
+            }
+            else if(UiInbox)
+            {
+                float left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
+                float right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 + (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
+                float top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
+                float bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
+                if(x>=left && x<=right && y>= top && y<=bottom)
+                {
+                    GetWindowText(MessageBarHandle, buffer, sizeof(buffer));
+                    if(strlen(buffer) != 0)
+                    {
+                        Send = TRUE;
+                    }
+                }
             }
         }
         InvalidateRect(hwnd,&WindowSize,FALSE);
@@ -1210,7 +1174,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    // data of the whole workers in the company 
     FILE *UserData=0;
     UserData_2=UserData;
     IDhInstance = hInstance;

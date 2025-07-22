@@ -36,9 +36,20 @@ int CreatingThreads = 0;
 //
 CRITICAL_SECTION socketLock;
 //
+typedef struct
+{
+    int recipient_index;     // Index in the Message array
+    RECT item_rect;         // Actual rendered rectangle
+    RECT text_rect;         // Text area rectangle
+    RECT status_rect;       // Status indicator rectangle
+    bool is_visible;        // Currently visible flag
+} VisibleItem;
+VisibleItem visible_items[100];
+int visible_item_count = 0;
 unsigned __stdcall receivingClient(void *param);
 unsigned __stdcall SendingThread(void *param);
 int FillingSearchRecipientList(HWND HandleSearch,int countclient,Clients Message[100],int ListSearchedRecipient[100],int CompSearchedRecipient);
+// add in this thread function to disperse between inbox message and general message
 unsigned __stdcall receivingClient(void *param)
 {
     char username[100];
@@ -56,34 +67,27 @@ unsigned __stdcall receivingClient(void *param)
         }
         memset(username, 0, sizeof(username));
         memset(buffer, 0, sizeof(buffer));
-
-        Result = recv(ConnectingTools.ClientSocket, username, sizeof(username)-1, 0);
+        Result = recv(ConnectingTools.ClientSocket,username,sizeof(username)-1,0);
         if(Result <= 0)
         {
             continue;
         }
-        
         username[Result] = '\0';
-        
         int lena = strlen(username);
         while(lena > 0 && (username[lena-1] == '\n' || username[lena-1] == '\r' || 
         username[lena-1] == '\t' || username[lena-1] == ' '))
         {
             username[--lena] = '\0';
         }
-        
-        
         Result = recv(ConnectingTools.ClientSocket, buffer, sizeof(buffer)-1, 0);
         if(Result <= 0)
         {
             continue;
         }
-        
         buffer[Result] = '\0';
-        
         int len = strlen(buffer);
         while (len > 0 && (buffer[len-1] == '\n' || buffer[len-1] == '\r' || 
-                          buffer[len-1] == '\t' || buffer[len-1] == ' '))
+        buffer[len-1] == '\t' || buffer[len-1] == ' '))
         {
             buffer[--len] = '\0';
         }
@@ -96,7 +100,6 @@ unsigned __stdcall receivingClient(void *param)
         //fflush(stdout);
         LeaveCriticalSection(&socketLock);
     }
-    
     return 0;
 }
 SndTrd MemoryDcSndTool = {0};

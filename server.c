@@ -53,6 +53,9 @@ ClientSocketsAndTools SocketAndMessage;
 #define OFFLINE 2
 #define NEWUSER 3
 #define REMOVEUSER 4
+// to disperse between Inbox and General message
+#define Inbox 5
+#define General 6 
 typedef struct
 {
     char UserName[50];

@@ -44,14 +44,16 @@
     void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollbar);
     void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients Message[100],ScrollbarInfo *g_scrollbar);
     void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT WindowSize,RECT PanelRect,float CurrentHEmoji,float CurrentVEmoji,float CurrentHAttach,float CurrentVAttach,float CurrentHSend,float CurrentVSend);
+    int GetClickedRecipient(POINT click_point);
+    void BuildVisibleItemsList(HDC hdc, HWND hwnd, RECT ScrollBarRect, Clients Message[], ScrollbarInfo *g_scrollbar);
     // creatign the interface when the user click on the button message inbox
-    void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,float CurrentVInbox,float CurrentHGeneral,float CurrentVGeneral)
+    void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,float CurrentVInbox,float CurrentHGeneral,float CurrentVGeneral,bool FontSize)
     {
         GetClientRect(HandleWnd,&WindowSize); 
         int ButtonWidth=MeasureWindowSize((WindowSize.right-WindowSize.left)*0.13f,MIN_BUTTON_WIDTHP,MAX_BUTTON_WIDTHP);
         int ButtonHeight=MeasureWindowSize((WindowSize.bottom-WindowSize.top)*0.12f,MIN_BUTTON_HEIGHTP,MAX_BUTTON_HEIGHTP);
         // for making the button inbox is size
-        Choice_1_Inbox.left=Choice_1_Button.right*0.97+(((WindowSize.right)-(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.025))/2)-300-(CurrentHInbox/2);
+        Choice_1_Inbox.left=Choice_1_Button.right*0.97+(((WindowSize.right)-(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.025))/2)-(WindowSize.right-WindowSize.left)*0.28-(CurrentHInbox/2);
         Choice_1_Inbox.top=(WindowSize.bottom-WindowSize.top)*0.27f-(CurrentVInbox/2);
         Choice_1_Inbox.right=Choice_1_Inbox.left+ButtonWidth+(CurrentHInbox/2);
         Choice_1_Inbox.bottom=Choice_1_Inbox.top+ButtonHeight+(CurrentVInbox/2);
@@ -60,7 +62,7 @@
         Choice_1_Inbox.bottom+=(WindowSize.bottom-WindowSize.top)*0.043;
 
         // for making the button general is size
-        Choice_1_General.left=Choice_1_Button.right+(((WindowSize.right)-(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.025))/2)+127-(CurrentHGeneral/2);
+        Choice_1_General.left=Choice_1_Button.right+(((WindowSize.right)-(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.025))/2)+(WindowSize.right-WindowSize.left)*0.14-(CurrentHGeneral/2);
         Choice_1_General.top=(WindowSize.bottom-WindowSize.top)*0.27f-(CurrentVGeneral/2);
         Choice_1_General.right=Choice_1_General.left+ButtonWidth+(CurrentHGeneral/2);
         Choice_1_General.bottom=Choice_1_General.top+ButtonHeight+(CurrentVGeneral/2);
@@ -77,21 +79,43 @@
         int lineBottom = Choice_1_Button.bottom + (WindowSize.bottom-WindowSize.top)*0.055; 
         MoveToEx(Mdc, lineX, lineTop, NULL);
         LineTo(Mdc, lineX, lineBottom);
-        HFONT Font=CreateFont(
-        25,
-        12,
-        0,
-        0,
-        FW_NORMAL,
-        FALSE,
-        FALSE,
-        FALSE,
-        DEFAULT_CHARSET,
-        OUT_OUTLINE_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE,
-        "Segoe UI");
+        HFONT Font;
+        if(FontSize)
+        {
+            Font=CreateFont(
+            25,
+            12,
+            0,
+            0,
+            FW_NORMAL,
+            FALSE,
+            FALSE,
+            FALSE,
+            DEFAULT_CHARSET,
+            OUT_OUTLINE_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY,
+            DEFAULT_PITCH | FF_DONTCARE,
+            "Segoe UI");
+        }
+        else
+        {
+            Font=CreateFont(
+            22,
+            10,
+            0,
+            0,
+            FW_NORMAL,
+            FALSE,
+            FALSE,
+            FALSE,
+            DEFAULT_CHARSET,
+            OUT_OUTLINE_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY,
+            DEFAULT_PITCH | FF_DONTCARE,
+            "Segoe UI");
+        }
         HFONT OldFont=SelectObject(Mdc,Font);
         // for inbox 
         RoundRect(Mdc,Choice_1_Inbox_Button.left,Choice_1_Inbox_Button.top,Choice_1_Inbox_Button.right,Choice_1_Inbox_Button.bottom,32,32);
@@ -413,13 +437,9 @@ void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollba
         g_scrollbar->page_size = items_per_page;
     }   
 }
-// to know how is the recipient in the visible area
-int VisibleRecipient[100] = {0};
-int CompVisibleRecipient = 0;
+// storing index's of searched user
 int ListSearchedRecipient[100] = {0};
 int CompSearchedRecipient = 0;
-int VisibleSearchedRecipient[100];
-int CompvisibleSearchedRecipient = 0;
 int Index = -1;
 void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients Message[100],ScrollbarInfo *g_scrollbar)
 {
@@ -429,7 +449,6 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
     {
         float scroll_offset = g_scrollbar->current_val * 80;
         float visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
-        CompVisibleRecipient = 0;
         i = countclientStatus;
         for (int j = 0; j < i;j++)
         { 
@@ -440,9 +459,6 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
                 continue;
             }
             SetTextColor(Mdc_Child_1,RGB(0,0,0));
-            // store recipient that is visible in the scrollbar window 
-            VisibleRecipient[CompVisibleRecipient] = j;
-            CompVisibleRecipient++;
             RECT item_rect = {ScrollBarRect.left, item_y, ScrollBarRect.right, item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2};
             HPEN Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
             HPEN OldPen=SelectObject(Mdc_Child_1,Pen);
@@ -501,7 +517,6 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
         int Cmp = FillingSearchRecipientList(HandleSearch,countclientStatus,Message,ListSearchedRecipient,CompSearchedRecipient);
         float scroll_offset = g_scrollbar->current_val * 80;
         float visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
-        CompvisibleSearchedRecipient = 0;
         for (int j = 0; j <Cmp;j++)
         { 
             float item_y = (j * 80) - scroll_offset;
@@ -511,8 +526,6 @@ void DrawContentWithScroll(HDC Mdc_Child_1, HWND hwnd,RECT ScrollBarRect,Clients
                 continue;
             }
             SetTextColor(Mdc_Child_1,RGB(0,0,0));
-            // store recipient that is visible in the scrollbar window 
-            VisibleSearchedRecipient[CompvisibleSearchedRecipient++] = j;
             RECT item_rect = {ScrollBarRect.left, item_y, ScrollBarRect.right, item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2};
             HPEN Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
             HPEN OldPen=SelectObject(Mdc_Child_1,Pen);
@@ -581,7 +594,7 @@ void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT Wind
     RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.009,
     Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.834,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.07,
     (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
-    // imoji circle Button
+    // emoji circle Button
     Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.296 - CurrentHEmoji,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - CurrentVEmoji,
     Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.326 + CurrentHEmoji,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + CurrentVEmoji);
     // Attach Button
@@ -642,11 +655,22 @@ void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT Wind
     // second line is ellipse
     Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.35278 - CurrentHAttach/6.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0539 - CurrentVAttach/6.5,
     Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3564 + CurrentHAttach/6.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.045 + CurrentVAttach/6.5);
+    SelectObject(Mdc,OldButtonColorRecipient);
+    DeleteObject(OldButtonColorRecipient);
     SelectObject(Mdc,OldPenRecipient);
     DeleteObject(PenRecipient);
-    // bracket on button send 
+    // search button where you can search in the conversation about some words or infos
+    HBRUSH Gray = CreateSolidBrush(RGB(210, 210, 210));
+    OldButtonColor=SelectObject(Mdc,Gray);
     HPEN penSend = CreatePen(PS_SOLID,3,RGB(0, 0, 0));
     HPEN oldPenSend = SelectObject(Mdc,penSend);
+    Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.364 + (WindowSize.right - WindowSize.left)*0.43,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.024,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.368 + (WindowSize.right - WindowSize.left)*0.447,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.0452);
+    MoveToEx(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.364 + (WindowSize.right - WindowSize.left)*0.43085,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.04222,NULL);
+    LineTo(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.364 + (WindowSize.right - WindowSize.left)*0.42605,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.04705);
+    SelectObject(Mdc,OldButtonColor);
+    DeleteObject(Gray);
+    // bracket on button send 
     // down line 
     MoveToEx(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
     (WindowSize.right - WindowSize.left)*0.02)/2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.071 - CurrentVSend/5,NULL);
@@ -656,16 +680,68 @@ void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT Wind
     // left line
     MoveToEx(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
     (WindowSize.right - WindowSize.left)*0.02)/2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.071 - CurrentVSend/5,NULL);
-    LineTo(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.38 + (WindowSize.right - WindowSize.left)*0.4222 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44) /2,
+    LineTo(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.38 + (WindowSize.right - WindowSize.left)*0.4222 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.441)/2,
     WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.059 - CurrentVSend/5);
     // right line 
     MoveToEx(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
     (WindowSize.right - WindowSize.left)*0.02)/2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.071 - CurrentVSend/5,NULL);
-    LineTo(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.377 + (WindowSize.right - WindowSize.left)*0.424 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
-    (WindowSize.right - WindowSize.left)*0.037)/2,
+    LineTo(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.377 + (WindowSize.right - WindowSize.left)*0.424 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3765 + (WindowSize.right - WindowSize.left)*0.44 +  
+    (WindowSize.right - WindowSize.left)*0.03405)/2,
     WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.059 - CurrentVSend/5);
     SelectObject(Mdc,oldPenSend);
     DeleteObject(penSend);
     SelectObject(Mdc,OldButtonColorRecipient);
     DeleteObject(OldButtonColorRecipient);
 }
+// taking the index of the user who is been taken by the user for a conversation 
+int GetClickedRecipient(POINT click_point)
+{
+    for (int i = 0; i < visible_item_count; i++)
+    {
+        if (visible_items[i].is_visible && PtInRect(&visible_items[i].item_rect, click_point))
+        {
+            return visible_items[i].recipient_index;
+        }
+    }
+    return -1; 
+}
+// build a list of visible users
+void BuildVisibleItemsList(HDC hdc, HWND hwnd, RECT ScrollBarRect, Clients Message[], ScrollbarInfo *g_scrollbar)
+{
+    visible_item_count = 0;
+    char search_buffer[50];
+    GetWindowText(HandleSearch, search_buffer, sizeof(search_buffer));
+    float scroll_offset = g_scrollbar->current_val * 80;
+    float visible_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
+    
+    int total_recipients = (strlen(search_buffer) == 0) ? countclientStatus : 
+                          FillingSearchRecipientList(HandleSearch, countclientStatus, Message, ListSearchedRecipient, CompSearchedRecipient);
+    
+    for (int j = 0; j < total_recipients; j++)
+    {
+        float item_y = (j * 80) - scroll_offset;
+        if (item_y < -80 || item_y > visible_height + 80)
+        {
+            continue;
+        }
+        int recipient_idx = (strlen(search_buffer) == 0) ? j : ListSearchedRecipient[j];
+        visible_items[visible_item_count].recipient_index = recipient_idx;
+        visible_items[visible_item_count].item_rect.left = ScrollBarRect.left;
+        visible_items[visible_item_count].item_rect.top = ScrollBarRect.top + item_y;
+        visible_items[visible_item_count].item_rect.right = ScrollBarRect.right - SCROLLBAR_WIDTH - 5;
+        visible_items[visible_item_count].item_rect.bottom = ScrollBarRect.top + item_y + 70;
+        
+        visible_items[visible_item_count].text_rect = visible_items[visible_item_count].item_rect;
+        visible_items[visible_item_count].text_rect.top += 10;
+        visible_items[visible_item_count].text_rect.bottom -= 30;
+        visible_items[visible_item_count].text_rect.right -= (ScrollBarRect.right - ScrollBarRect.left) * 0.3;
+        
+        visible_items[visible_item_count].status_rect = visible_items[visible_item_count].text_rect;
+        visible_items[visible_item_count].status_rect.top += 40;
+        visible_items[visible_item_count].status_rect.bottom += 20;
+        
+        visible_items[visible_item_count].is_visible = true;
+        visible_item_count++;
+    }
+}
+

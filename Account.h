@@ -29,7 +29,7 @@ HICON CompanyBigLogo;
 HWND HandleBigLogo;
 #define MAX_BUTTON_WIDTH 160
 #define MAX_BUTTON_HEIGHT 52
-#define MIN_BUTTON_WIDTH 120
+#define MIN_BUTTON_WIDTH 101
 #define MIN_BUTTON_HEIGHT 35
 // a function for measuring my window 
 int MeasureWindowSize(int size, int min, int max) {
@@ -37,7 +37,7 @@ int MeasureWindowSize(int size, int min, int max) {
     if (size > max) return max;
     return size;
 }
-void baseRectangle(RECT WindowSize,HWND HandleWnd)
+float baseRectangle(RECT WindowSize,HWND HandleWnd)
 {
     GetClientRect(HandleWnd,&WindowSize);
     
@@ -74,9 +74,10 @@ void baseRectangle(RECT WindowSize,HWND HandleWnd)
     Choice_3_Button = Choice_3;
     Choice_4_Button = Choice_4;
     Choice_5_Button = Choice_5;
+    return ButtonWidth;
 }
 // Creating message button
-void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage,RECT WindowSize)
+void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage,RECT WindowSize,bool FontSize)
 { 
     RECT MessageAnimation=Choice_1_Button;
     MessageAnimation.left-=(CurrentHMessage/2);
@@ -86,22 +87,43 @@ void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage,RE
     RECT MessageRect=MessageAnimation;
     MessageRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
     MessageRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
-    
-    HFONT Font=CreateFont(
-    25,
-    12,
-    0,
-    0,
-    FW_NORMAL,
-    FALSE,
-    FALSE,
-    FALSE,
-    DEFAULT_CHARSET,
-    OUT_OUTLINE_PRECIS,
-    CLIP_DEFAULT_PRECIS,
-    CLEARTYPE_QUALITY,
-    DEFAULT_PITCH | FF_DONTCARE,
-    "Segoe UI");
+    HFONT Font;
+    if(FontSize)
+    {
+        Font=CreateFont(
+        25,
+        12,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
+    else
+    {
+        Font=CreateFont(
+        22,
+        10,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
     HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
     HFONT OldFont=SelectObject(Mdc,Font);
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
@@ -118,7 +140,7 @@ void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage,RE
     DeleteObject(OldButtonColor);
 }
 // creating online button
-void CreateOnlineAccount(HDC Mdc,float CurrentHOnline,float CurrentVOnline,RECT WindowSize)
+void CreateOnlineAccount(HDC Mdc,float CurrentHOnline,float CurrentVOnline,RECT WindowSize,bool FontSize)
 {
     RECT OnlineAnimation=Choice_2_Button;
     OnlineAnimation.left-=(CurrentHOnline/2);
@@ -128,22 +150,43 @@ void CreateOnlineAccount(HDC Mdc,float CurrentHOnline,float CurrentVOnline,RECT 
     RECT OnlineRect=OnlineAnimation;
     OnlineRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
     OnlineRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
-
-    HFONT Font=CreateFont(
-    25,
-    12,
-    0,
-    0,
-    FW_NORMAL,
-    FALSE,
-    FALSE,
-    FALSE,
-    DEFAULT_CHARSET,
-    OUT_OUTLINE_PRECIS,
-    CLIP_DEFAULT_PRECIS,
-    CLEARTYPE_QUALITY,
-    DEFAULT_PITCH | FF_DONTCARE,
-    "Segoe UI");
+    HFONT Font;
+    if(FontSize)
+    {
+        Font=CreateFont(
+        25,
+        12,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
+    else
+    {
+        Font=CreateFont(
+        22,
+        10,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
     HFONT OldFont=SelectObject(Mdc,Font);
     HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
@@ -160,7 +203,7 @@ void CreateOnlineAccount(HDC Mdc,float CurrentHOnline,float CurrentVOnline,RECT 
     DeleteObject(ButtonColor);
 }
 // creating task button
-void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask,RECT WindowSize)
+void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask,RECT WindowSize,bool FontSize)
 {
     RECT TaskAnimation=Choice_3_Button;
     TaskAnimation.left-=(CurrentHTask/2);
@@ -171,21 +214,43 @@ void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask,RECT Window
     TaskRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
     TaskRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
 
-    HFONT Font=CreateFont(
-    25,
-    12,
-    0,
-    0,
-    FW_NORMAL,
-    FALSE,
-    FALSE,
-    FALSE,
-    DEFAULT_CHARSET,
-    OUT_OUTLINE_PRECIS,
-    CLIP_DEFAULT_PRECIS,
-    CLEARTYPE_QUALITY,
-    DEFAULT_PITCH | FF_DONTCARE,
-    "Segoe UI");
+    HFONT Font;
+    if(FontSize)
+    {
+        Font=CreateFont(
+        25,
+        12,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
+    else
+    {
+        Font=CreateFont(
+        22,
+        10,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
     HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
     HFONT OldFont=SelectObject(Mdc,Font);
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
@@ -202,7 +267,7 @@ void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask,RECT Window
     DeleteObject(ButtonColor);
 }
 // creating Project button
-void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject,RECT WindowSize)
+void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject,RECT WindowSize,bool FontSize)
 {
     RECT ProjectAnimation=Choice_4_Button;
     ProjectAnimation.left-=(CurrentHProject/2);
@@ -212,22 +277,43 @@ void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject,RE
     RECT ProjectRect=ProjectAnimation;
     ProjectRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
     ProjectRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
-
-    HFONT Font=CreateFont(
-    25,
-    12,
-    0,
-    0,
-    FW_NORMAL,
-    FALSE,
-    FALSE,
-    FALSE,
-    DEFAULT_CHARSET,
-    OUT_OUTLINE_PRECIS,
-    CLIP_DEFAULT_PRECIS,
-    CLEARTYPE_QUALITY,
-    DEFAULT_PITCH | FF_DONTCARE,
-    "Segoe UI");
+    HFONT Font;
+    if(FontSize)
+    {
+        Font=CreateFont(
+        25,
+        12,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
+    else
+    {
+        Font=CreateFont(
+        22,
+        10,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
     HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
     HFONT OldFont=SelectObject(Mdc,Font);
@@ -244,7 +330,7 @@ void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject,RE
     DeleteObject(ButtonColor);
 }
 // creating disconnect button
-void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisconnect,RECT WindowSize)
+void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisconnect,RECT WindowSize,bool FontSize)
 {
     RECT DisconnectAnimation=Choice_5_Button;
     DisconnectAnimation.left-=(CurrentHDisconnect/2);
@@ -254,22 +340,43 @@ void CreateDisconnectAccount(HDC Mdc,float CurrentHDisconnect,float CurrentVDisc
     RECT DisconnectRect=DisconnectAnimation;
     DisconnectRect.top+=(WindowSize.bottom-WindowSize.top)*0.012;
     DisconnectRect.bottom+=(WindowSize.bottom-WindowSize.top)*0.015;
-
-    HFONT Font=CreateFont(
-    25,
-    12,
-    0,
-    0,
-    FW_NORMAL,
-    FALSE,
-    FALSE,
-    FALSE,
-    DEFAULT_CHARSET,
-    OUT_OUTLINE_PRECIS,
-    CLIP_DEFAULT_PRECIS,
-    CLEARTYPE_QUALITY,
-    DEFAULT_PITCH | FF_DONTCARE,
-    "Segoe UI");
+    HFONT Font;
+    if(FontSize)
+    {
+        Font=CreateFont(
+        25,
+        12,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
+    else
+    {
+        Font=CreateFont(
+        22,
+        10,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
     HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
     HFONT OldFont=SelectObject(Mdc,Font);
     HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
