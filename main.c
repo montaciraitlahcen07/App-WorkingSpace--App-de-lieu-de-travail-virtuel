@@ -397,7 +397,8 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             InvalidateRect(hwnd, NULL, TRUE);
             break;
         }
-        case WM_MOUSEMOVE: {
+        case WM_MOUSEMOVE:
+        {
             POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             BOOL was_hovering = g_scrollbar.thumb_hover;
             CalculateThumbRect(hwnd, &g_scrollbar.thumb_rect,WindowSize);
@@ -544,6 +545,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             InvalidateRect(hwnd, &WindowSize, FALSE);
             break;  
             case WM_CREATE:
+            //InitializeCriticalSection(&socketLock);
             GetClientRect(hwnd, &WindowSize);
             ButtonHandle = CreateWindowEx( 0,"BUTTON","Log in",WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_FLAT,
             0, 0, 100, 32,hwnd,(HMENU)ButtonID,IDhInstance,NULL); 
@@ -595,23 +597,37 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             } else {
                 printf("Failed to resolve hostname\n");
             }*/
-            ConnectingTools.Server.sin_family=AF_INET;
-            ConnectingTools.Server.sin_port=htons(8000);
-            ConnectingTools.Server.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
-            struct sockaddr_in ClientData;
-            ConnectingTools.ClientSocket=socket(AF_INET,SOCK_STREAM,0);
-            if(ConnectingTools.ClientSocket==INVALID_SOCKET)
+           // Sending connection
+            ConnectingTools.ServerSending.sin_family=AF_INET;
+            ConnectingTools.ServerSending.sin_port=htons(8000);
+            ConnectingTools.ServerSending.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
+            ConnectingTools.ClientSocketSending=socket(AF_INET,SOCK_STREAM,0);
+            if(ConnectingTools.ClientSocketSending==INVALID_SOCKET)
             {
                 printf("broken socket\n");
-                closesocket(ConnectingTools.ClientSocket);
+                closesocket(ConnectingTools.ClientSocketSending);
                 return 1;
             }
-            int ServerResult=connect(ConnectingTools.ClientSocket,(const struct sockaddr *)&ConnectingTools.Server,sizeof(ConnectingTools.Server));
+            int ServerResult=connect(ConnectingTools.ClientSocketSending,(const struct sockaddr *)&ConnectingTools.ServerSending,sizeof(ConnectingTools.ServerSending));
+            Sleep(100);
+            // Receiving connection
+            ConnectingTools.ServerReceiving.sin_family=AF_INET;
+            ConnectingTools.ServerReceiving.sin_port=htons(8001);
+            ConnectingTools.ServerReceiving.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
+            //struct sockaddr_in ClientData;
+            ConnectingTools.ClientSocketReceiving=socket(AF_INET,SOCK_STREAM,0);
+            if(ConnectingTools.ClientSocketReceiving==INVALID_SOCKET)
+            {
+                printf("broken socket\n");
+                closesocket(ConnectingTools.ClientSocketReceiving);
+                return 1;
+            }
+            int ServerResultR=connect(ConnectingTools.ClientSocketReceiving,(const struct sockaddr *)&ConnectingTools.ServerReceiving,sizeof(ConnectingTools.ServerReceiving));
             Sleep(100);
             /*struct hostent *hostfirst = gethostbyname("moncef.stil.fun");
             if (hostfirst != NULL)
             {
-            memcpy(&ConnectingTools.ServerStatus.sin_addr.S_un.S_addr,hostfirst->h_addr, hostfirst->h_length);
+            memcpy(&ConnectingTools.ServerSendingStatus.sin_addr.S_un.S_addr,hostfirst->h_addr, hostfirst->h_length);
             ConnectingTools.ServerStatus.sin_port = htons(8000);  // The port from Pinggy
             }
             else
@@ -620,7 +636,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             }*/
             // this socket is for status recv
             ConnectingTools.ServerStatus.sin_family=AF_INET;
-            ConnectingTools.ServerStatus.sin_port=htons(8001);
+            ConnectingTools.ServerStatus.sin_port=htons(8002);
             ConnectingTools.ServerStatus.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
             struct sockaddr_in ClientsStatus;
             ConnectingTools.StatusSocket=socket(AF_INET,SOCK_STREAM,0);
@@ -648,7 +664,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             OldBitMap = (HBITMAP)SelectObject(Mdc, BitMap);
             // taking a copy into receiving thread
             ConnectingTools.Mdc = Mdc;
-            //
             Creme=CreateSolidBrush(RGB(250,245,230));
             LoginInterface.left=WindowLeft;
             LoginInterface.top=WindowTop;
@@ -729,8 +744,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 // this is for creating threads to communicate with the server (communicate with other friend in the server (companie)
                 HANDLE ThreadSending = (HANDLE)_beginthreadex(NULL ,0,SendingThread,&SendingTools,0,NULL);
-                HANDLE ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, &WaitingUserList, 0, NULL);
                 HANDLE ThreadStatus = (HANDLE)_beginthreadex(NULL, 0,StatusThread,&SendingTrdStatus, 0, NULL);
+                HANDLE ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, &RcvStg, 0, NULL);
                 /*if(ThreadSending)
                 {
                     WaitForSingleObject(ThreadSending, INFINITE);
@@ -923,6 +938,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             UiMessage=TRUE;   
             UiGeneral = TRUE;
             UiInbox = FALSE;
+            // taking a copy for the receiving thread
+            RcvStg.UiInbox = UiInbox;
             MessageButtonClicked = TRUE;   
         }
         else if(MessageButtonClicked)
@@ -934,6 +951,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 UiInbox = TRUE;
                 MemoryDcSndTool.UiInbox = UiInbox;
+                // taking a copy for the receiving thread
+                RcvStg.UiInbox = UiInbox;
                 UiMessage = FALSE;
                 UiGeneral = FALSE;
                 MemoryDcSndTool.UiGeneral = UiGeneral;
@@ -963,6 +982,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 UiMessage = FALSE;
                 UiInbox = FALSE;
                 MemoryDcSndTool.UiInbox = UiInbox;
+                // taking a copy for the receiving thread
+                RcvStg.UiInbox = UiInbox;
                 SetTimer(hwnd,TimerPanel,30,NULL);
             }
             else if(UiInbox)
@@ -1210,7 +1231,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         MessageBox(NULL, "Window Creation Failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
         return 1;
     }
-    InitializeCriticalSection(&socketLock);
+    RcvStg.HandleWnd = HandleWnd;
     ShowWindow(HandleWnd, nCmdShow);
     UpdateWindow(HandleWnd);
     MSG msg;

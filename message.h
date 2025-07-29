@@ -403,14 +403,17 @@ void DrawScrollBar(HDC hdc, HWND hwnd,RECT WindowSize) {
     DeleteObject(thumb_brush);
 }
 //for checking is the user hovering or clicking on the thumb
-BOOL PointInRect(POINT pt, RECT* rect) {
+BOOL PointInRect(POINT pt, RECT* rect)
+{
     return (pt.x >= rect->left && pt.x <= rect->right && 
             pt.y >= rect->top && pt.y <= rect->bottom);
 }
 // updating the thumb is place in the scrollbar 
-void UpdateScrollValue(HWND hwnd, float new_val) {
+void UpdateScrollValue(HWND hwnd, float new_val)
+{
     new_val = max(g_scrollbar.min_val, min(g_scrollbar.max_val, new_val));
-    if (new_val != g_scrollbar.current_val) {
+    if (new_val != g_scrollbar.current_val)
+    {
         g_scrollbar.current_val = new_val;
     }
 }
@@ -418,13 +421,12 @@ int total_items;
 float window_height;
 float items_per_page;
 extern int i;
-void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollbar) {
+void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollbar)
+{
     GetClientRect(hwnd,&ScrollBarRect);
     total_items = i;
-    
     window_height = (ScrollBarRect.bottom - ScrollBarRect.top) - 4;
     items_per_page = window_height / 80;
-    
     g_scrollbar->min_val = 0;
     if(total_items <= items_per_page)
     {
@@ -693,6 +695,11 @@ void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT Wind
     SelectObject(Mdc,OldButtonColorRecipient);
     DeleteObject(OldButtonColorRecipient);
 }
+// ui of the conversation 
+void MessageUiConversation()
+{
+    
+}
 // taking the index of the user who is been taken by the user for a conversation 
 int GetClickedRecipient(POINT click_point)
 {
@@ -720,7 +727,7 @@ void BuildVisibleItemsList(HDC hdc, HWND hwnd, RECT ScrollBarRect, Clients Messa
     for (int j = 0; j < total_recipients; j++)
     {
         float item_y = (j * 80) - scroll_offset;
-        if (item_y < -80 || item_y > visible_height + 80)
+        if(item_y < -80 || item_y > visible_height + 80)
         {
             continue;
         }
@@ -729,7 +736,7 @@ void BuildVisibleItemsList(HDC hdc, HWND hwnd, RECT ScrollBarRect, Clients Messa
         visible_items[visible_item_count].item_rect.left = ScrollBarRect.left;
         visible_items[visible_item_count].item_rect.top = ScrollBarRect.top + item_y;
         visible_items[visible_item_count].item_rect.right = ScrollBarRect.right - SCROLLBAR_WIDTH - 5;
-        visible_items[visible_item_count].item_rect.bottom = ScrollBarRect.top + item_y + 70;
+        visible_items[visible_item_count].item_rect.bottom = ScrollBarRect.top + item_y + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2;
         
         visible_items[visible_item_count].text_rect = visible_items[visible_item_count].item_rect;
         visible_items[visible_item_count].text_rect.top += 10;
@@ -744,4 +751,3 @@ void BuildVisibleItemsList(HDC hdc, HWND hwnd, RECT ScrollBarRect, Clients Messa
         visible_item_count++;
     }
 }
-

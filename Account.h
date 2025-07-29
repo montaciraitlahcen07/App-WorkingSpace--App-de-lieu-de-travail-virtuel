@@ -134,8 +134,8 @@ void CreateMessageAccount(HDC Mdc,float CurrentHMessage,float CurrentVMessage,RE
     DrawText(Mdc,"Message",-1,&MessageRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
-    SelectObject(Mdc,OldPen);
     DeleteObject(Font);
+    SelectObject(Mdc,OldPen);
     DeleteObject(Pen);
     DeleteObject(OldButtonColor);
 }

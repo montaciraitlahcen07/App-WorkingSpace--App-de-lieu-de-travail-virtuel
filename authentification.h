@@ -30,8 +30,10 @@ typedef struct
 InboxMessage PrivateMessage;
 typedef struct 
 {
-    struct sockaddr_in Server;
-    SOCKET ClientSocket;
+    struct sockaddr_in ServerSending;
+    SOCKET ClientSocketSending;
+    struct sockaddr_in ServerReceiving;
+    SOCKET ClientSocketReceiving;
     struct sockaddr_in ServerStatus;
     SOCKET StatusSocket;
     RECT WindowSize;
@@ -88,19 +90,19 @@ void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT
         Workers WorkerData;
         char Authentification[30];
         UserData_2=fopen("usersdata.txt","rb+");
-        int sendResult = send(ConnectingTools.ClientSocket,SendingTools->username, strlen(SendingTools->username), 0);
+        int sendResult = send(ConnectingTools.ClientSocketSending,SendingTools->username, strlen(SendingTools->username), 0);
         if(sendResult == SOCKET_ERROR)
         {
             return ;
         }
         Sleep(10);
-        int sendResultP = send(ConnectingTools.ClientSocket,SendingTools->password, strlen(SendingTools->password), 0);
+        int sendResultP = send(ConnectingTools.ClientSocketSending,SendingTools->password, strlen(SendingTools->password), 0);
         if(sendResultP == SOCKET_ERROR)
         {
             return ;
         }
     
-        int Result = recv(ConnectingTools.ClientSocket, Authentification, sizeof(Authentification)-1, 0);
+        int Result = recv(ConnectingTools.ClientSocketSending, Authentification, sizeof(Authentification)-1, 0);
         if(Result <= 0)
         {
             printf("the authentification did not been sent from the server\n");

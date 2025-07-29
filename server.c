@@ -13,11 +13,11 @@ typedef struct
     char PassWord[30];
     int age;
     int salarie;
-    SOCKET Clients;
+    SOCKET ClientsS;
+    SOCKET ClientsR;
     SOCKET StatusClients;
     bool IsActive;
 }Clients;
-
 typedef struct
 {
     char Username[30];
@@ -38,8 +38,9 @@ typedef struct
 // client is socket
 typedef struct 
 {
-    SOCKET Client;
-    SOCKET StatusClient;   
+    SOCKET SendingSocket;
+    SOCKET ReceivingSocket;
+    SOCKET StatusSocket;   
 }ClientSockets;
 // client is socket and message
 typedef struct
@@ -64,16 +65,16 @@ typedef struct
     SOCKET StatusSocket;
 }StatusType;
 unsigned __stdcall ReceivingAndPrintingData(void *param);
-bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocket,SOCKET StatusSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus);
+bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus);
 void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsData,StatusType *UserStatus,char username[30]);
 void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET senderSocket,FILE *ClientsData);
-bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message, SOCKET senderSocket,FILE *ClientsData);
+bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message,SOCKET senderSocketReceiving,FILE *ClientsData);
 void SendClient(char username[20],SOCKET clientSocketc,FILE *ClientsData);
 int main()
 {
     // Storing the users is infos
-    Clients FillingTrial[7] = {{"monta","sir",19,1000,0,0,FALSE},{"imad","mon",29,10000,0,0,FALSE},{"anwar","ba",25,10000,0,0,FALSE},
-    {"bilal","zarkal",19,1000,0,0,FALSE},{"aymen","sale",19,1000,0,0,FALSE},{"mohammed","puakki",19,1000,0,0,FALSE},{"omar","ait",19,1000,0,0,FALSE}};
+    Clients FillingTrial[7] = {{"monta","sir",19,1000,0,0,0,FALSE},{"imad","mon",29,10000,0,0,0,FALSE},{"anwar","ba",25,10000,0,0,0,FALSE},
+    {"bilal","zarkal",19,1000,0,0,0,FALSE},{"aymen","sale",19,1000,0,0,0,FALSE},{"mohammed","puakki",19,1000,0,0,0,FALSE},{"omar","ait",19,1000,0,0,0,FALSE}};
     FILE *testFile = fopen("ClientsData.txt", "w+b");
     if (testFile == NULL)
     {
@@ -94,45 +95,67 @@ int main()
         return 1;
     }
 
-    struct sockaddr_in Server, ClientData,StatusData,StatusServer;
-    SOCKET ServerSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (ServerSocket == INVALID_SOCKET) {
+    struct sockaddr_in ServerSending, ClientDataSending,ServerReceiving, ClientDataReceiving,StatusData,StatusServer;
+    // Sending Connection
+    SOCKET ServerSocketSending = socket(AF_INET, SOCK_STREAM, 0);
+    if (ServerSocketSending == INVALID_SOCKET) {
         printf("Socket creation failed\n");
         WSACleanup();
         return 1;
     }
 
-    Server.sin_family = AF_INET;
-    Server.sin_port = htons(8000);
-    Server.sin_addr.S_un.S_addr = ADDR_ANY;
-    //Server.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
-
-    if (bind(ServerSocket, (struct sockaddr *)&Server, sizeof(Server)) == SOCKET_ERROR) {
+    ServerSending.sin_family = AF_INET;
+    ServerSending.sin_port = htons(8000);
+    ServerSending.sin_addr.S_un.S_addr = INADDR_ANY;
+    //ServerSending.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+    if (bind(ServerSocketSending, (struct sockaddr *)&ServerSending, sizeof(ServerSending)) == SOCKET_ERROR) {
         printf("Bind failed with error: %d\n", WSAGetLastError());
-        closesocket(ServerSocket);
+        closesocket(ServerSocketSending);
         WSACleanup();
         return 1;
     }
-
-    if(listen(ServerSocket, 5) == SOCKET_ERROR)
+    if(listen(ServerSocketSending, 5) == SOCKET_ERROR)
     {
         printf("Listen failed with error: %d\n", WSAGetLastError());
-        closesocket(ServerSocket);
+        closesocket(ServerSocketSending);
         WSACleanup();
         return 1;
     }
+    // receving Connection
+    SOCKET ServerSocketReceiving = socket(AF_INET, SOCK_STREAM, 0);
+    if (ServerSocketReceiving == INVALID_SOCKET) {
+        printf("Socket creation failed\n");
+        WSACleanup();
+        return 1;
+    }
+    ServerReceiving.sin_family = AF_INET;
+    ServerReceiving.sin_port = htons(8001);
+    ServerReceiving.sin_addr.S_un.S_addr = INADDR_ANY;
+    //ServerReceiving.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+    if (bind(ServerSocketReceiving, (struct sockaddr *)&ServerReceiving, sizeof(ServerReceiving)) == SOCKET_ERROR) {
+        printf("Bind failed with error: %d\n", WSAGetLastError());
+        closesocket(ServerSocketReceiving);
+        WSACleanup();
+        return 1;
+    }
+    if(listen(ServerSocketReceiving, 5) == SOCKET_ERROR)
+    {
+        printf("Listen failed with error: %d\n", WSAGetLastError());
+        closesocket(ServerSocketReceiving);
+        WSACleanup();
+        return 1;
+    }
+    // Status Connection
     SOCKET ServerSocketStatus = socket(AF_INET, SOCK_STREAM, 0);
     if (ServerSocketStatus == INVALID_SOCKET) {
         printf("Socket creation failed\n");
         WSACleanup();
         return 1;
     }
-
     StatusServer.sin_family = AF_INET;
-    StatusServer.sin_port = htons(8001);
-    StatusServer.sin_addr.S_un.S_addr = ADDR_ANY;
+    StatusServer.sin_port = htons(8002);
+    StatusServer.sin_addr.S_un.S_addr = INADDR_ANY;
     //StatusServer.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
-
     if (bind(ServerSocketStatus, (struct sockaddr *)&StatusServer, sizeof(StatusServer)) == SOCKET_ERROR) {
         printf("Bind failed with error: %d\n", WSAGetLastError());
         closesocket(ServerSocketStatus);
@@ -150,9 +173,11 @@ int main()
 
     printf("Server is listening on port 8000 and 8001...\n");
     
-    int sizeDataClient = sizeof(ClientData);
+    int sizeDataClient = sizeof(ClientDataSending);
+    int sizeDataClientReceiving = sizeof(ClientDataReceiving);
     int sizeDataStatus = sizeof(StatusData);
     SOCKET Client;
+    SOCKET ClientR;
     SOCKET StatusClient;
     ClientsData = fopen("ClientsData.txt", "r+b");
     if(ClientsData == NULL)
@@ -178,8 +203,14 @@ int main()
     fclose(ClientsData);
     while (TRUE)
     {
-        Client = accept(ServerSocket, (struct sockaddr *)&ClientData, &sizeDataClient);
+        Client = accept(ServerSocketSending, (struct sockaddr *)&ClientDataSending, &sizeDataClient);
         if (Client == INVALID_SOCKET)
+        {
+            printf("Accept failed: %d\n", WSAGetLastError());
+            continue;
+        }
+        ClientR = accept(ServerSocketReceiving, (struct sockaddr *)&ClientDataReceiving, &sizeDataClientReceiving);
+        if (ClientR == INVALID_SOCKET)
         {
             printf("Accept failed: %d\n", WSAGetLastError());
             continue;
@@ -196,20 +227,21 @@ int main()
         printf("New client connected\n");
        SocketAndMessage.Sockets = (ClientSockets*)malloc(sizeof(ClientSockets));
        // this is for client socket
-       SocketAndMessage.Sockets->Client = Client;
+       SocketAndMessage.Sockets->SendingSocket = Client;
+       SocketAndMessage.Sockets->ReceivingSocket = ClientR;
        // this is for status socket  
-        SocketAndMessage.Sockets->StatusClient = StatusClient;
+        SocketAndMessage.Sockets->StatusSocket = StatusClient;
         HANDLE ClientThread = (HANDLE)_beginthreadex(NULL, 0, ReceivingAndPrintingData,&SocketAndMessage, 0, NULL);
         if (ClientThread)
         {
             CloseHandle(ClientThread);
         }
     }
-    closesocket(ServerSocket);
+    closesocket(ServerSocketSending);
     WSACleanup();
     return 0;
 }
-bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocket,SOCKET StatusSocket,bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus)
+bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket,bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus)
 {
     ClientsData = fopen("ClientsData.txt", "r+b");
     if (ClientsData == NULL)
@@ -228,18 +260,19 @@ bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientS
         if(strcmp(ClientsStoring.Username, username) == 0 && strcmp(ClientsStoring.PassWord, PassWord) == 0)
         {
             fseek(ClientsData, -sizeof(Clients), SEEK_CUR);
-            ClientsStoring.Clients = clientSocket;
+            ClientsStoring.ClientsS = clientSocketSending;
             ClientsStoring.IsActive = TRUE; 
             ClientsStoring.StatusClients = StatusSocket; 
+            ClientsStoring.ClientsR = clientSocketReceiving;
             fwrite(&ClientsStoring, sizeof(ClientsStoring), 1, ClientsData);
             fflush(ClientsData); 
             printf("%s connected\n", ClientsStoring.Username);
             userFound = true;
             strcpy(UserStatus->UserName,username);
             UserStatus->Type = ONLINE;
-            UserStatus->Socket = clientSocket;
+            UserStatus->Socket = clientSocketSending;
             UserStatus->StatusSocket = StatusSocket;
-            send(clientSocket,"Correct",strlen("Correct"),0);
+            send(clientSocketSending,"Correct",strlen("Correct"),0);
             *isNewConnection = TRUE;
             rewind(ClientsData);
             while(fread(&ClientsStoring, sizeof(ClientsStoring), 1, ClientsData) == 1)
@@ -254,7 +287,7 @@ bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientS
     }
     if(!userFound)
     {
-        send(clientSocket,"Incorrect",strlen("Incorrect"),0);
+        send(clientSocketSending,"Incorrect",strlen("Incorrect"),0);
     }
     fclose(ClientsData);
     return userFound;
@@ -270,7 +303,7 @@ void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsDat
     Clients ClientsStoring;
     
     while (fread(&ClientsStoring, sizeof(ClientsStoring), 1, ClientsData) == 1) {
-        if (ClientsStoring.Clients == clientSocket)
+        if (ClientsStoring.ClientsS == clientSocket)
         {
             fseek(ClientsData, -sizeof(Clients), SEEK_CUR);
             ClientsStoring.IsActive = FALSE;
@@ -285,7 +318,7 @@ void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsDat
             rewind(ClientsData);
             while(fread(&ClientsStoring, sizeof(ClientsStoring), 1, ClientsData) == 1)
             {
-                if(ClientsStoring.Clients != clientSocket && ClientsStoring.IsActive)
+                if(ClientsStoring.ClientsS != clientSocket && ClientsStoring.IsActive)
                 {
                     send(ClientsStoring.StatusClients,(char *)UserStatus, sizeof(StatusType),0);
                 }
@@ -296,7 +329,6 @@ void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsDat
 
     fclose(ClientsData);
 }
-
 void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET senderSocket,FILE *ClientsData)
 {
     ClientsData = fopen("ClientsData.txt", "rb"); 
@@ -304,14 +336,12 @@ void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET
         printf("Failed to open ClientsData.txt for broadcasting\n");
         return;
     }
-
     Clients tempClient;
-    
     while (fread(&tempClient, sizeof(tempClient), 1, ClientsData) == 1) {
-        if (tempClient.Clients != senderSocket && tempClient.IsActive) {
+        if (tempClient.ClientsS != senderSocket && tempClient.IsActive) {
             printf("Sending to %s\n", tempClient.Username);
-            if (send(tempClient.Clients, senderUsername, strlen(senderUsername), 0) == SOCKET_ERROR ||
-                send(tempClient.Clients, message, strlen(message), 0) == SOCKET_ERROR) {
+            if (send(tempClient.ClientsS, senderUsername, strlen(senderUsername), 0) == SOCKET_ERROR ||
+                send(tempClient.ClientsS, message, strlen(message), 0) == SOCKET_ERROR) {
                 printf("Failed to send to %s (client may have disconnected)\n", tempClient.Username);
             }
         }
@@ -320,44 +350,43 @@ void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET
     fclose(ClientsData); 
 }
 
-bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message, SOCKET senderSocket,FILE *ClientsData)
+bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message,SOCKET senderSocketReceiving,FILE *ClientsData)
 {
     ClientsData = fopen("ClientsData.txt", "rb");
-    if (ClientsData == NULL)
+    if(ClientsData == NULL)
     {
         printf("Failed to open ClientsData.txt for private message\n");
         return false;
     }
     Clients tempClient;
+    typedef struct 
+    {
+        char Sender[50];
+        char buffer[200];
+    }messaget;
+    messaget messagetest;
     bool found = false;
     while(fread(&tempClient, sizeof(tempClient), 1, ClientsData) == 1)
     {
         if(strcmp(recipient,tempClient.Username) == 0 && tempClient.IsActive)
         {
-            if(send(tempClient.Clients, recipient, strlen(recipient), 0) == SOCKET_ERROR)
+            found = TRUE;
+            strcpy(messagetest.Sender,senderUsername);
+            strcpy(messagetest.buffer,message);
+            if(send(tempClient.ClientsR,(char *)&messagetest,sizeof(messagetest), 0) == SOCKET_ERROR)
             {
                 printf("Failed to send private message header to %s\n", recipient);
             }
             else
             {
-                if(send(tempClient.Clients, message, strlen(message), 0) == SOCKET_ERROR)
-                {
-                    printf("Failed to send private message content to %s\n", recipient);
-                }
-                else
-                {
-                    printf("Private message sent to %s\n", recipient);
-                    found = true;
-                }
+                printf("Private message has been sent to %s\n", recipient);
             }
             break;
         }
     }
-
     fclose(ClientsData);
     return found;
 }
-
 unsigned __stdcall ReceivingAndPrintingData(void *param)
 {
     ClientSocketsAndTools SocketAndMessage = *(ClientSocketsAndTools*)param;
@@ -365,12 +394,12 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
     StatusType UserStatus;
     Authentification :
     memset(&Message, 0, sizeof(Message));
-    int resultnumber = recv(SocketAndMessage.Sockets->Client, Message.Username, sizeof(Message.Username) - 1, 0);
+    int resultnumber = recv(SocketAndMessage.Sockets->SendingSocket, Message.Username, sizeof(Message.Username) - 1, 0);
     if (resultnumber <= 0) {
         printf("Failed to receive username from client\n");
         goto cleanup;
     }
-    int resultnumberP = recv(SocketAndMessage.Sockets->Client, Message.PassWord, sizeof(Message.PassWord) - 1, 0);
+    int resultnumberP = recv(SocketAndMessage.Sockets->SendingSocket, Message.PassWord, sizeof(Message.PassWord) - 1, 0);
     if (resultnumberP <= 0) {
         printf("Failed to receive username from client\n");
         goto cleanup;
@@ -390,7 +419,7 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
         Message.PassWord[--lenP] = '\0';
     }
     bool IsNewConnection = FALSE;
-    FindAndUpdateUser(Message.Username,Message.PassWord, SocketAndMessage.Sockets->Client,SocketAndMessage.Sockets->StatusClient,&IsNewConnection,ClientsData,&UserStatus);
+    FindAndUpdateUser(Message.Username,Message.PassWord, SocketAndMessage.Sockets->SendingSocket,SocketAndMessage.Sockets->ReceivingSocket,SocketAndMessage.Sockets->StatusSocket,&IsNewConnection,ClientsData,&UserStatus);
     if(IsNewConnection)
     {
         printf("Client username received: %s\n", Message.Username);
@@ -403,7 +432,7 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
     while (TRUE)
     {
         memset(Message.GeneralPrivate, 0, sizeof(Message.GeneralPrivate));
-        int resultnumberBool = recv(SocketAndMessage.Sockets->Client, Message.GeneralPrivate, sizeof(Message.GeneralPrivate) - 1, 0);
+        int resultnumberBool = recv(SocketAndMessage.Sockets->SendingSocket, Message.GeneralPrivate, sizeof(Message.GeneralPrivate) - 1, 0);
         if (resultnumberBool <= 0){
             printf("Client %s disconnected (choice receive failed)\n", Message.Username);
             break;
@@ -417,7 +446,7 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
         printf("Message type from %s: %s\n", Message.Username, Message.GeneralPrivate);
         if (strcmp(Message.GeneralPrivate, "TRUE") == 0) {
             memset(Message.Buffer, 0, sizeof(Message.Buffer));
-            resultnumber = recv(SocketAndMessage.Sockets->Client, Message.Buffer, sizeof(Message.Buffer) - 1, 0);
+            resultnumber = recv(SocketAndMessage.Sockets->SendingSocket, Message.Buffer, sizeof(Message.Buffer) - 1, 0);
             if (resultnumber <= 0) {
                 printf("Failed to receive message from %s\n", Message.Username);
                 break;
@@ -429,14 +458,14 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
                 Message.Buffer[--len] = '\0';
             }
             printf("Broadcasting message from %s: %s\n", Message.Username, Message.Buffer);
-            BroadcastToAllUsers(Message.Username, Message.Buffer, SocketAndMessage.Sockets->Client,ClientsData);
+            BroadcastToAllUsers(Message.Username, Message.Buffer, SocketAndMessage.Sockets->SendingSocket,ClientsData);
         }
         else if (strcmp(Message.GeneralPrivate, "FALSE") == 0)
         {
             // for sending the user the whole list of users who are they online rn
-            SendClient(Message.Username,SocketAndMessage.Sockets->Client,ClientsData);
+            SendClient(Message.Username,SocketAndMessage.Sockets->SendingSocket,ClientsData);
             // receiving the recipient is name and the message 
-            resultnumber = recv(SocketAndMessage.Sockets->Client,(char *)&SocketAndMessage.MessageTools,sizeof(SocketAndMessage.MessageTools), 0);
+            resultnumber = recv(SocketAndMessage.Sockets->SendingSocket,(char *)&SocketAndMessage.MessageTools,sizeof(SocketAndMessage.MessageTools), 0);
             if (resultnumber <= 0)
             {
                 printf("Failed to receive private message from %s\n", Message.Username);
@@ -455,8 +484,8 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
             }
             printf("Private message from %s to %s: %s\n", Message.Username, SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer);
             // sending the message into the recipient by the name of the sender
-            bool messageSent = SendPrivateMessage(Message.Username,SocketAndMessage.MessageTools.Recipient, SocketAndMessage.MessageTools.Buffer, SocketAndMessage.Sockets->Client,ClientsData);
-            if (!messageSent)
+            bool messageSent = SendPrivateMessage(Message.Username,SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer,SocketAndMessage.Sockets->ReceivingSocket,ClientsData);
+            if(!messageSent)
             {
                 printf("Recipient %s not found or not active\n", SocketAndMessage.MessageTools.Recipient);           
             }
@@ -464,8 +493,8 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
         }
     }
     cleanup:
-    MarkUserAsInactive(SocketAndMessage.Sockets->Client,SocketAndMessage.Sockets->StatusClient,ClientsData,&UserStatus,Message.Username);
-    closesocket(SocketAndMessage.Sockets->Client);
+    MarkUserAsInactive(SocketAndMessage.Sockets->SendingSocket,SocketAndMessage.Sockets->StatusSocket,ClientsData,&UserStatus,Message.Username);
+    closesocket(SocketAndMessage.Sockets->SendingSocket);
     free(param);
     return 0;
 }

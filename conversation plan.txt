@@ -1,0 +1,11 @@
+create a thread in client file that it recv the message from the server that is going
+to be rendered on the child window 
+add a function in conversation child window that send request to the server for the array
+of message that is going to reach into the thread we tlked about before and this function is 
+going to be located on the window procedure of the child window 
+
+
+
+create on the server code a new thread for making the array of message is going to the client is code 
+and make first a file for every one ( i need to figure it out how) and i need to know 
+how to chose the message that is going into the client code 
