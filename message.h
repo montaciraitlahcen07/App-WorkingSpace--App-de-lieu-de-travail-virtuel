@@ -37,6 +37,11 @@
         BOOL thumb_pressed;
     }ScrollbarInfo;
     ScrollbarInfo g_scrollbar;
+    // create setting for conversation is thumb
+    // 
+    int choseentype;
+    //
+    ScrollbarInfo Conversation_thumb;
     void CalculateThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize);
     void DrawScrollBar(HDC hdc, HWND hwnd,RECT WindowSize);
     BOOL PointInRect(POINT pt, RECT* rect);
@@ -212,7 +217,6 @@ void DrawMessageBubbleLogoLeft(HDC hdc, int x, int y, int width, int height, int
     DeleteObject(Font);
     DeleteObject(hPen);
 }
-
 void DrawMessageBubbleLogoRight(HDC hdc, int x, int y, int width, int height, int strokeWidth,RECT WindowSize)
 {
     RECT ChatString;
@@ -265,62 +269,6 @@ void DrawMessageBubbleLogoRight(HDC hdc, int x, int y, int width, int height, in
     DeleteObject(Font);
     DeleteObject(hPen);
 }
-/*
-// creating Search button it is located in the left of the bar of the search
-RECT SearchAnimation;
-void CreateSearchButton(HDC Mdc,float CurrentHSearch,float CurrentVSearch,RECT WindowSize,RECT ChatRect,int strokeWidth)
-{
-    SearchAnimation.left =  ChatRect.right + (WindowSize.right - WindowSize.left)*0.112 - (CurrentHSearch/2);
-    SearchAnimation.top = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.0745 - (CurrentVSearch/2);
-    SearchAnimation.right = SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.04 + (CurrentHSearch/2);
-    SearchAnimation.bottom = ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.07 + (CurrentVSearch/2);
-
-    HFONT Font=CreateFont(
-    25,
-    12,
-    0,
-    0,
-    FW_NORMAL,
-    FALSE,
-    FALSE,
-    FALSE,
-    DEFAULT_CHARSET,
-    OUT_OUTLINE_PRECIS,
-    CLIP_DEFAULT_PRECIS,
-    CLEARTYPE_QUALITY,
-    DEFAULT_PITCH | FF_DONTCARE,
-    "Segoe UI");
-    HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
-    HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
-    HFONT OldFont=SelectObject(Mdc,Font);
-    SetBkMode(Mdc,TRANSPARENT);
-    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
-    HPEN OldPen=SelectObject(Mdc,Pen);
-    RoundRect(Mdc,SearchAnimation.left,SearchAnimation.top-15,SearchAnimation.right,SearchAnimation.bottom+2,19,24);
-
-    HPEN hPen = CreatePen(PS_SOLID, strokeWidth, RGB(0, 0, 0));
-    HPEN hOldPen = (HPEN)SelectObject(Mdc, hPen);
-    Ellipse(Mdc,SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.012,
-    SearchAnimation.top -(WindowSize.bottom - WindowSize.top)*0.0116 + (WindowSize.bottom - WindowSize.top)*0.005,
-    SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.012 + (WindowSize.right - WindowSize.left)*0.012,
-    SearchAnimation.top -(WindowSize.bottom - WindowSize.top)*0.0116+ (WindowSize.bottom - WindowSize.top)*0.0248 + (WindowSize.bottom - WindowSize.top)*0.005);
-
-    MoveToEx(Mdc,SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.01571 + (WindowSize.right - WindowSize.left)*0.012 - (WindowSize.right - WindowSize.left)*0.0056,
-    SearchAnimation.top -(WindowSize.bottom - WindowSize.top)*0.0116+ (WindowSize.bottom - WindowSize.top)*0.02175 + (WindowSize.bottom - WindowSize.top)*0.005,NULL);
-    LineTo(Mdc,SearchAnimation.left + (WindowSize.right - WindowSize.left)*0.0291,
-    SearchAnimation.top -(WindowSize.bottom - WindowSize.top)*0.0115+ (WindowSize.bottom - WindowSize.top)*0.036 + (WindowSize.bottom - WindowSize.top)*0.005);
-
-    SelectObject(Mdc,OldFont);
-    SelectObject(Mdc,OldPen);
-    SelectObject(Mdc,hOldPen);
-    SelectObject(Mdc,OldButtonColor);
-
-    DeleteObject(Font);
-    DeleteObject(hPen);
-    DeleteObject(Pen);
-    DeleteObject(ButtonColor);
-}
-*/
 // create scrollbar for contact
 #define ID_CHILD_WINDOW 1015
 #define SCROLLBAR_WIDTH 12
@@ -331,31 +279,25 @@ void CreateSearchButton(HDC Mdc,float CurrentHSearch,float CurrentVSearch,RECT W
 #define THUMB_PRESSED_COLOR RGB(100, 100, 100)
 HWND ScrollBar;
 RECT ScrollBarRect;
-
 // for calculating the thumb is rect
 void CalculateThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize)
 {
     RECT client_rect;
-    GetClientRect(hwnd, &client_rect);
-    
+    GetClientRect(hwnd, &client_rect);   
     float scrollbar_height = (client_rect.bottom - client_rect.top - 4);
-    float range = g_scrollbar.max_val - g_scrollbar.min_val;
-    
+    float range = g_scrollbar.max_val - g_scrollbar.min_val;   
     if (range <= 0) range = 1;
-    
     float thumb_height = max(20, (g_scrollbar.page_size * scrollbar_height) / (range + g_scrollbar.page_size));
-
     float track_height = scrollbar_height - thumb_height;
-    
     float thumb_pos = 0;
-    if (range > 0) {
+    if (range > 0)
+    {
         thumb_pos = (g_scrollbar.current_val * track_height) / range;
-    }
-    
+    }   
     thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
-    thumb_rect->top =  2 + thumb_pos;
+    thumb_rect->top =  thumb_pos;
     thumb_rect->right = client_rect.right - 2;
-    thumb_rect->bottom = thumb_rect->top + thumb_height - 5;
+    thumb_rect->bottom = thumb_rect->top + thumb_height;
 }
 // for drawing the thumb 
 void DrawScrollBar(HDC hdc, HWND hwnd,RECT WindowSize) {
@@ -419,7 +361,7 @@ void UpdateScrollValue(HWND hwnd, float new_val)
 }
 int total_items;
 float window_height;
-float items_per_page;
+int items_per_page;
 extern int i;
 void UpdateScrollbarRange(HWND hwnd,RECT ScrollBarRect,ScrollbarInfo *g_scrollbar)
 {
@@ -695,11 +637,6 @@ void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT Wind
     SelectObject(Mdc,OldButtonColorRecipient);
     DeleteObject(OldButtonColorRecipient);
 }
-// ui of the conversation 
-void MessageUiConversation()
-{
-    
-}
 // taking the index of the user who is been taken by the user for a conversation 
 int GetClickedRecipient(POINT click_point)
 {
@@ -750,4 +687,108 @@ void BuildVisibleItemsList(HDC hdc, HWND hwnd, RECT ScrollBarRect, Clients Messa
         visible_items[visible_item_count].is_visible = true;
         visible_item_count++;
     }
+}
+// create scroll bar for conversation 
+HWND ConversationScrollBar;
+RECT ConversationScrollBarRect;
+// for calculating the thumb is rect
+void CalculateConversationThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize)
+{
+    RECT client_rect;
+    GetClientRect(hwnd, &client_rect);
+    float scrollbar_height = (client_rect.bottom - client_rect.top - 4);
+    float range = Conversation_thumb.max_val - Conversation_thumb.min_val;
+    if(range <= 0) range = 1;
+    float thumb_height = max(20, (Conversation_thumb.page_size * scrollbar_height) / (range + Conversation_thumb.page_size));
+    float track_height = scrollbar_height - thumb_height;
+    int thumb_pos = 0;
+    if(range > 0)
+    {
+        thumb_pos = (Conversation_thumb.current_val * track_height) / range;
+    }
+    thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
+    thumb_rect->top = thumb_pos;
+    thumb_rect->right = client_rect.right - 2;
+    thumb_rect->bottom = thumb_rect->top + thumb_height;
+}
+// for drawing the thumb 
+void DrawConversationScrollBar(HDC hdc, HWND hwnd,RECT WindowSize)
+{
+    RECT client_rect;
+    GetClientRect(hwnd, &client_rect);
+    RECT track_rect = {
+        client_rect.right - SCROLLBAR_WIDTH - 2,
+        0,
+        client_rect.right - 2,
+        client_rect.bottom
+    };
+    HBRUSH track_brush = CreateSolidBrush(TRACK_COLOR);
+    FillRect(hdc, &track_rect, track_brush);
+    DeleteObject(track_brush);  
+    CalculateConversationThumbRect(hwnd,&Conversation_thumb.thumb_rect,WindowSize);    
+    COLORREF thumb_color = THUMB_COLOR;
+    if(Conversation_thumb.thumb_pressed)
+    {
+        thumb_color = THUMB_PRESSED_COLOR;
+    }
+    else if(Conversation_thumb.thumb_hover)
+    {
+        thumb_color = THUMB_HOVER_COLOR;
+    }
+    
+    HBRUSH thumb_brush = CreateSolidBrush(thumb_color);
+    
+    HPEN old_pen = SelectObject(hdc, CreatePen(PS_SOLID, 1, thumb_color));
+    HBRUSH old_brush = SelectObject(hdc, thumb_brush);
+    
+    RoundRect(hdc, 
+    Conversation_thumb.thumb_rect.left + 2, 
+    Conversation_thumb.thumb_rect.top,
+    Conversation_thumb.thumb_rect.right - 2, 
+    Conversation_thumb.thumb_rect.bottom,
+    6, 6);
+    float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - (PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.074));
+    MoveWindow(hwnd,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.2877,
+    PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.072,
+    WindowSize.right - (Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.2877),
+    ConversationHeight,TRUE);
+    DeleteObject(SelectObject(hdc, old_pen));
+    SelectObject(hdc, old_brush);
+    DeleteObject(thumb_brush);
+}
+//for checking is the user hovering or clicking on the thumb
+BOOL PointInConversationRect(POINT pt, RECT* rect)
+{
+    return (pt.x >= rect->left && pt.x <= rect->right && pt.y >= rect->top && pt.y <= rect->bottom);
+}
+// updating the thumb is place in the scrollbar 
+void UpdateConversationScrollValue(HWND hwnd, float new_val)
+{
+    new_val = max(Conversation_thumb.min_val, min(Conversation_thumb.max_val, new_val));
+    if (new_val != Conversation_thumb.current_val)
+    {
+        Conversation_thumb.current_val = new_val;
+    }
+}
+int Conversation_total_items;
+float Conversation_window_height;
+int Conversation_items_per_page;
+extern int i;
+void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,ScrollbarInfo *Conversation_thumb)
+{
+    GetClientRect(hwnd,&ConversationScrollBarRect);
+    Conversation_total_items = 20;
+    Conversation_window_height = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top) - 4;
+    Conversation_items_per_page = 7;
+    Conversation_thumb->min_val = 0;
+    if(Conversation_total_items <= Conversation_items_per_page)
+    {
+        Conversation_thumb->max_val = 1; 
+        Conversation_thumb->page_size = Conversation_items_per_page;
+    } 
+    else
+    {
+        Conversation_thumb->max_val = Conversation_total_items - Conversation_items_per_page + 1;
+        Conversation_thumb->page_size = Conversation_items_per_page;
+    }   
 }

@@ -36,6 +36,8 @@ typedef struct
     SOCKET ClientSocketReceiving;
     struct sockaddr_in ServerStatus;
     SOCKET StatusSocket;
+    struct sockaddr_in ServerConversation;
+    SOCKET ConversationSocket;
     RECT WindowSize;
     HDC Mdc;
     InboxMessage PrivateMessage;

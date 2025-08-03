@@ -37,6 +37,38 @@ int CreatingThreads = 0;
 //
 CRITICAL_SECTION socketLock;
 //
+// for storing conversation message
+typedef struct
+{
+    char message[200];
+    char owner[50];
+    // time stamp i need to add it 
+}ConversationData;
+typedef struct 
+{
+    ConversationData Conversation[100];
+    int last_index;
+    int count;
+    char OwnerName[50];
+}conversationsOwners;
+conversationsOwners MessagesConversations[40];
+typedef struct
+{
+    char sender[50];
+    char recipient[50];
+    int message_requested;
+    int index;
+    int type;
+    bool UpDown;
+}RequestConversation;
+typedef struct
+{
+    char recipient[50];
+    bool pass;
+    bool no_more;
+}firstrequest;
+firstrequest RecipientPass[40];
+//
 typedef struct
 {
     int recipient_index;     // Index in the Message array
@@ -57,6 +89,7 @@ RcvSetting RcvStg;
 unsigned __stdcall receivingClient(void *param);
 unsigned __stdcall SendingThread(void *param);
 int FillingSearchRecipientList(HWND HandleSearch,int countclient,Clients Message[100],int ListSearchedRecipient[100],int CompSearchedRecipient);
+void insert_at_bottom(const char* Sender,const char* message);
 // add in this thread function to disperse between inbox message and general message
 unsigned __stdcall receivingClient(void *param)
 {
@@ -80,7 +113,11 @@ unsigned __stdcall receivingClient(void *param)
                 char buffer[200];
             }messaget;
             messaget messagetest;
-            recv(ConnectingTools.ClientSocketReceiving,(char *)&messagetest,sizeof(messagetest),0);
+            int result = recv(ConnectingTools.ClientSocketReceiving,(char *)&messagetest,sizeof(messagetest),0);
+            if(result <= 0)
+            {
+                continue;
+            }
             Result = strlen(messagetest.Sender);
             messagetest.Sender[Result] = '\0';
             int lena = strlen(messagetest.Sender);
@@ -97,20 +134,17 @@ unsigned __stdcall receivingClient(void *param)
             {
                 messagetest.buffer[--len] = '\0';
             }
+            insert_at_bottom(messagetest.Sender,messagetest.buffer);
             printf("Received message from %s: %s\n", messagetest.Sender, messagetest.buffer);
-            HPEN Pen=CreatePen(BS_SOLID,3,RGB(0,0,0));
+
+            /*HPEN Pen=CreatePen(BS_SOLID,3,RGB(0,0,0));
             HPEN OldPen=SelectObject(ConnectingTools.Mdc,Pen);
-            RECT BufferRect;
-            BufferRect.left = ConnectingTools.WindowSize.right - (ConnectingTools.WindowSize.right - ConnectingTools.WindowSize.left)*0.05;
-            BufferRect.top = ConnectingTools.WindowSize.top + (ConnectingTools.WindowSize.bottom - ConnectingTools.WindowSize.top)/2;
-            BufferRect.right = BufferRect.left + (ConnectingTools.WindowSize.right - ConnectingTools.WindowSize.left)*0.1;
-            BufferRect.bottom = BufferRect.top + (ConnectingTools.WindowSize.bottom - ConnectingTools.WindowSize.top)*0.5;
-            DrawText(ConnectingTools.Mdc,"TETS",-1,&BufferRect,DT_SINGLELINE | DT_CENTER);
             SelectObject(ConnectingTools.Mdc,OldPen);
             DeleteObject(Pen);
-            InvalidateRect(RcvStg->HandleWnd,NULL,FALSE);
+            InvalidateRect(RcvStg->HandleWnd,NULL,FALSE);*/
         }
     }
+    closesocket(ConnectingTools.ClientSocketReceiving);
     return 0;
 }
 SndTrd MemoryDcSndTool = {0};
@@ -122,22 +156,19 @@ unsigned __stdcall SendingThread(void *param)
     MemoryDcSndTool = *(SndTrd *)param;
     countclient = 0;
     int sendResult;
-    char Buffer[100];
+    char Buffer[100]; 
     while(TRUE)
     {
         char Choice[20];
         memset(Choice, 0, sizeof(Choice));
-        //EnterCriticalSection(&socketLock);
         if(MemoryDcSndTool.UiInbox)
         {  
             i = 0;
             countclient = 0;
             strcpy(Choice,"FALSE");
-            //RcvStg.WaitingUserList = TRUE;
             sendResult = send(ConnectingTools.ClientSocketSending, Choice, strlen(Choice), 0);
             if(sendResult == SOCKET_ERROR)
             {
-                //RcvStg.WaitingUserList = FALSE;
                 continue;
             } 
             else
@@ -152,16 +183,16 @@ unsigned __stdcall SendingThread(void *param)
                     recv(ConnectingTools.ClientSocketSending, (char *)&Message[j], sizeof(Clients), 0);
                     // incrementing the array of stocking recipient info
                     i++;
+                    // naming the array each users get his own array 
+                    strcpy(MessagesConversations[j].OwnerName,Message[j].Username);
+                    strcpy(RecipientPass[j].recipient,Message[j].Username);
                 }
-                //RcvStg.WaitingUserList = FALSE;
                 SelectObject(MemoryDcSndTool.Mdc_Child_1, OldPen);
                 DeleteObject(Pen);
             }
-            //LeaveCriticalSection(&socketLock);
         }
         else if(MemoryDcSndTool.UiGeneral)
         {
-            //RcvStg.WaitingUserList = FALSE;
             strcpy(Choice,"TRUE");
             sendResult = send(ConnectingTools.ClientSocketSending, Choice, strlen(Choice), 0);
             if(sendResult == SOCKET_ERROR)
@@ -172,7 +203,6 @@ unsigned __stdcall SendingThread(void *param)
         if(strcmp(Choice,"TRUE") == 0)
         {
             strcpy(Buffer,"hi");
-            
             int lenb = strlen(Buffer);
             while (lenb > 0 && (Buffer[lenb-1] == '\n' || Buffer[lenb-1] == '\r' || 
             Buffer[lenb-1] == '\t' || Buffer[lenb-1] == ' '))
@@ -190,25 +220,18 @@ unsigned __stdcall SendingThread(void *param)
         }
         else if(strcmp(Choice,"FALSE") == 0)
         {
-            //RcvStg.WaitingUserList = FALSE;
             GETBACK :
             if(!Send)
             {
                 Sleep(100);
                 goto GETBACK;
             }
-            // i need here to send the recipient name into the server to send to me the file of our conversation (i will add this feature after i try simple way)
             int lenRecipient = strlen(ConnectingTools.PrivateMessage.SelectedRecipient);
             while(lenRecipient > 0 && (ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\n' || ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\r' || 
             ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\t' || ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == ' '))
             {
                 ConnectingTools.PrivateMessage.SelectedRecipient[--lenRecipient] = '\0';
             }
-            /*sendResult = send(ConnectingTools.ClientSocketSending, ConnectingTools.SelectedRecipient, strlen(ConnectingTools.SelectedRecipient), 0);
-            if(sendResult == SOCKET_ERROR)
-            {
-                continue;
-            }*/
            // taking the message from message bar
             GetWindowText(SendingTools.MessageBarHandle,ConnectingTools.PrivateMessage.Buffer,sizeof(ConnectingTools.PrivateMessage.Buffer));
             int lenb = strlen(ConnectingTools.PrivateMessage.Buffer);
@@ -229,8 +252,7 @@ unsigned __stdcall SendingThread(void *param)
             Send = FALSE;
             Sleep(100);
         }
-    }
-    
+    }  
     closesocket(ConnectingTools.ClientSocketSending);
     WSACleanup();
     return 0;
@@ -302,7 +324,6 @@ unsigned __stdcall StatusThread(void *param)
        InvalidateRect(ScrollBarAndRect.ScrollBar,&ScrollBarAndRect.ScrolBarRect,FALSE);
        
     }
-
     closesocket(ConnectingTools.StatusSocket);
     return 0;
 }
@@ -320,4 +341,36 @@ int FillingSearchRecipientList(HWND HandleSearch,int countclientStatus,Clients M
         }
     }
     return CompSearchedRecipient;
+}
+// creating a conversation thread
+unsigned __stdcall ConversationThread(void *param)
+{
+    SOCKET ConversationSocket = *(SOCKET *)param;
+    // i need to make here condition based on choseentype variable
+    return 0;
+}
+// inserting new message at the bottom of the array
+void insert_at_bottom(const char* Sender,const char* message)
+{
+    for(int i=0;i<countclient;i++)
+    {
+        if(strcmp(MessagesConversations[i].OwnerName,Sender) == 0)
+        {
+            if(MessagesConversations[i].count >= 100)
+            {
+                printf("Message limit reached for %s\n", Sender);
+                return;
+            }
+            ConversationData NewData;
+            strcpy(NewData.owner,Sender);
+            strcpy(NewData.message,message);
+            for(int j=MessagesConversations[i].count;j>0;j--)
+            {
+                MessagesConversations[i].Conversation[j] = MessagesConversations[i].Conversation[j-1];
+            }
+            MessagesConversations[i].Conversation[0] = NewData;
+            MessagesConversations[i].count++;
+            break;
+        }
+    }
 }

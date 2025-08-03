@@ -64,12 +64,21 @@ typedef struct
     SOCKET Socket;
     SOCKET StatusSocket;
 }StatusType;
+// message storing struct 
+typedef struct
+{
+    char message[200];
+    char owner[50];
+    int index;
+}MessageStoring;
 unsigned __stdcall ReceivingAndPrintingData(void *param);
 bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus);
 void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsData,StatusType *UserStatus,char username[30]);
 void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET senderSocket,FILE *ClientsData);
 bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message,SOCKET senderSocketReceiving,FILE *ClientsData);
+void StoringConversation(const char* Sender, const char* Recipient,const char* message);
 void SendClient(char username[20],SOCKET clientSocketc,FILE *ClientsData);
+unsigned __stdcall ConversationThread(void *param);
 int main()
 {
     // Storing the users is infos
@@ -95,7 +104,7 @@ int main()
         return 1;
     }
 
-    struct sockaddr_in ServerSending, ClientDataSending,ServerReceiving, ClientDataReceiving,StatusData,StatusServer;
+    struct sockaddr_in ServerSending, ClientDataSending,ServerReceiving, ClientDataReceiving,StatusData,StatusServer,ConversationData,ConversationServer;
     // Sending Connection
     SOCKET ServerSocketSending = socket(AF_INET, SOCK_STREAM, 0);
     if (ServerSocketSending == INVALID_SOCKET) {
@@ -170,15 +179,41 @@ int main()
         WSACleanup();
         return 1;
     }
+    // Conversation Connection
+    SOCKET ServerSocketConversation = socket(AF_INET, SOCK_STREAM, 0);
+    if (ServerSocketConversation == INVALID_SOCKET) {
+        printf("Socket creation failed\n");
+        WSACleanup();
+        return 1;
+    }
+    ConversationServer.sin_family = AF_INET;
+    ConversationServer.sin_port = htons(8003);
+    ConversationServer.sin_addr.S_un.S_addr = INADDR_ANY;
+    //ConversationServer.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+    if (bind(ServerSocketConversation, (struct sockaddr *)&ConversationServer, sizeof(ConversationServer)) == SOCKET_ERROR) {
+        printf("Bind failed with error: %d\n", WSAGetLastError());
+        closesocket(ServerSocketConversation);
+        WSACleanup();
+        return 1;
+    }
 
-    printf("Server is listening on port 8000 and 8001...\n");
+    if(listen(ServerSocketConversation, 5) == SOCKET_ERROR)
+    {
+        printf("Listen failed with error: %d\n", WSAGetLastError());
+        closesocket(ServerSocketConversation);
+        WSACleanup();
+        return 1;
+    }
+    printf("Server is listening on port 8000,8001,8002 and 8003...\n");
     
     int sizeDataClient = sizeof(ClientDataSending);
     int sizeDataClientReceiving = sizeof(ClientDataReceiving);
     int sizeDataStatus = sizeof(StatusData);
+    int sizeDataConversation = sizeof(ConversationData);
     SOCKET Client;
     SOCKET ClientR;
     SOCKET StatusClient;
+    SOCKET ConversationClient;
     ClientsData = fopen("ClientsData.txt", "r+b");
     if(ClientsData == NULL)
     {
@@ -215,8 +250,8 @@ int main()
             printf("Accept failed: %d\n", WSAGetLastError());
             continue;
         }
-        // this is connecting with the status socket 
         CONNECT :
+        // this is connecting with the status socket 
         StatusClient = accept(ServerSocketStatus, (struct sockaddr *)&StatusData, &sizeDataStatus);
         if (StatusClient == INVALID_SOCKET)
         {
@@ -224,17 +259,32 @@ int main()
             Sleep(50);
             goto CONNECT;
         }
+        // this is connecting with the Conversation socket 
+        ConversationClient = accept(ServerSocketConversation, (struct sockaddr *)&ConversationData, &sizeDataConversation);
+        if (ConversationClient == INVALID_SOCKET)
+        {
+            printf("Accept (status) failed: %d\n", WSAGetLastError());
+            Sleep(50);
+            goto CONNECT;
+        }
         printf("New client connected\n");
-       SocketAndMessage.Sockets = (ClientSockets*)malloc(sizeof(ClientSockets));
-       // this is for client socket
-       SocketAndMessage.Sockets->SendingSocket = Client;
-       SocketAndMessage.Sockets->ReceivingSocket = ClientR;
-       // this is for status socket  
+        SocketAndMessage.Sockets = (ClientSockets*)malloc(sizeof(ClientSockets));
+        // this is for client socket
+        SocketAndMessage.Sockets->SendingSocket = Client;
+        SocketAndMessage.Sockets->ReceivingSocket = ClientR;
+        // this is for status socket  
         SocketAndMessage.Sockets->StatusSocket = StatusClient;
+        SOCKET *ConversatonSocket = (SOCKET *)malloc(sizeof(SOCKET ));
+        *ConversatonSocket = ConversationClient;
         HANDLE ClientThread = (HANDLE)_beginthreadex(NULL, 0, ReceivingAndPrintingData,&SocketAndMessage, 0, NULL);
-        if (ClientThread)
+        if(ClientThread)
         {
             CloseHandle(ClientThread);
+        }
+        HANDLE ConversationHandle = (HANDLE)_beginthreadex(NULL, 0, ConversationThread,&ConversatonSocket, 0, NULL);
+        if(ConversationHandle)
+        {
+            CloseHandle(ConversationHandle);
         }
     }
     closesocket(ServerSocketSending);
@@ -482,6 +532,8 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
                               SocketAndMessage.MessageTools.Buffer[len-1] == '\t' || SocketAndMessage.MessageTools.Buffer[len-1] == ' ')) {
                 SocketAndMessage.MessageTools.Buffer[--len] = '\0';
             }
+            // storing message data inside a file  
+            StoringConversation(Message.Username,SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer);
             printf("Private message from %s to %s: %s\n", Message.Username, SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer);
             // sending the message into the recipient by the name of the sender
             bool messageSent = SendPrivateMessage(Message.Username,SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer,SocketAndMessage.Sockets->ReceivingSocket,ClientsData);
@@ -495,6 +547,8 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
     cleanup:
     MarkUserAsInactive(SocketAndMessage.Sockets->SendingSocket,SocketAndMessage.Sockets->StatusSocket,ClientsData,&UserStatus,Message.Username);
     closesocket(SocketAndMessage.Sockets->SendingSocket);
+    closesocket(SocketAndMessage.Sockets->ReceivingSocket);
+    closesocket(SocketAndMessage.Sockets->StatusSocket);
     free(param);
     return 0;
 }
@@ -525,4 +579,73 @@ void SendClient(char username[20],SOCKET clientSocket,FILE *ClientsData)
         }
     }
     fclose(ClientsData);
+}
+// creating a conversation thread that will send messages of a conversation into the client 
+unsigned __stdcall ConversationThread(void *param)
+{
+    typedef struct
+    {
+        char sender[50];
+        char recipient[50];
+        int message_requested;
+        int index;
+        int type;
+        bool UpDown;
+    }RequestConversation;
+    RequestConversation RequestCnv;
+    SOCKET ConversationSocket = *(SOCKET *)param;
+    /* make a recv it get from the client the name of the sender and the recipient and how many message did he want 
+       and from what index  and get a type is this when the sender just opened the conversation
+       or just a normall scroll and each one will do it differently*/
+    int ResultRequest = recv(ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+    if(RequestCnv.type = 1)
+    {
+        // make a function inside it a switch that give the message when just the sender opened the conversation
+
+
+    }
+    else if(RequestCnv.type = 2)
+    {
+        // make a function inside it a switch that when a user scrolled up or down  
+    }
+    closesocket(ConversationSocket);
+    return 0;
+}
+// storing the message into conversation files
+void StoringConversation(const char* Sender, const char* Recipient,const char* message)
+{
+    char result[100];
+    MessageStoring MessageData,ReadingData;
+    if(strcmp(Sender, Recipient) <= 0)
+    {
+        strcpy(result, Sender);
+        strcat(result, Recipient);
+    }
+    else
+    {
+        strcpy(result, Recipient);
+        strcat(result, Sender);
+    }
+    char filename[100];
+    sprintf(filename, "%s.txt",result);
+    FILE *Conversation = fopen(filename,"a+");
+    int check = fseek(Conversation,-sizeof(MessageStoring),SEEK_CUR);
+    // if the file having some data already
+    if(check == 0)
+    {
+        fread(&ReadingData,sizeof(MessageStoring),1,Conversation);
+        MessageData.index = ReadingData.index + 1;
+        strcpy(MessageData.owner,Sender);
+        strcpy(MessageData.message,message);
+        fwrite(&MessageData,sizeof(MessageStoring),1,Conversation);
+    }
+    // if the file does not have any data
+    else 
+    {
+        MessageData.index = 1;
+        strcpy(MessageData.owner,Sender);
+        strcpy(MessageData.message,message);
+        fwrite(&MessageData,sizeof(MessageStoring),1,Conversation);
+    }
+    fclose(Conversation);
 }

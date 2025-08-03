@@ -37,6 +37,9 @@ int WindowLeft_Child_1, WindowTop_Child_1, WindowWidth_Child_1, WindowHeight_Chi
 HDC DeviceContext_Child_1;
 HDC Mdc_Child_1;
 HBITMAP BitMap_Child_1, OldBitMap_Child_1;
+// conversation child window
+HDC DeviceContext_ChildConversation,Mdc_Conversation_child;
+HBITMAP BitMap_Conversation_Child,OldBitMap_Conversation_Child;
 //button log in
 HWND ButtonHandle;
 #define ButtonID 1000
@@ -65,7 +68,292 @@ WNDPROC OriginalEditProc = NULL;
 WNDPROC OriginalUsernameBarProc = NULL;
 WNDPROC OriginalPasswordBarProc = NULL;
 WNDPROC OriginalMessageBarProc = NULL;
+WNDPROC OriginalConversationBarProc = NULL;
 // 
+LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg)
+    {
+        case WM_CREATE:
+            Conversation_thumb.min_val = 0;
+            if(total_items <= items_per_page)
+            {
+                Conversation_thumb.max_val = 2; 
+                Conversation_thumb.page_size = items_per_page;
+            } 
+            else
+            {
+                Conversation_thumb.max_val = total_items - items_per_page + 1;
+                Conversation_thumb.page_size = items_per_page;
+            }
+            Conversation_thumb.current_val = Conversation_thumb.max_val;
+            InvalidateRect(hwnd,NULL, FALSE);
+            break;
+        case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            DeviceContext_ChildConversation = BeginPaint(hwnd, &ps);
+            GetClientRect(hwnd, &ConversationScrollBarRect);
+            GetClientRect(HandleWnd,&WindowSize);
+            //MemoryDcSndTool.ConversationScrollBarRect = ConversationScrollBarRect;
+            //SendingTrdStatus.ScrolBarRect = ConversationScrollBarRect;
+            Mdc_Conversation_child = CreateCompatibleDC(DeviceContext_ChildConversation);
+            HBITMAP memBitmap = CreateCompatibleBitmap(DeviceContext_ChildConversation, 
+            ConversationScrollBarRect.right - ConversationScrollBarRect.left, ConversationScrollBarRect.bottom - ConversationScrollBarRect.top);
+            HBITMAP oldBitmap = SelectObject(Mdc_Conversation_child, memBitmap);
+            HBRUSH Creme = CreateSolidBrush(RGB(250,245,230));
+            FillRect(Mdc_Conversation_child, &ConversationScrollBarRect, Creme);
+            DeleteObject(Creme);
+            HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+            HPEN oldPen = SelectObject(Mdc_Conversation_child, borderPen);
+            HBRUSH oldBrush = SelectObject(Mdc_Conversation_child, GetStockObject(NULL_BRUSH));
+            SetBkMode(Mdc_Conversation_child, TRANSPARENT);
+            DrawConversationScrollBar(Mdc_Conversation_child,hwnd,WindowSize);
+            //UpdateScrollbarRange(hwnd,ConversationScrollBarRect,&g_scrollbar);
+            BitBlt(DeviceContext_ChildConversation, 0, 0, ConversationScrollBarRect.right - ConversationScrollBarRect.left, 
+            ConversationScrollBarRect.bottom - ConversationScrollBarRect.top, Mdc_Conversation_child, 0, 0, SRCCOPY);
+            SelectObject(Mdc_Conversation_child, oldBrush);
+            SelectObject(Mdc_Conversation_child, oldPen);
+            SelectObject(Mdc_Conversation_child, oldBitmap);
+            DeleteObject(borderPen);
+            DeleteObject(memBitmap);
+            DeleteDC(Mdc_Conversation_child);
+            EndPaint(hwnd, &ps);
+            break;
+        }
+        case WM_MOUSEMOVE:
+        {
+            POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            BOOL was_hovering = Conversation_thumb.thumb_hover;
+            CalculateConversationThumbRect(hwnd, &Conversation_thumb.thumb_rect,WindowSize);
+            Conversation_thumb.thumb_hover = PointInRect(pt, &Conversation_thumb.thumb_rect);
+            if(was_hovering != Conversation_thumb.thumb_hover)
+            {
+                InvalidateRect(hwnd, &Conversation_thumb.thumb_rect, FALSE);
+            }
+            if(Conversation_thumb.is_dragging)
+            {
+                RECT ConversationScrollBarRect;
+                GetClientRect(hwnd, &ConversationScrollBarRect);
+                float scrollbar_height = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top - 4);
+                int range = Conversation_thumb.max_val - Conversation_thumb.min_val;
+                float thumb_height = max(20, (Conversation_thumb.page_size * scrollbar_height) / (range + Conversation_thumb.page_size));
+                float track_height = ConversationScrollBarRect.bottom - thumb_height;
+                if(range > 0)
+                {
+                    int new_pos = ((pt.y - 4 - Conversation_thumb.drag_offset) * range) / track_height;
+                    // make a call here for a conversation
+                    for(int k=0;k<countclient;k++)
+                    {
+                        if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more))
+                        {
+                            if(new_pos < Conversation_thumb.current_val)
+                            {
+                                RequestConversation RequestCnv;
+                                strcpy(RequestCnv.sender,SendingTools.username);
+                                strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                                for(int i=0;i<countclient;i++)
+                                {
+                                    if(strcmp(MessagesConversations[i].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                                    {
+                                        RequestCnv.index = MessagesConversations[i].last_index;
+                                        break;
+                                    }
+                                }
+                                RequestCnv.message_requested = 7;
+                                RequestCnv.type = 2;
+                                // filling the type for receiving the right data
+                                choseentype = RequestCnv.type;
+                                RequestCnv.UpDown = TRUE;
+                                send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                            }
+                            else if(new_pos > Conversation_thumb.current_val)
+                            {
+                                RequestConversation RequestCnv;
+                                strcpy(RequestCnv.sender,SendingTools.username);
+                                strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                                for(int i=0;i<countclient;i++)
+                                {
+                                    if(strcmp(MessagesConversations[i].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                                    {
+                                        RequestCnv.index = MessagesConversations[i].last_index;
+                                        break;
+                                    }
+                                }
+                                RequestCnv.message_requested = 7;
+                                RequestCnv.type = 2;
+                                // filling the type for receiving the right data
+                                choseentype = RequestCnv.type;
+                                RequestCnv.UpDown = FALSE;
+                                send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                            }
+                            break;
+                        }
+                    }
+                    UpdateConversationScrollValue(hwnd, new_pos);
+                }
+            }
+            InvalidateRect(hwnd,NULL, FALSE);
+            break;
+        }
+        case WM_LBUTTONDOWN:
+        {
+            RECT client_rect;
+            GetClientRect(hwnd, &client_rect);
+            POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            RECT track_rect = {
+            client_rect.right - SCROLLBAR_WIDTH - 2,
+            0,
+            client_rect.right - 2,
+            client_rect.bottom};
+            CalculateConversationThumbRect(hwnd, &Conversation_thumb.thumb_rect,WindowSize);
+            client_rect.right -= SCROLLBAR_WIDTH - 2;
+            // this is when i click on the thumb
+            if(PointInRect(pt, &Conversation_thumb.thumb_rect))
+            {
+                Conversation_thumb.is_dragging = TRUE;
+                Conversation_thumb.thumb_pressed = TRUE;
+                Conversation_thumb.drag_offset = pt.y - Conversation_thumb.thumb_rect.top;
+                SetCapture(hwnd);
+                InvalidateRect(hwnd, &Conversation_thumb.thumb_rect, FALSE);
+            }
+            // this is when i click below the thumb or above it not in it 
+            else if((pt.x >=Conversation_thumb.thumb_rect.left && pt.x <=Conversation_thumb.thumb_rect.right))
+            {
+                float scrollbar_height = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top - 4);
+                int range = Conversation_thumb.max_val - Conversation_thumb.min_val;
+                float thumb_height = max(20, (Conversation_thumb.page_size * scrollbar_height) / (range + Conversation_thumb.page_size));
+                float track_height = client_rect.bottom - thumb_height;
+                for(int k=0;k<countclient;k++)
+                {
+                    if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more))
+                    {
+                        
+                        if(pt.y < Conversation_thumb.thumb_rect.top)
+                        {
+                            // make a call here for a conversation with scroll up
+                            RequestConversation RequestCnv;
+                            strcpy(RequestCnv.sender,SendingTools.username);
+                            strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                            for(int i=0;i<countclient;i++)
+                            {
+                                if(strcmp(MessagesConversations[i].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                                {
+                                    RequestCnv.index = MessagesConversations[i].last_index;
+                                    break;
+                                }
+                            }
+                            RequestCnv.message_requested = 7;
+                            RequestCnv.type = 2;
+                            // filling the type for receiving the right data
+                            choseentype = RequestCnv.type;
+                            RequestCnv.UpDown = TRUE;
+                            send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                            Conversation_thumb.current_val -= 0.5;
+                        }
+                        else if(pt.y > Conversation_thumb.thumb_rect.bottom)
+                        {
+                            // make a call here for a conversation with scroll down
+                            RequestConversation RequestCnv;
+                            strcpy(RequestCnv.sender,SendingTools.username);
+                            strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                            for(int i=0;i<countclient;i++)
+                            {
+                                if(strcmp(MessagesConversations[i].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                                {
+                                    RequestCnv.index = MessagesConversations[i].last_index;
+                                    break;
+                                }
+                            }
+                            RequestCnv.message_requested = 7;
+                            RequestCnv.type = 2;
+                            // filling the type for receiving the right data
+                            choseentype = RequestCnv.type;
+                            RequestCnv.UpDown = FALSE;
+                            send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                            Conversation_thumb.current_val += 0.5;
+                        }
+                        break;
+                    }
+                }
+                UpdateConversationScrollValue(hwnd, Conversation_thumb.current_val);
+            }
+            InvalidateRect(HandleWnd,&WindowSize,FALSE);
+            InvalidateRect(hwnd,NULL,FALSE);
+            break;
+        }
+        case WM_LBUTTONUP:
+        {
+            if(Conversation_thumb.is_dragging)
+            {
+                Conversation_thumb.is_dragging = FALSE;
+                Conversation_thumb.thumb_pressed = FALSE;
+                ReleaseCapture();
+                InvalidateRect(hwnd, &Conversation_thumb.thumb_rect, FALSE);
+            }
+            break;
+        }
+        case WM_MOUSEWHEEL:
+        {
+            float delta = GET_WHEEL_DELTA_WPARAM(wParam);
+            float step = (delta > 0) ? -0.5f : 0.5f;
+            // make a call here for a conversation based on step is sign
+            for(int k=0;k<countclient;k++)
+            {
+                if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more))
+                {
+                    if(step < 0)
+                    {
+                        RequestConversation RequestCnv;
+                        strcpy(RequestCnv.sender,SendingTools.username);
+                        strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                        for(int i=0;i<countclient;i++)
+                        {
+                            if(strcmp(MessagesConversations[i].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                            {
+                                RequestCnv.index = MessagesConversations[i].last_index;
+                                break;
+                            }
+                        }
+                        RequestCnv.message_requested = 7;
+                        RequestCnv.type = 2;
+                        // filling the type for receiving the right data
+                        choseentype = RequestCnv.type;
+                        RequestCnv.UpDown = TRUE;
+                        send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                    }
+                    else
+                    {
+                        RequestConversation RequestCnv;
+                            strcpy(RequestCnv.sender,SendingTools.username);
+                            strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                            for(int i=0;i<countclient;i++)
+                            {
+                                if(strcmp(MessagesConversations[i].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                                {
+                                    RequestCnv.index = MessagesConversations[i].last_index;
+                                    break;
+                                }
+                            }
+                            RequestCnv.message_requested = 7;
+                            RequestCnv.type = 2;
+                            // filling the type for receiving the right data
+                            choseentype = RequestCnv.type;
+                            RequestCnv.UpDown = FALSE;
+                            send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                    }
+                    break;
+                }
+            }
+            Conversation_thumb.current_val += step;
+            UpdateConversationScrollValue(hwnd, Conversation_thumb.current_val);
+            InvalidateRect(hwnd,NULL, FALSE);
+            break;
+        }
+        default:
+        return DefWindowProc(hwnd, msg, wParam, lParam);
+    }
+    return 0;
+}
 extern RECT MessageBarRect;
 LRESULT CALLBACK MessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -103,14 +391,6 @@ LRESULT CALLBACK MessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             InvalidateRect(MessageBarHandle,NULL,FALSE);
             return CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);
         }
-        /*case WM_LBUTTONDBLCLK:
-        GetWindowText(hwnd, buffer, sizeof(buffer));
-        if(strlen(buffer) == 0)
-        {
-            return 0;
-        }
-        InvalidateRect(hwnd, NULL, FALSE);
-        return CallWindowProc(OriginalMessageBarProc, hwnd, msg, wParam, lParam);*/
         case WM_LBUTTONDOWN:
         {
             GetWindowText(hwnd, buffer, sizeof(buffer));
@@ -296,26 +576,8 @@ LRESULT CALLBACK SearchBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         return CallWindowProc(OriginalEditProc, hwnd, msg, wParam, lParam);
     }
 }
-/*// this WndProc is for Scroll bar window
-RECT RecipientClicked;
-#define Recipient_1 1011
-bool IndexRecipient_1 = FALSE;
-#define Recipient_2 1012
-bool IndexRecipient_2 = FALSE;
-#define Recipient_3 1013
-bool IndexRecipient_3 = FALSE;
-#define Recipient_4 1014
-bool IndexRecipient_4 = FALSE;
-#define Recipient_5 1015
-bool IndexRecipient_5 = FALSE;
-#define Recipient_6 1016
-bool IndexRecipient_6 = FALSE;
-#define Recipient_7 1017
-bool IndexRecipient_7 = FALSE;
-#define Recipient_8 1018
-bool IndexRecipient_8 = FALSE;*/
-// condition for bubble logo
 bool BubbleLogo = FALSE;
+
 LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg)
     {
@@ -324,7 +586,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             g_scrollbar.current_val = 0;
             if(total_items <= items_per_page)
             {
-                g_scrollbar.max_val = 2; 
+                g_scrollbar.max_val = 1; 
                 g_scrollbar.page_size = items_per_page;
             } 
             else
@@ -352,32 +614,8 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             HPEN oldPen = SelectObject(Mdc_Child_1, borderPen);
             HBRUSH oldBrush = SelectObject(Mdc_Child_1, GetStockObject(NULL_BRUSH));
             SetBkMode(Mdc_Child_1, TRANSPARENT);
-            /*if(IndexRecipient_1)
-            {
-                RecipientClicked.top = ScrollBarRect.top;
-                RecipientClicked.left = ScrollBarRect.left;
-                RecipientClicked.right = ScrollBarRect.right;
-                RecipientClicked.bottom = ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2;
-                HBRUSH Gray = CreateSolidBrush(RGB(220,220,220));
-                FillRect(Mdc_Child_1,&RecipientClicked,Gray);
-                SetTimer(ScrollBar,Recipient_1,1000,NULL);
-                IndexRecipient_1 = FALSE;
-                DeleteObject(Gray);
-            }
-            else if(IndexRecipient_2)
-            {
-                RecipientClicked.top = ScrollBarRect.top + (ScrollBarRect.bottom - ScrollBarRect.top)*0.2;
-                RecipientClicked.left = ScrollBarRect.left;
-                RecipientClicked.right = ScrollBarRect.right;
-                RecipientClicked.bottom = ScrollBarRect.top + ((ScrollBarRect.bottom - ScrollBarRect.top)*0.2)*2;
-                HBRUSH Gray = CreateSolidBrush(RGB(220,220,220));
-                FillRect(Mdc_Child_1,&RecipientClicked,Gray);
-                SetTimer(ScrollBar,Recipient_2,100,NULL);
-                IndexRecipient_2 = FALSE;
-                DeleteObject(Gray);
-            }*/
-            DrawScrollBar(Mdc_Child_1, hwnd,WindowSize);
             UpdateScrollbarRange(hwnd,ScrollBarRect,&g_scrollbar);
+            DrawScrollBar(Mdc_Child_1, hwnd,WindowSize);
             DrawContentWithScroll(Mdc_Child_1,hwnd,ScrollBarRect,Message,&g_scrollbar);
             BuildVisibleItemsList(Mdc_Child_1, hwnd, ScrollBarRect,Message,&g_scrollbar);
             BitBlt(DeviceContext_Child_1, 0, 0, ScrollBarRect.right - ScrollBarRect.left, 
@@ -387,8 +625,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             SelectObject(Mdc_Child_1, oldBitmap);
             DeleteObject(borderPen);
             DeleteObject(memBitmap);
-            DeleteDC(Mdc_Child_1);
-            
+            DeleteDC(Mdc_Child_1);          
             EndPaint(hwnd, &ps);
             break;
         }
@@ -448,7 +685,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             {
                 float track_height = ScrollBarRect.bottom - 80;
                 float range = g_scrollbar.max_val - g_scrollbar.min_val;
-                float new_pos = ((pt.y - 4) * range) / track_height;
+                float new_pos = (pt.y * range) / track_height;
                 UpdateScrollValue(hwnd, new_pos);
                 InvalidateRect(hwnd, &ScrollBarRect, FALSE);
             }
@@ -486,7 +723,25 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                 {
                     // taking a copy into receiving thread and use it to draw the recipient conversation 
                     strcpy(ConnectingTools.PrivateMessage.SelectedRecipient,Message[Index].Username);
-                }          
+                }
+                // requesting conversation the new message just when the conversation is opened
+                for(int i=0;i<countclient;i++)
+                {
+                    if(strcmp(RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].pass))
+                    {
+                        RecipientPass[i].pass = TRUE;
+                        RequestConversation RequestCnv;
+                        strcpy(RequestCnv.sender,SendingTools.username);
+                        strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                        RequestCnv.index = 0;
+                        RequestCnv.message_requested = 7;
+                        RequestCnv.type = 1;
+                        // filling the type for receiving the right data
+                        choseentype = RequestCnv.type;
+                        RequestCnv.UpDown = TRUE;
+                        send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                    }
+                }
             }
             SetFocus(MessageBarHandle);
             InvalidateRect(MessageBarHandle,NULL,FALSE);
@@ -531,14 +786,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             WindowTop = WindowSize.top;
             WindowWidth = WindowSize.right - WindowSize.left;
             WindowHeight = WindowSize.bottom - WindowSize.top;            
-            if(UiInbox)
+            if(UiInbox )
             {
                 RECT rect;
                 GetClientRect(HandleSearch, &rect);
-                MoveWindow(ScrollBar,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
+                // resize contact child window
+                /*MoveWindow(ScrollBar,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
                 ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
                 (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
-                (WindowSize.bottom-WindowSize.top)*0.643,TRUE);
+                (WindowSize.bottom-WindowSize.top)*0.643,TRUE);*/
+                InvalidateRect(ScrollBar,NULL,TRUE);
+                // resize conversation child window 
+                InvalidateRect(ConversationScrollBar,NULL,TRUE);
                 InvalidateRect(HandleSearch,&rect, FALSE);
             }
             UpdateScrollbarRange(ScrollBar, ScrollBarRect, &g_scrollbar);
@@ -569,6 +828,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             hwnd,0,0,NULL);
             SendMessage(HandleBigLogo,STM_SETICON,(WPARAM)CompanyBigLogo,0); 
             ShowWindow(HandleBigLogo,SW_HIDE);
+            // creating a scroll bar child window 
             ScrollBar = CreateWindowEx(
             0,
             "CustomScrollChildWindow",
@@ -583,6 +843,23 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             MemoryDcSndTool.ScrollBar = ScrollBar;
             SendingTrdStatus.ScrollBar = ScrollBar;
             UpdateScrollbarRange(ScrollBar,ScrollBarRect, &g_scrollbar);
+            // creating a conversation child window 
+            float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - (PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.074));
+            ConversationScrollBar = CreateWindowEx(
+            0,
+            "CustomConversationScrollChildWindow",
+            NULL,
+            WS_CHILD,
+            ((WindowSize.right-WindowSize.left)*0.02f + MeasureWindowSize((WindowSize.right-WindowSize.left)*0.12f,MIN_BUTTON_WIDTH,MAX_BUTTON_WIDTH)) + (WindowSize.right-WindowSize.left)*0.03,
+            (WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043 + (WindowSize.bottom - WindowSize.top)*0.04) + (WindowSize.bottom - WindowSize.top)*0.08,
+            (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
+            (WindowSize.bottom-WindowSize.top)*0.643,
+            hwnd, NULL, IDhInstance, NULL
+            );
+            if(ConversationScrollBar)
+            {
+                OriginalConversationBarProc = (WNDPROC)SetWindowLongPtr(ConversationScrollBar, GWLP_WNDPROC, (LONG_PTR)ConversationWindowProc);
+            }
             // this is for the client winsock2 things
             WSADATA wsaData;
             int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -638,7 +915,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             ConnectingTools.ServerStatus.sin_family=AF_INET;
             ConnectingTools.ServerStatus.sin_port=htons(8002);
             ConnectingTools.ServerStatus.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
-            struct sockaddr_in ClientsStatus;
+            //struct sockaddr_in ClientsStatus;
             ConnectingTools.StatusSocket=socket(AF_INET,SOCK_STREAM,0);
             if(ConnectingTools.StatusSocket==INVALID_SOCKET)
             {
@@ -647,6 +924,19 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 return 1;
             }
             int StatusResult=connect(ConnectingTools.StatusSocket,(const struct sockaddr *)&ConnectingTools.ServerStatus,sizeof(ConnectingTools.ServerStatus));
+            // this socket is for receiving conversation messages
+            ConnectingTools.ServerConversation.sin_family=AF_INET;
+            ConnectingTools.ServerConversation.sin_port=htons(8003);
+            ConnectingTools.ServerConversation.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
+            //struct sockaddr_in ClientsConversation;
+            ConnectingTools.ConversationSocket=socket(AF_INET,SOCK_STREAM,0);
+            if(ConnectingTools.ConversationSocket==INVALID_SOCKET)
+            {
+                printf("broken socket\n");
+                closesocket(ConnectingTools.ConversationSocket);
+                return 1;
+            }
+            int ConversationResult=connect(ConnectingTools.ConversationSocket,(const struct sockaddr *)&ConnectingTools.ServerConversation,sizeof(ConnectingTools.ServerConversation));
             break;
             case WM_PAINT:
             GetClientRect(hwnd,&WindowSize);
@@ -746,6 +1036,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 HANDLE ThreadSending = (HANDLE)_beginthreadex(NULL ,0,SendingThread,&SendingTools,0,NULL);
                 HANDLE ThreadStatus = (HANDLE)_beginthreadex(NULL, 0,StatusThread,&SendingTrdStatus, 0, NULL);
                 HANDLE ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, &RcvStg, 0, NULL);
+                HANDLE ThreadConversation = (HANDLE)_beginthreadex(NULL, 0, ConversationThread, &ConnectingTools.ConversationSocket, 0, NULL);
                 /*if(ThreadSending)
                 {
                     WaitForSingleObject(ThreadSending, INFINITE);
@@ -830,11 +1121,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         MoveWindow(MessageBarHandle,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09,
                         (WindowSize.right - WindowSize.left)*0.41,(WindowSize.bottom - WindowSize.top)*0.07,TRUE);
                         UiInboxConversation(HandleWnd,Mdc,ConnectingTools,WindowSize,PanelRect,CurrentHEmoji,CurrentVEmoji,CurrentHAttach,CurrentVAttach,CurrentHSend,CurrentVSend);
+                        ShowWindow(ConversationScrollBar, SW_SHOW);
+                        InvalidateRect(ConversationScrollBar,NULL, FALSE);
                     }
                 }  
                 else if(!UiInbox)
                 {
                     ShowWindow(MessageBarHandle,SW_HIDE);
+                    ShowWindow(ConversationScrollBar, SW_HIDE); 
                 }
                 if(UiInbox)
                 {
@@ -848,8 +1142,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 }
                 else
                 {
-                    ShowWindow(HandleSearch,SW_HIDE);
                     ShowWindow(ScrollBar, SW_HIDE); 
+                    ShowWindow(HandleSearch,SW_HIDE);
                 }
             }    
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
@@ -1209,6 +1503,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         MessageBox(NULL, "Window Registration Failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
         return 1;
     }
+    // contact child window with a scroll bar
     const char* CHILD_CLASS_NAME = "CustomScrollChildWindow";
     WNDCLASS child_wc = {0};
     child_wc.lpfnWndProc = ScrollBarWindowProc; 
@@ -1216,7 +1511,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     child_wc.lpszClassName = CHILD_CLASS_NAME;
     child_wc.hCursor = LoadCursor(NULL, IDC_HAND);
     RegisterClass(&child_wc);
-    
+    // conversation child window with a scroll bar
+    const char* CHILD_CONVERSATION_CLASS_NAME = "CustomConversationScrollChildWindow";
+    WNDCLASS Conversation_child = {0};
+    Conversation_child.lpfnWndProc = ConversationWindowProc; 
+    Conversation_child.hInstance = hInstance;
+    Conversation_child.lpszClassName = CHILD_CONVERSATION_CLASS_NAME;
+    Conversation_child.hCursor = LoadCursor(NULL, IDC_ARROW);
+    RegisterClass(&Conversation_child);
+    // creating the main window
     HandleWnd = CreateWindowEx(
         0,
         wndClass.lpszClassName,
@@ -1238,6 +1541,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     while(GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
-    }   
+    } 
     return (int)msg.wParam;
 }

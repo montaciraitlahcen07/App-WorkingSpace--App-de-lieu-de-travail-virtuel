@@ -415,7 +415,7 @@ void CreatePanel(HDC Mdc,RECT WindowSize,HWND HandleWnd,float AddLenght)
     DeleteObject(Pen);
     DeleteObject(PanelColor);
 }
-// the line who will diffrence 
+// the line who will difference 
 void LineDifference(HDC Mdc,HWND HandleWnd,RECT WindowSize)
 {
     GetClientRect(HandleWnd,&WindowSize);
