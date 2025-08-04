@@ -59,13 +59,14 @@ typedef struct
     int message_requested;
     int index;
     int type;
-    bool UpDown;
 }RequestConversation;
+// request Conversation messages pass 
 typedef struct
 {
     char recipient[50];
     bool pass;
     bool no_more;
+    bool messages_left;
 }firstrequest;
 firstrequest RecipientPass[40];
 //
@@ -345,8 +346,69 @@ int FillingSearchRecipientList(HWND HandleSearch,int countclientStatus,Clients M
 // creating a conversation thread
 unsigned __stdcall ConversationThread(void *param)
 {
+    typedef struct 
+    {
+        char Sender[50];
+        char Recipient[50];
+        int message_count;
+        int last_index;
+        bool no_more;
+    }ResponseSetting;
+    ResponseSetting Response;
     SOCKET ConversationSocket = *(SOCKET *)param;
     // i need to make here condition based on choseentype variable
+    recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+    if(Response.message_count == 0)
+    {
+        for(int k=0;k<countclient;k++)
+        {
+            if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
+            {
+                MessagesConversations[k].last_index = 0;
+                break;
+            }
+        }
+        for(int j=0;j<countclient;j++)
+        {
+            if(strcmp(RecipientPass[j].recipient,Response.Recipient) == 0)
+            {
+                RecipientPass[j].no_more = TRUE;
+                break;
+            }
+        }
+    }
+    else if(Response.message_count > 0)
+    {
+        typedef struct
+        {
+            char message[200];
+            char owner[50];
+            char sender[50];
+            char recipient[50];
+        }ResponseData;
+        ResponseData SendingData;
+        for(int k=0;k<countclient;k++)
+        {
+            if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
+            {
+                for(int j=0;j<Response.message_count;j++)
+                {
+                    recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                    ConversationData NewData;
+                    strcpy(NewData.message,SendingData.message);
+                    strcpy(NewData.owner,SendingData.owner);
+                    MessagesConversations[k].Conversation[MessagesConversations[k].count] = NewData;
+                    if(Response.no_more)
+                    {
+                        MessagesConversations[k].last_index = 0;
+                        RecipientPass[k].no_more = TRUE;
+                    }
+                    MessagesConversations[k].count++;
+                }
+                break;
+            }
+        }
+    }
     return 0;
 }
 // inserting new message at the bottom of the array

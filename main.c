@@ -108,7 +108,6 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
             HBRUSH oldBrush = SelectObject(Mdc_Conversation_child, GetStockObject(NULL_BRUSH));
             SetBkMode(Mdc_Conversation_child, TRANSPARENT);
             DrawConversationScrollBar(Mdc_Conversation_child,hwnd,WindowSize);
-            //UpdateScrollbarRange(hwnd,ConversationScrollBarRect,&g_scrollbar);
             BitBlt(DeviceContext_ChildConversation, 0, 0, ConversationScrollBarRect.right - ConversationScrollBarRect.left, 
             ConversationScrollBarRect.bottom - ConversationScrollBarRect.top, Mdc_Conversation_child, 0, 0, SRCCOPY);
             SelectObject(Mdc_Conversation_child, oldBrush);
@@ -144,7 +143,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                     // make a call here for a conversation
                     for(int k=0;k<countclient;k++)
                     {
-                        if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more))
+                        if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more) && !(RecipientPass[i].messages_left))
                         {
                             if(new_pos < Conversation_thumb.current_val)
                             {
@@ -163,9 +162,9 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                                 RequestCnv.type = 2;
                                 // filling the type for receiving the right data
                                 choseentype = RequestCnv.type;
-                                RequestCnv.UpDown = TRUE;
                                 send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                             }
+                            /*
                             else if(new_pos > Conversation_thumb.current_val)
                             {
                                 RequestConversation RequestCnv;
@@ -183,9 +182,8 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                                 RequestCnv.type = 2;
                                 // filling the type for receiving the right data
                                 choseentype = RequestCnv.type;
-                                RequestCnv.UpDown = FALSE;
                                 send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
-                            }
+                            }*/
                             break;
                         }
                     }
@@ -225,7 +223,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 float track_height = client_rect.bottom - thumb_height;
                 for(int k=0;k<countclient;k++)
                 {
-                    if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more))
+                    if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more) && !(RecipientPass[i].messages_left))
                     {
                         
                         if(pt.y < Conversation_thumb.thumb_rect.top)
@@ -246,10 +244,10 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                             RequestCnv.type = 2;
                             // filling the type for receiving the right data
                             choseentype = RequestCnv.type;
-                            RequestCnv.UpDown = TRUE;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                             Conversation_thumb.current_val -= 0.5;
                         }
+                        /*
                         else if(pt.y > Conversation_thumb.thumb_rect.bottom)
                         {
                             // make a call here for a conversation with scroll down
@@ -268,10 +266,9 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                             RequestCnv.type = 2;
                             // filling the type for receiving the right data
                             choseentype = RequestCnv.type;
-                            RequestCnv.UpDown = FALSE;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                             Conversation_thumb.current_val += 0.5;
-                        }
+                        }*/
                         break;
                     }
                 }
@@ -299,7 +296,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
             // make a call here for a conversation based on step is sign
             for(int k=0;k<countclient;k++)
             {
-                if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more))
+                if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more) && !(RecipientPass[i].messages_left))
                 {
                     if(step < 0)
                     {
@@ -318,9 +315,9 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                         RequestCnv.type = 2;
                         // filling the type for receiving the right data
                         choseentype = RequestCnv.type;
-                        RequestCnv.UpDown = TRUE;
                         send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                     }
+                    /*
                     else
                     {
                         RequestConversation RequestCnv;
@@ -338,9 +335,8 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                             RequestCnv.type = 2;
                             // filling the type for receiving the right data
                             choseentype = RequestCnv.type;
-                            RequestCnv.UpDown = FALSE;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
-                    }
+                    }*/
                     break;
                 }
             }
@@ -718,28 +714,62 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                 {
                     // taking a copy into receiving thread
                     strcpy(ConnectingTools.PrivateMessage.SelectedRecipient,Message[Index].Username);
+                    // requesting conversation the new message just when the conversation is opened
+                    for(int i=0;i<countclient;i++)
+                    {
+                        if(strcmp(RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].pass))
+                        {
+                            RecipientPass[i].pass = TRUE;
+                            RequestConversation RequestCnv;
+                            strcpy(RequestCnv.sender,SendingTools.username);
+                            strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                            RequestCnv.index = 0;
+                            RequestCnv.message_requested = 7;
+                            RequestCnv.type = 1;
+                            // filling the type for receiving the right data
+                            choseentype = RequestCnv.type;
+                            send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                        }
+                    }
+                    // how many message on the conversation of the recipient selected
+                    for(int j=0;j<countclient;j++)
+                    {
+                        if(strcmp(MessagesConversations[j].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                        {
+                            UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count);
+                            break;
+                        }
+                    }
                 }
                 else if(Index >= 0 && strlen(EmptyFull) != 0)
                 {
                     // taking a copy into receiving thread and use it to draw the recipient conversation 
                     strcpy(ConnectingTools.PrivateMessage.SelectedRecipient,Message[Index].Username);
-                }
-                // requesting conversation the new message just when the conversation is opened
-                for(int i=0;i<countclient;i++)
-                {
-                    if(strcmp(RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].pass))
+                    // requesting conversation the new message just when the conversation is opened
+                    for(int i=0;i<countclient;i++)
                     {
-                        RecipientPass[i].pass = TRUE;
-                        RequestConversation RequestCnv;
-                        strcpy(RequestCnv.sender,SendingTools.username);
-                        strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
-                        RequestCnv.index = 0;
-                        RequestCnv.message_requested = 7;
-                        RequestCnv.type = 1;
-                        // filling the type for receiving the right data
-                        choseentype = RequestCnv.type;
-                        RequestCnv.UpDown = TRUE;
-                        send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                        if(strcmp(RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].pass))
+                        {
+                            RecipientPass[i].pass = TRUE;
+                            RequestConversation RequestCnv;
+                            strcpy(RequestCnv.sender,SendingTools.username);
+                            strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                            RequestCnv.index = 0;
+                            RequestCnv.message_requested = 7;
+                            RequestCnv.type = 1;
+                            // filling the type for receiving the right data
+                            choseentype = RequestCnv.type;
+                            send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                        }
+                    }
+                    // how many message on the conversation of the recipient selected
+                    for(int j=0;j<countclient;j++)
+                    {
+                        if(strcmp(MessagesConversations[j].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                        {
+                            UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count);
+                            break;
+                        }
                     }
                 }
             }

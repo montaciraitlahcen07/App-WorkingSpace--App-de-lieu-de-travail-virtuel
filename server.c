@@ -71,6 +71,13 @@ typedef struct
     char owner[50];
     int index;
 }MessageStoring;
+typedef struct
+{
+    char message[200];
+    char owner[50];
+    char sender[50];
+    char recipient[50];
+}ResponseData;
 unsigned __stdcall ReceivingAndPrintingData(void *param);
 bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus);
 void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsData,StatusType *UserStatus,char username[30]);
@@ -590,23 +597,209 @@ unsigned __stdcall ConversationThread(void *param)
         int message_requested;
         int index;
         int type;
-        bool UpDown;
     }RequestConversation;
     RequestConversation RequestCnv;
     SOCKET ConversationSocket = *(SOCKET *)param;
-    /* make a recv it get from the client the name of the sender and the recipient and how many message did he want 
-       and from what index  and get a type is this when the sender just opened the conversation
-       or just a normall scroll and each one will do it differently*/
     int ResultRequest = recv(ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
-    if(RequestCnv.type = 1)
+    typedef struct 
     {
-        // make a function inside it a switch that give the message when just the sender opened the conversation
-
-
+        char Sender[50];
+        char Recipient[50];
+        int message_count;
+        int last_index;
+        bool no_more;
+    }ResponseSetting;
+    ResponseSetting Response;
+    if(RequestCnv.type == 1)
+    {
+        char result[100];
+        MessageStoring ReadingData;
+        if(strcmp(RequestCnv.sender,RequestCnv.recipient) <= 0)
+        {
+            strcpy(result, RequestCnv.sender);
+            strcat(result, RequestCnv.recipient);
+        }
+        else
+        {
+            strcpy(result, RequestCnv.recipient);
+            strcat(result, RequestCnv.sender);
+        }
+        char filename[100];
+        sprintf(filename, "%s.txt",result);
+        FILE *Conversation = fopen(filename,"a+");
+        int check = fseek(Conversation,-sizeof(MessageStoring),SEEK_CUR);
+        if(check == 0)
+        {
+            fread(&ReadingData,sizeof(MessageStoring),1,Conversation);
+            if(ReadingData.index > RequestCnv.message_requested)
+            {
+                strcpy(Response.Sender,RequestCnv.sender);
+                strcpy(Response.Recipient,RequestCnv.recipient);
+                Response.message_count = 7;
+                Response.no_more = FALSE;
+                Response.last_index = ReadingData.index - RequestCnv.message_requested;
+                send(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+                Sleep(100);
+                ResponseData SendingData;
+                // sending message into the client 
+                for(int j=0;j<Response.message_count;j++)
+                {
+                    fseek(Conversation,-(j+1)*sizeof(MessageStoring),SEEK_CUR);
+                    fread(&ReadingData,sizeof(MessageStoring),1,Conversation);
+                    strcpy(SendingData.message,ReadingData.message);
+                    strcpy(SendingData.owner,ReadingData.owner);
+                    strcpy(SendingData.recipient,RequestCnv.recipient);
+                    strcpy(SendingData.sender,RequestCnv.sender);
+                    send(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                }
+            }
+            else if(ReadingData.index < RequestCnv.message_requested)
+            {
+                strcpy(Response.Sender,RequestCnv.sender);
+                strcpy(Response.Recipient,RequestCnv.recipient);
+                Response.message_count = ReadingData.index;
+                Response.no_more = TRUE;
+                Response.last_index = 0;
+                send(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+                Sleep(100);
+                ResponseData SendingData;
+                // sending message into the client 
+                for(int j=0;j<Response.message_count;j++)
+                {
+                    fseek(Conversation,-(j+1)*sizeof(MessageStoring),SEEK_CUR);
+                    fread(&ReadingData,sizeof(MessageStoring),1,Conversation);
+                    strcpy(SendingData.message,ReadingData.message);
+                    strcpy(SendingData.owner,ReadingData.owner);
+                    strcpy(SendingData.recipient,RequestCnv.recipient);
+                    strcpy(SendingData.sender,RequestCnv.sender);
+                    send(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                }
+            }
+            else
+            {
+                strcpy(Response.Sender,RequestCnv.sender);
+                strcpy(Response.Recipient,RequestCnv.recipient);
+                Response.message_count = 7;
+                Response.no_more = TRUE;
+                Response.last_index = 0;
+                send(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+                Sleep(100);
+                ResponseData SendingData;
+                // sending message into the client 
+                for(int j=0;j<Response.message_count;j++)
+                {
+                    fseek(Conversation,-(j+1)*sizeof(MessageStoring),SEEK_CUR);
+                    fread(&ReadingData,sizeof(MessageStoring),1,Conversation);
+                    strcpy(SendingData.message,ReadingData.message);
+                    strcpy(SendingData.owner,ReadingData.owner);
+                    strcpy(SendingData.recipient,RequestCnv.recipient);
+                    strcpy(SendingData.sender,RequestCnv.sender);
+                    send(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                }
+            }
+        }
+        // if the file does not have any data
+        else 
+        {
+            // send there is no message in this conversation
+            strcpy(Response.Sender,RequestCnv.sender);
+            strcpy(Response.Recipient,RequestCnv.recipient);
+            Response.message_count = 0;
+            Response.no_more = TRUE;
+            Response.last_index = 0;
+            send(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+        }
+        fclose(Conversation);
     }
-    else if(RequestCnv.type = 2)
+    //////////////////////////////////////////////
+    else if(RequestCnv.type == 2)
     {
-        // make a function inside it a switch that when a user scrolled up or down  
+        // make a function inside it a switch that when a user scrolled up 
+        char result[100];
+        MessageStoring ReadingData;
+        if(strcmp(RequestCnv.sender,RequestCnv.recipient) <= 0)
+        {
+            strcpy(result, RequestCnv.sender);
+            strcat(result, RequestCnv.recipient);
+        }
+        else
+        {
+            strcpy(result, RequestCnv.recipient);
+            strcat(result, RequestCnv.sender);
+        }
+        char filename[100];
+        sprintf(filename, "%s.txt",result);
+        FILE *Conversation = fopen(filename,"a+");
+        rewind(Conversation);
+        fseek(Conversation,(RequestCnv.index - 1)*sizeof(MessageStoring),SEEK_CUR);
+        fread(&ReadingData,sizeof(MessageStoring),1,Conversation);
+        if(ReadingData.index > RequestCnv.message_requested)
+        {
+            strcpy(Response.Sender,RequestCnv.sender);
+            strcpy(Response.Recipient,RequestCnv.recipient);
+            Response.message_count = 7;
+            Response.no_more = FALSE;
+            Response.last_index = ReadingData.index - RequestCnv.message_requested;
+            send(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+            Sleep(100);
+            ResponseData SendingData;
+            // sending message into the client 
+            for(int j=0;j<Response.message_count;j++)
+            {
+                fseek(Conversation,-(j+1)*sizeof(MessageStoring),SEEK_CUR);
+                fread(&ReadingData,sizeof(MessageStoring),1,Conversation);
+                strcpy(SendingData.message,ReadingData.message);
+                strcpy(SendingData.owner,ReadingData.owner);
+                strcpy(SendingData.recipient,RequestCnv.recipient);
+                strcpy(SendingData.sender,RequestCnv.sender);
+                send(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+            }
+        }
+        else if(ReadingData.index < RequestCnv.message_requested)
+        {
+            strcpy(Response.Sender,RequestCnv.sender);
+            strcpy(Response.Recipient,RequestCnv.recipient);
+            Response.message_count = ReadingData.index;
+            Response.no_more = TRUE;
+            Response.last_index = 0;
+            send(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+            Sleep(100);
+            ResponseData SendingData;
+            // sending message into the client 
+            for(int j=0;j<Response.message_count;j++)
+            {
+                fseek(Conversation,-(j+1)*sizeof(MessageStoring),SEEK_CUR);
+                fread(&ReadingData,sizeof(MessageStoring),1,Conversation);
+                strcpy(SendingData.message,ReadingData.message);
+                strcpy(SendingData.owner,ReadingData.owner);
+                strcpy(SendingData.recipient,RequestCnv.recipient);
+                strcpy(SendingData.sender,RequestCnv.sender);
+                send(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+            }
+        }
+        else 
+        {
+            strcpy(Response.Sender,RequestCnv.sender);
+            strcpy(Response.Recipient,RequestCnv.recipient);
+            Response.message_count = 7;
+            Response.no_more = TRUE;
+            Response.last_index = 0;
+            send(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+            Sleep(100);
+            ResponseData SendingData;
+            // sending message into the client 
+            for(int j=0;j<Response.message_count;j++)
+            {
+                fseek(Conversation,-(j+1)*sizeof(MessageStoring),SEEK_CUR);
+                fread(&ReadingData,sizeof(MessageStoring),1,Conversation);
+                strcpy(SendingData.message,ReadingData.message);
+                strcpy(SendingData.owner,ReadingData.owner);
+                strcpy(SendingData.recipient,RequestCnv.recipient);
+                strcpy(SendingData.sender,RequestCnv.sender);
+                send(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+            }
+        }
+        fclose(Conversation);
     }
     closesocket(ConversationSocket);
     return 0;

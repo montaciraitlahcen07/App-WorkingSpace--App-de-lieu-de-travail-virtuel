@@ -756,11 +756,6 @@ void DrawConversationScrollBar(HDC hdc, HWND hwnd,RECT WindowSize)
     SelectObject(hdc, old_brush);
     DeleteObject(thumb_brush);
 }
-//for checking is the user hovering or clicking on the thumb
-BOOL PointInConversationRect(POINT pt, RECT* rect)
-{
-    return (pt.x >= rect->left && pt.x <= rect->right && pt.y >= rect->top && pt.y <= rect->bottom);
-}
 // updating the thumb is place in the scrollbar 
 void UpdateConversationScrollValue(HWND hwnd, float new_val)
 {
@@ -774,16 +769,16 @@ int Conversation_total_items;
 float Conversation_window_height;
 int Conversation_items_per_page;
 extern int i;
-void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,ScrollbarInfo *Conversation_thumb)
+void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,ScrollbarInfo *Conversation_thumb,int Message_Count)
 {
     GetClientRect(hwnd,&ConversationScrollBarRect);
-    Conversation_total_items = 20;
+    Conversation_total_items = Message_Count;
     Conversation_window_height = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top) - 4;
-    Conversation_items_per_page = 7;
+    Conversation_items_per_page = 5;
     Conversation_thumb->min_val = 0;
     if(Conversation_total_items <= Conversation_items_per_page)
     {
-        Conversation_thumb->max_val = 1; 
+        Conversation_thumb->max_val = 0; 
         Conversation_thumb->page_size = Conversation_items_per_page;
     } 
     else
