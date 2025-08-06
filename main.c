@@ -74,16 +74,17 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
     switch (msg)
     {
         case WM_CREATE:
+            Conversation_total_messages = 50;
+            Conversation_messages_per_page = 6;
             Conversation_thumb.min_val = 0;
-            if(total_items <= items_per_page)
+            Conversation_thumb.page_size = Conversation_messages_per_page;
+            if(Conversation_total_messages <= Conversation_messages_per_page)
             {
-                Conversation_thumb.max_val = 2; 
-                Conversation_thumb.page_size = items_per_page;
+                Conversation_thumb.max_val = 0; 
             } 
             else
             {
-                Conversation_thumb.max_val = total_items - items_per_page + 1;
-                Conversation_thumb.page_size = items_per_page;
+                Conversation_thumb.max_val = Conversation_total_messages - Conversation_messages_per_page + 1;
             }
             Conversation_thumb.current_val = Conversation_thumb.max_val;
             InvalidateRect(hwnd,NULL, FALSE);
@@ -143,7 +144,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                     // make a call here for a conversation
                     for(int k=0;k<countclient;k++)
                     {
-                        if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more) && !(RecipientPass[i].messages_left))
+                        if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && (RecipientPass[k].messages_left == 0))
                         {
                             if(new_pos < Conversation_thumb.current_val)
                             {
@@ -161,7 +162,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                                 RequestCnv.message_requested = 7;
                                 RequestCnv.type = 2;
                                 // filling the type for receiving the right data
-                                choseentype = RequestCnv.type;
+                                //choseentype = RequestCnv.type;
                                 send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                             }
                             /*
@@ -181,7 +182,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                                 RequestCnv.message_requested = 7;
                                 RequestCnv.type = 2;
                                 // filling the type for receiving the right data
-                                choseentype = RequestCnv.type;
+                                //choseentype = RequestCnv.type;
                                 send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                             }*/
                             break;
@@ -223,7 +224,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 float track_height = client_rect.bottom - thumb_height;
                 for(int k=0;k<countclient;k++)
                 {
-                    if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more) && !(RecipientPass[i].messages_left))
+                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && (RecipientPass[k].messages_left == 0))
                     {
                         
                         if(pt.y < Conversation_thumb.thumb_rect.top)
@@ -243,14 +244,13 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                             RequestCnv.message_requested = 7;
                             RequestCnv.type = 2;
                             // filling the type for receiving the right data
-                            choseentype = RequestCnv.type;
+                            //choseentype = RequestCnv.type;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
-                            Conversation_thumb.current_val -= 0.5;
                         }
-                        /*
-                        else if(pt.y > Conversation_thumb.thumb_rect.bottom)
+                        break;
+                        /*else if(pt.y > Conversation_thumb.thumb_rect.bottom)
                         {
-                            // make a call here for a conversation with scroll down
+                            //make a call here for a conversation with scroll down
                             RequestConversation RequestCnv;
                             strcpy(RequestCnv.sender,SendingTools.username);
                             strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
@@ -265,14 +265,21 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                             RequestCnv.message_requested = 7;
                             RequestCnv.type = 2;
                             // filling the type for receiving the right data
-                            choseentype = RequestCnv.type;
+                            //choseentype = RequestCnv.type;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
-                            Conversation_thumb.current_val += 0.5;
-                        }*/
-                        break;
-                    }
+                            }*/
+                        }
                 }
-                UpdateConversationScrollValue(hwnd, Conversation_thumb.current_val);
+                if(pt.y < Conversation_thumb.thumb_rect.top)
+                {
+                    Conversation_thumb.current_val -= 3;
+                    UpdateConversationScrollValue(hwnd, Conversation_thumb.current_val);
+                }
+                else if(pt.y > Conversation_thumb.thumb_rect.bottom)
+                {
+                    Conversation_thumb.current_val += 3;
+                    UpdateConversationScrollValue(hwnd, Conversation_thumb.current_val);
+                }
             }
             InvalidateRect(HandleWnd,&WindowSize,FALSE);
             InvalidateRect(hwnd,NULL,FALSE);
@@ -292,11 +299,11 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
         case WM_MOUSEWHEEL:
         {
             float delta = GET_WHEEL_DELTA_WPARAM(wParam);
-            float step = (delta > 0) ? -0.5f : 0.5f;
+            float step = (delta > 0) ? -1 : 1;
             // make a call here for a conversation based on step is sign
             for(int k=0;k<countclient;k++)
             {
-                if((RecipientPass[i].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[i].no_more) && !(RecipientPass[i].messages_left))
+                if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && (RecipientPass[k].messages_left == 0))
                 {
                     if(step < 0)
                     {
@@ -314,7 +321,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                         RequestCnv.message_requested = 7;
                         RequestCnv.type = 2;
                         // filling the type for receiving the right data
-                        choseentype = RequestCnv.type;
+                        //choseentype = RequestCnv.type;
                         send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                     }
                     /*
@@ -334,7 +341,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                             RequestCnv.message_requested = 7;
                             RequestCnv.type = 2;
                             // filling the type for receiving the right data
-                            choseentype = RequestCnv.type;
+                            //choseentype = RequestCnv.type;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                     }*/
                     break;
@@ -727,7 +734,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                             RequestCnv.message_requested = 7;
                             RequestCnv.type = 1;
                             // filling the type for receiving the right data
-                            choseentype = RequestCnv.type;
+                            //choseentype = RequestCnv.type;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                         }
                     }
@@ -758,7 +765,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                             RequestCnv.message_requested = 7;
                             RequestCnv.type = 1;
                             // filling the type for receiving the right data
-                            choseentype = RequestCnv.type;
+                            //choseentype = RequestCnv.type;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                         }
                     }

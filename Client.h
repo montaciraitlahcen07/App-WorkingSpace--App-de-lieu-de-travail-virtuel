@@ -50,6 +50,7 @@ typedef struct
     int last_index;
     int count;
     char OwnerName[50];
+    int render_index;
 }conversationsOwners;
 conversationsOwners MessagesConversations[40];
 typedef struct
@@ -66,7 +67,7 @@ typedef struct
     char recipient[50];
     bool pass;
     bool no_more;
-    bool messages_left;
+    int messages_left;
 }firstrequest;
 firstrequest RecipientPass[40];
 //
@@ -356,56 +357,59 @@ unsigned __stdcall ConversationThread(void *param)
     }ResponseSetting;
     ResponseSetting Response;
     SOCKET ConversationSocket = *(SOCKET *)param;
-    // i need to make here condition based on choseentype variable
-    recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
-    if(Response.message_count == 0)
+    while(true)
     {
-        for(int k=0;k<countclient;k++)
+        // i need to make here condition based on choseentype variable
+        recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+        if(Response.message_count == 0)
         {
-            if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
+            for(int k=0;k<countclient;k++)
             {
-                MessagesConversations[k].last_index = 0;
-                break;
-            }
-        }
-        for(int j=0;j<countclient;j++)
-        {
-            if(strcmp(RecipientPass[j].recipient,Response.Recipient) == 0)
-            {
-                RecipientPass[j].no_more = TRUE;
-                break;
-            }
-        }
-    }
-    else if(Response.message_count > 0)
-    {
-        typedef struct
-        {
-            char message[200];
-            char owner[50];
-            char sender[50];
-            char recipient[50];
-        }ResponseData;
-        ResponseData SendingData;
-        for(int k=0;k<countclient;k++)
-        {
-            if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
-            {
-                for(int j=0;j<Response.message_count;j++)
+                if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
                 {
-                    recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
-                    ConversationData NewData;
-                    strcpy(NewData.message,SendingData.message);
-                    strcpy(NewData.owner,SendingData.owner);
-                    MessagesConversations[k].Conversation[MessagesConversations[k].count] = NewData;
-                    if(Response.no_more)
-                    {
-                        MessagesConversations[k].last_index = 0;
-                        RecipientPass[k].no_more = TRUE;
-                    }
-                    MessagesConversations[k].count++;
+                    MessagesConversations[k].last_index = 0;
+                    break;
                 }
-                break;
+            }
+            for(int j=0;j<countclient;j++)
+            {
+                if(strcmp(RecipientPass[j].recipient,Response.Recipient) == 0)
+                {
+                    RecipientPass[j].no_more = TRUE;
+                    break;
+                }
+            }
+        }
+        else if(Response.message_count > 0)
+        {
+            typedef struct
+            {
+                char message[200];
+                char owner[50];
+                char sender[50];
+                char recipient[50];
+            }ResponseData;
+            ResponseData SendingData;
+            for(int k=0;k<countclient;k++)
+            {
+                if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
+                {
+                    for(int j=0;j<Response.message_count;j++)
+                    {
+                        recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                        ConversationData NewData;
+                        strcpy(NewData.message,SendingData.message);
+                        strcpy(NewData.owner,SendingData.owner);
+                        MessagesConversations[k].Conversation[MessagesConversations[k].count] = NewData;
+                        if(Response.no_more)
+                        {
+                            MessagesConversations[k].last_index = 0;
+                            RecipientPass[k].no_more = TRUE;
+                        }
+                        MessagesConversations[k].count++;
+                    }
+                    break;
+                }
             }
         }
     }

@@ -39,7 +39,7 @@
     ScrollbarInfo g_scrollbar;
     // create setting for conversation is thumb
     // 
-    int choseentype;
+    //int choseentype;
     //
     ScrollbarInfo Conversation_thumb;
     void CalculateThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize);
@@ -285,7 +285,7 @@ void CalculateThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize)
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);   
     float scrollbar_height = (client_rect.bottom - client_rect.top - 4);
-    float range = g_scrollbar.max_val - g_scrollbar.min_val;   
+    int range = g_scrollbar.max_val - g_scrollbar.min_val;   
     if (range <= 0) range = 1;
     float thumb_height = max(20, (g_scrollbar.page_size * scrollbar_height) / (range + g_scrollbar.page_size));
     float track_height = scrollbar_height - thumb_height;
@@ -697,7 +697,7 @@ void CalculateConversationThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize)
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
     float scrollbar_height = (client_rect.bottom - client_rect.top - 4);
-    float range = Conversation_thumb.max_val - Conversation_thumb.min_val;
+    int range = Conversation_thumb.max_val - Conversation_thumb.min_val;
     if(range <= 0) range = 1;
     float thumb_height = max(20, (Conversation_thumb.page_size * scrollbar_height) / (range + Conversation_thumb.page_size));
     float track_height = scrollbar_height - thumb_height;
@@ -765,25 +765,24 @@ void UpdateConversationScrollValue(HWND hwnd, float new_val)
         Conversation_thumb.current_val = new_val;
     }
 }
-int Conversation_total_items;
+int Conversation_total_messages;
 float Conversation_window_height;
-int Conversation_items_per_page;
+int Conversation_messages_per_page;
 extern int i;
 void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,ScrollbarInfo *Conversation_thumb,int Message_Count)
 {
     GetClientRect(hwnd,&ConversationScrollBarRect);
-    Conversation_total_items = Message_Count;
+    Conversation_total_messages = 50;
     Conversation_window_height = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top) - 4;
-    Conversation_items_per_page = 5;
+    Conversation_messages_per_page = 6;
     Conversation_thumb->min_val = 0;
-    if(Conversation_total_items <= Conversation_items_per_page)
+    Conversation_thumb->page_size = Conversation_messages_per_page;
+    if(Conversation_total_messages <= Conversation_messages_per_page)
     {
         Conversation_thumb->max_val = 0; 
-        Conversation_thumb->page_size = Conversation_items_per_page;
     } 
     else
     {
-        Conversation_thumb->max_val = Conversation_total_items - Conversation_items_per_page + 1;
-        Conversation_thumb->page_size = Conversation_items_per_page;
+        Conversation_thumb->max_val = Conversation_total_messages - Conversation_messages_per_page + 1;
     }   
 }
