@@ -77,15 +77,21 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
         case WM_CREATE:
             Conversation_total_messages = 11;
             Conversation_messages_per_page = 7;
+            Conversation_total_messages = 50;
+            Conversation_messages_per_page = 6;
             Conversation_thumb.min_val = 0;
             Conversation_thumb.page_size = Conversation_messages_per_page;
             if(Conversation_total_messages <= Conversation_messages_per_page)
+            Conversation_thumb.page_size = Conversation_messages_per_page;
+            if(Conversation_total_messages <= Conversation_messages_per_page)
             {
+                Conversation_thumb.max_val = 0; 
                 Conversation_thumb.max_val = 0; 
             } 
             else
             {
                 Conversation_thumb.max_val = Conversation_total_messages - Conversation_messages_per_page ;
+                Conversation_thumb.max_val = Conversation_total_messages - Conversation_messages_per_page + 1;
             }
             Conversation_thumb.current_val = Conversation_thumb.max_val;
             InvalidateRect(hwnd,NULL, FALSE);
