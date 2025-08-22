@@ -322,8 +322,8 @@ void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject,RE
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,ProjectAnimation.left,ProjectAnimation.top-15,ProjectAnimation.right,ProjectAnimation.bottom+2,32,32);
     DrawText(Mdc,"Projects",-1,&ProjectRect,DT_SINGLELINE | DT_CENTER);
-    SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);
+    SelectObject(Mdc,OldFont);
     DeleteObject(Font);
     DeleteObject(Pen);
     SelectObject(Mdc,OldButtonColor);

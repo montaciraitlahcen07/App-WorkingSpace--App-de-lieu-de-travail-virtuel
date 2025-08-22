@@ -60,6 +60,8 @@ typedef struct
     int index;
     int type;
 }RequestConversation;
+// scroll offset we will filter the message that would be shown in the screen 
+float Conversation_scrolloffset;
 // request Conversation messages pass 
 typedef struct
 {
@@ -90,7 +92,7 @@ RcvSetting RcvStg;
 unsigned __stdcall receivingClient(void *param);
 unsigned __stdcall SendingThread(void *param);
 int FillingSearchRecipientList(HWND HandleSearch,int countclient,Clients Message[100],int ListSearchedRecipient[100],int CompSearchedRecipient);
-void insert_at_bottom(const char* Sender,const char* message);
+void insert_at_bottom(const char* Sender,const char* message,const char *owner);
 // add in this thread function to disperse between inbox message and general message
 unsigned __stdcall receivingClient(void *param)
 {
@@ -135,7 +137,7 @@ unsigned __stdcall receivingClient(void *param)
             {
                 messagetest.buffer[--len] = '\0';
             }
-            insert_at_bottom(messagetest.Sender,messagetest.buffer);
+            insert_at_bottom(messagetest.Sender,messagetest.buffer,messagetest.Sender);
             printf("Received message from %s: %s\n", messagetest.Sender, messagetest.buffer);
 
             /*HPEN Pen=CreatePen(BS_SOLID,3,RGB(0,0,0));
@@ -178,6 +180,8 @@ unsigned __stdcall SendingThread(void *param)
                 HPEN Pen=CreatePen(BS_SOLID,2,RGB(0,0,0));
                 HPEN OldPen=SelectObject(MemoryDcSndTool.Mdc_Child_1,Pen);
                 recv(ConnectingTools.ClientSocketSending,(char *)&countclient,sizeof(countclient),0);
+                // Ensure countclient doesn't exceed array bounds
+                if(countclient > 40) countclient = 40;
                 countclientStatus = countclient;
                 for(int j=0;j<countclient;j++)
                 {
@@ -243,6 +247,8 @@ unsigned __stdcall SendingThread(void *param)
             }
             if(lenb !=0)
             {
+                // storing the message in the array of the conversation
+                insert_at_bottom(ConnectingTools.PrivateMessage.SelectedRecipient,ConnectingTools.PrivateMessage.Buffer,SendingTools.username);
                 sendResult = send(ConnectingTools.ClientSocketSending,(char*)&ConnectingTools.PrivateMessage, sizeof(ConnectingTools.PrivateMessage), 0);
                 if(sendResult == SOCKET_ERROR)
                 {
@@ -278,14 +284,14 @@ unsigned __stdcall StatusThread(void *param)
     StatusTools ScrollBarAndRect = *(StatusTools *)param;
     while(TRUE)
     {
-       int ServerResult = recv(ConnectingTools.StatusSocket, (char *)&UserStatus, sizeof(UserStatus),0);        
-       if(ServerResult <= 0)
-       {
+        int ServerResult = recv(ConnectingTools.StatusSocket, (char *)&UserStatus, sizeof(UserStatus),0);        
+        if(ServerResult <= 0)
+        {
             Sleep(50);
             continue;
-       }
-       if(UserStatus.Type == 1)
-       {
+        }
+        if(UserStatus.Type == 1)
+        {
             int j = 0;
             while(j < 8)
             {
@@ -298,9 +304,9 @@ unsigned __stdcall StatusThread(void *param)
                 }
                 j++;
             }
-       }
-       else if(UserStatus.Type == 2)
-       {
+        }
+        else if(UserStatus.Type == 2)
+        {
             int j = 0;
             while(j < 8)
             {
@@ -313,16 +319,20 @@ unsigned __stdcall StatusThread(void *param)
                 }
                 j++;
             }
-       }
-       else
-       {
-            strcpy(Message[countclientStatus].Username,UserStatus.UserName);
-            Message[countclientStatus].Clients = UserStatus.socket;
-            Message[countclientStatus].IsActive = TRUE;
-            Message[countclientStatus].StatusClient = UserStatus.Statussocket;
-            countclientStatus++;
-       }
-       InvalidateRect(ScrollBarAndRect.ScrollBar,&ScrollBarAndRect.ScrolBarRect,FALSE);
+        }
+        else
+        {
+            // Ensure countclientStatus doesn't exceed array bounds
+            if(countclientStatus < 100)
+            {
+                strcpy(Message[countclientStatus].Username,UserStatus.UserName);
+                Message[countclientStatus].Clients = UserStatus.socket;
+                Message[countclientStatus].IsActive = TRUE;
+                Message[countclientStatus].StatusClient = UserStatus.Statussocket;
+                countclientStatus++;
+            }
+        }
+        InvalidateRect(ScrollBarAndRect.ScrollBar,&ScrollBarAndRect.ScrolBarRect,FALSE);
        
     }
     closesocket(ConnectingTools.StatusSocket);
@@ -353,78 +363,112 @@ unsigned __stdcall ConversationThread(void *param)
         int message_count;
         int last_index;
         bool no_more;
-    }ResponseSetting;
+    } ResponseSetting;
+
     ResponseSetting Response;
     SOCKET ConversationSocket = *(SOCKET *)param;
-    // i need to make here condition based on choseentype variable
-    recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
-    if(Response.message_count == 0)
+
+    while (true)
     {
-        for(int k=0;k<countclient;k++)
+        int ConverResult = recv(ConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+        if (ConverResult <= 0)
+            break; // socket closed or error
+
+        // Find the conversation index
+        int convIndex = -1;
+        for (int k = 0; k < countclient; k++)
         {
-            if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
+            if (strcmp(MessagesConversations[k].OwnerName, Response.Recipient) == 0)
             {
-                MessagesConversations[k].last_index = 0;
+                convIndex = k;
                 break;
             }
         }
-        for(int j=0;j<countclient;j++)
+        if (convIndex == -1)
+            continue; // no matching conversation
+
+        if(Response.message_count == 0)
         {
-            if(strcmp(RecipientPass[j].recipient,Response.Recipient) == 0)
+            MessagesConversations[convIndex].last_index = 0;
+            for (int j = 0; j < countclient; j++)
             {
-                RecipientPass[j].no_more = TRUE;
-                break;
-            }
-        }
-    }
-    else if(Response.message_count > 0)
-    {
-        typedef struct
-        {
-            char message[200];
-            char owner[50];
-            char sender[50];
-            char recipient[50];
-        }ResponseData;
-        ResponseData SendingData;
-        for(int k=0;k<countclient;k++)
-        {
-            if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
-            {
-                for(int j=0;j<Response.message_count;j++)
+                if (strcmp(RecipientPass[j].recipient, Response.Recipient) == 0)
                 {
-                    recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
-                    ConversationData NewData;
-                    strcpy(NewData.message,SendingData.message);
-                    strcpy(NewData.owner,SendingData.owner);
-                    MessagesConversations[k].Conversation[MessagesConversations[k].count] = NewData;
-                    if(Response.no_more)
-                    {
-                        MessagesConversations[k].last_index = 0;
-                        RecipientPass[k].no_more = TRUE;
-                    }
-                    MessagesConversations[k].count++;
+                    RecipientPass[j].no_more = TRUE;
+                    break;
                 }
-                break;
+            }
+        }
+        else if (Response.message_count > 0)
+        {
+            typedef struct
+            {
+                char message[200];
+                char owner[50];
+                char sender[50];
+                char recipient[50];
+            } ResponseData;
+
+            ResponseData SendingData;
+            // Limit message count to prevent excessive processing
+            int maxMessages = min(Response.message_count, 50);
+            for (int j = 0; j < maxMessages; j++)
+            {
+                int resultr = recv(ConversationSocket, (char *)&SendingData, sizeof(ResponseData), 0);
+                /*// Prevent duplicate oldest message
+                if (MessagesConversations[convIndex].count > 0)
+                {
+                    ConversationData *lastMsg =
+                        &MessagesConversations[convIndex].Conversation[MessagesConversations[convIndex].count - 1];
+                    if (strcmp(lastMsg->message, SendingData.message) == 0 &&
+                        strcmp(lastMsg->owner, SendingData.owner) == 0)
+                    {
+                        continue;
+                    }
+                }*/
+                // Store new message with bounds checking
+                if(MessagesConversations[convIndex].count < 100)
+                {
+                    ConversationData NewData;
+                    strcpy(NewData.message, SendingData.message);
+                    strcpy(NewData.owner, SendingData.owner);
+                    MessagesConversations[convIndex].Conversation[MessagesConversations[convIndex].count] = NewData;
+                    MessagesConversations[convIndex].count++;
+                }
+            }
+            // Update scrolling state
+            MessagesConversations[convIndex].last_index = Response.last_index;
+            for (int j = 0; j < countclient; j++)
+            {
+                if (strcmp(RecipientPass[j].recipient, Response.Recipient) == 0)
+                {
+                    RecipientPass[j].no_more = Response.no_more;
+                    break;
+                }
             }
         }
     }
+    closesocket(ConversationSocket);
     return 0;
 }
 // inserting new message at the bottom of the array
-void insert_at_bottom(const char* Sender,const char* message)
+void insert_at_bottom(const char* Sender,const char* message,const char * owner)
 {
-    for(int i=0;i<countclient;i++)
+    // Safety checks for null pointers
+    if(!Sender || !message || !owner)
+        return;
+        
+    for(int i=0;i<countclient && i<40;i++)
     {
         if(strcmp(MessagesConversations[i].OwnerName,Sender) == 0)
         {
             if(MessagesConversations[i].count >= 100)
             {
-                printf("Message limit reached for %s\n", Sender);
+                printf("Message limit reached for %s array\n", Sender);
                 return;
             }
             ConversationData NewData;
-            strcpy(NewData.owner,Sender);
+            strcpy(NewData.owner,owner);
             strcpy(NewData.message,message);
             for(int j=MessagesConversations[i].count;j>0;j--)
             {
