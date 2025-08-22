@@ -50,6 +50,7 @@ typedef struct
     int last_index;
     int count;
     char OwnerName[50];
+    int render_index;
 }conversationsOwners;
 conversationsOwners MessagesConversations[40];
 typedef struct
@@ -68,7 +69,7 @@ typedef struct
     char recipient[50];
     bool pass;
     bool no_more;
-    bool messages_left;
+    int messages_left;
 }firstrequest;
 firstrequest RecipientPass[40];
 //
@@ -367,39 +368,30 @@ unsigned __stdcall ConversationThread(void *param)
 
     ResponseSetting Response;
     SOCKET ConversationSocket = *(SOCKET *)param;
-
-    while (true)
+    while(true)
     {
-        int ConverResult = recv(ConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
-        if (ConverResult <= 0)
-            break; // socket closed or error
-
-        // Find the conversation index
-        int convIndex = -1;
-        for (int k = 0; k < countclient; k++)
-        {
-            if (strcmp(MessagesConversations[k].OwnerName, Response.Recipient) == 0)
-            {
-                convIndex = k;
-                break;
-            }
-        }
-        if (convIndex == -1)
-            continue; // no matching conversation
-
+        // i need to make here condition based on choseentype variable
+        recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
         if(Response.message_count == 0)
         {
-            MessagesConversations[convIndex].last_index = 0;
-            for (int j = 0; j < countclient; j++)
+            for(int k=0;k<countclient;k++)
             {
-                if (strcmp(RecipientPass[j].recipient, Response.Recipient) == 0)
+                if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
+                {
+                    MessagesConversations[k].last_index = 0;
+                    break;
+                }
+            }
+            for(int j=0;j<countclient;j++)
+            {
+                if(strcmp(RecipientPass[j].recipient,Response.Recipient) == 0)
                 {
                     RecipientPass[j].no_more = TRUE;
                     break;
                 }
             }
         }
-        else if (Response.message_count > 0)
+        else if(Response.message_count > 0)
         {
             typedef struct
             {
@@ -407,42 +399,26 @@ unsigned __stdcall ConversationThread(void *param)
                 char owner[50];
                 char sender[50];
                 char recipient[50];
-            } ResponseData;
-
+            }ResponseData;
             ResponseData SendingData;
-            // Limit message count to prevent excessive processing
-            int maxMessages = min(Response.message_count, 50);
-            for (int j = 0; j < maxMessages; j++)
+            for(int k=0;k<countclient;k++)
             {
-                int resultr = recv(ConversationSocket, (char *)&SendingData, sizeof(ResponseData), 0);
-                /*// Prevent duplicate oldest message
-                if (MessagesConversations[convIndex].count > 0)
+                if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
                 {
-                    ConversationData *lastMsg =
-                        &MessagesConversations[convIndex].Conversation[MessagesConversations[convIndex].count - 1];
-                    if (strcmp(lastMsg->message, SendingData.message) == 0 &&
-                        strcmp(lastMsg->owner, SendingData.owner) == 0)
+                    for(int j=0;j<Response.message_count;j++)
                     {
-                        continue;
+                        recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                        ConversationData NewData;
+                        strcpy(NewData.message,SendingData.message);
+                        strcpy(NewData.owner,SendingData.owner);
+                        MessagesConversations[k].Conversation[MessagesConversations[k].count] = NewData;
+                        if(Response.no_more)
+                        {
+                            MessagesConversations[k].last_index = 0;
+                            RecipientPass[k].no_more = TRUE;
+                        }
+                        MessagesConversations[k].count++;
                     }
-                }*/
-                // Store new message with bounds checking
-                if(MessagesConversations[convIndex].count < 100)
-                {
-                    ConversationData NewData;
-                    strcpy(NewData.message, SendingData.message);
-                    strcpy(NewData.owner, SendingData.owner);
-                    MessagesConversations[convIndex].Conversation[MessagesConversations[convIndex].count] = NewData;
-                    MessagesConversations[convIndex].count++;
-                }
-            }
-            // Update scrolling state
-            MessagesConversations[convIndex].last_index = Response.last_index;
-            for (int j = 0; j < countclient; j++)
-            {
-                if (strcmp(RecipientPass[j].recipient, Response.Recipient) == 0)
-                {
-                    RecipientPass[j].no_more = Response.no_more;
                     break;
                 }
             }

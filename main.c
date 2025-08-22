@@ -288,7 +288,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 float track_height = client_rect.bottom - thumb_height;
                 for(int k=0;k<countclient;k++)
                 {
-                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more))
+                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && (RecipientPass[k].messages_left == 0))
                     {
                         
                         if(pt.y < Conversation_thumb.thumb_rect.top)
@@ -918,6 +918,8 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                             RequestCnv.index = 0;
                             RequestCnv.message_requested = 7;
                             RequestCnv.type = 1;
+                            // filling the type for receiving the right data
+                            //choseentype = RequestCnv.type;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                         }
                     }
