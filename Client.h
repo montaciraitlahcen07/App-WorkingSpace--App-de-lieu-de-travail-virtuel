@@ -257,8 +257,8 @@ unsigned __stdcall SendingThread(void *param)
                 }
                 SetWindowText(SendingTools.MessageBarHandle,"");
             }
+            Sleep(200);
             Send = FALSE;
-            Sleep(100);
         }
     }  
     closesocket(ConnectingTools.ClientSocketSending);
@@ -370,7 +370,6 @@ unsigned __stdcall ConversationThread(void *param)
     SOCKET ConversationSocket = *(SOCKET *)param;
     while(true)
     {
-        // i need to make here condition based on choseentype variable
         recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
         if(Response.message_count == 0)
         {
@@ -379,14 +378,7 @@ unsigned __stdcall ConversationThread(void *param)
                 if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
                 {
                     MessagesConversations[k].last_index = 0;
-                    break;
-                }
-            }
-            for(int j=0;j<countclient;j++)
-            {
-                if(strcmp(RecipientPass[j].recipient,Response.Recipient) == 0)
-                {
-                    RecipientPass[j].no_more = TRUE;
+                    RecipientPass[k].no_more = TRUE;
                     break;
                 }
             }

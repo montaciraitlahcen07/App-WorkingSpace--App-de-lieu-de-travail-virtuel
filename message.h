@@ -301,7 +301,8 @@ void CalculateThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize)
     thumb_rect->bottom = thumb_rect->top + thumb_height;
 }
 // for drawing the thumb 
-void DrawScrollBar(HDC hdc, HWND hwnd,RECT WindowSize) {
+void DrawScrollBar(HDC hdc, HWND hwnd,RECT WindowSize)
+{
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
     
@@ -693,27 +694,30 @@ void BuildVisibleItemsList(HDC hdc, HWND hwnd, RECT ScrollBarRect, Clients Messa
 HWND ConversationScrollBar;
 RECT ConversationScrollBarRect;
 // for calculating the thumb is rect
-void CalculateConversationThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize)
+void CalculateConversationThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize,float HeightIncrementationChecking)
 {
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
     float scrollbar_height = (client_rect.bottom - client_rect.top - 4);
     int range = Conversation_thumb.max_val - Conversation_thumb.min_val;
     if(range <= 0) range = 1;
-    float thumb_height = max(20, (Conversation_thumb.page_size * scrollbar_height) / (range + Conversation_thumb.page_size));
+    float thumb_height = max(20, (Conversation_thumb.page_size * scrollbar_height) / (range + Conversation_thumb.page_size)) ;
     float track_height = scrollbar_height - thumb_height;
     int thumb_pos = 0;
     if(range > 0)
     {
         thumb_pos = (Conversation_thumb.current_val * track_height) / range;
     }
-    thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
-    thumb_rect->top = thumb_pos;
-    thumb_rect->right = client_rect.right - 2;
-    thumb_rect->bottom = thumb_rect->top + thumb_height;
+    if(HeightIncrementationChecking > (client_rect.bottom - client_rect.top))
+    {
+        thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
+        thumb_rect->top = thumb_pos;
+        thumb_rect->right = client_rect.right - 2;
+        thumb_rect->bottom = thumb_rect->top + thumb_height + 5;
+    }
 }
 // for drawing the thumb 
-void DrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize)
+void DrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float HeightIncrementationChecking)
 {
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
@@ -723,10 +727,18 @@ void DrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize)
         client_rect.right - 2,
         client_rect.bottom
     };
-    HBRUSH track_brush = CreateSolidBrush(TRACK_COLOR);
+    HBRUSH track_brush;
+    if(HeightIncrementationChecking > (client_rect.bottom - client_rect.top))
+    {
+        track_brush = CreateSolidBrush(TRACK_COLOR);
+    }
+    else
+    {
+        track_brush = CreateSolidBrush(RGB(250,245,230));
+    }
     FillRect(Mdc, &track_rect, track_brush);
     DeleteObject(track_brush);  
-    CalculateConversationThumbRect(hwnd,&Conversation_thumb.thumb_rect,WindowSize);    
+    CalculateConversationThumbRect(hwnd,&Conversation_thumb.thumb_rect,WindowSize,HeightIncrementationChecking);    
     COLORREF thumb_color = THUMB_COLOR;
     if(Conversation_thumb.thumb_pressed)
     {
@@ -740,12 +752,15 @@ void DrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize)
     HBRUSH thumb_brush = CreateSolidBrush(thumb_color);
     HBRUSH old_brush = SelectObject(Mdc, thumb_brush);
     HPEN old_pen = SelectObject(Mdc, CreatePen(PS_SOLID, 1, thumb_color));
-    RoundRect(Mdc, 
-    Conversation_thumb.thumb_rect.left + 2, 
-    Conversation_thumb.thumb_rect.top,
-    Conversation_thumb.thumb_rect.right - 2, 
-    Conversation_thumb.thumb_rect.bottom,
-    6, 6);
+    if(HeightIncrementationChecking > (client_rect.bottom - client_rect.top))
+    {
+        RoundRect(Mdc, 
+        Conversation_thumb.thumb_rect.left + 2, 
+        Conversation_thumb.thumb_rect.top,
+        Conversation_thumb.thumb_rect.right - 2, 
+        Conversation_thumb.thumb_rect.bottom,
+        6, 6);
+    }
     float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - (PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.074));
     MoveWindow(hwnd,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.2877,
     PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.072,
@@ -755,6 +770,7 @@ void DrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize)
     SelectObject(Mdc, old_brush);
     DeleteObject(thumb_brush);
 }
+
 // updating the thumb is place in the scrollbar 
 void UpdateConversationScrollValue(HWND hwnd, float new_val)
 {
@@ -762,10 +778,10 @@ void UpdateConversationScrollValue(HWND hwnd, float new_val)
     if (new_val != Conversation_thumb.current_val)
     {
         Conversation_thumb.current_val = new_val;
-        /*if(Conversation_thumb.current_val == Conversation_thumb.max_val)
+        if(Conversation_thumb.current_val == Conversation_thumb.max_val)
         {
             Conversation_scrolloffset = 0;
-        }*/
+        }
     }
 }
 int Conversation_total_messages;
@@ -775,7 +791,7 @@ extern int i;
 void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,ScrollbarInfo *Conversation_thumb,int Message_Count)
 {
     GetClientRect(hwnd,&ConversationScrollBarRect);
-    Conversation_total_messages = Message_Count;
+    Conversation_total_messages = ((Message_Count < 7) ? 7 : Message_Count);
     Conversation_window_height = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top) - 4;
     Conversation_messages_per_page = 7;
     Conversation_thumb->min_val = 0;
@@ -787,6 +803,7 @@ void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,S
     else
     {
         Conversation_thumb->max_val = Conversation_total_messages - Conversation_messages_per_page + 1;
+        Conversation_thumb->max_val = Conversation_thumb->max_val / 1.5;
     }   
 }
 // filtering messages and render them on the screen in function with the scroll bar and the size of the window and the font 
@@ -825,7 +842,7 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
                 if(AccumulatedMessagesHeight > Conversation_scrolloffset &&
                 AccumulatedMessagesHeight < (Conversation_scrolloffset + ConversationScrollBarRect.bottom + MessageHeight))
                 {
-                    /*// this is for whether you can request new message or not 
+                    // this is for whether you can request new message or not 
                     check_message_left = k;
                     if(check_message_left == (MessagesConversations[i].count - 1))
                     {
@@ -834,7 +851,7 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
                     else
                     {
                         RecipientPass[i].messages_left = TRUE;
-                    }*/
+                    }
                     MessagePosition -= MessageHeight;
                     Frontier = AccumulatedMessagesHeight;
                     //printf("%f\n",Frontier);
@@ -846,11 +863,11 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
                         HBRUSH old_brush = SelectObject(Mdc_Conversation_child,RecipientBrush);
                         RECT RecipientMessagePositionRect;
                         float widthMessage = message_length*FontWidth + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.05;
-                        if(widthMessage > (ConversationScrollBarRect.right /1.8))
+                        if(widthMessage > (ConversationScrollBarRect.right /1.9))
                         {
                             widthMessage = ((ConversationScrollBarRect.right - ConversationScrollBarRect.left) - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.18);
                         }
-                        RecipientMessagePositionRect.left = ConversationScrollBarRect.left + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.05;
+                        RecipientMessagePositionRect.left = ConversationScrollBarRect.left + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.035;
                         RecipientMessagePositionRect.top = MessagePosition;
                         RecipientMessagePositionRect.right =  widthMessage;
                         RecipientMessagePositionRect.bottom = RecipientMessagePositionRect.top + MessageHeight - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.011;
@@ -874,9 +891,13 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
                         {
                             widthMessage = ConversationScrollBarRect.right/2;
                         }
-                        MyMessagePositionRect.left = ConversationScrollBarRect.right - (message_length*FontWidth + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.05);
+                        MyMessagePositionRect.left = ConversationScrollBarRect.right - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.05  - (message_length*FontWidth + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.05);
+                        if(MyMessagePositionRect.left < (ConversationScrollBarRect.right - ConversationScrollBarRect.left)/2.3)
+                        {
+                            MyMessagePositionRect.left = ConversationScrollBarRect.right - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.7;
+                        }
                         MyMessagePositionRect.top = MessagePosition;
-                        MyMessagePositionRect.right = widthMessage;
+                        MyMessagePositionRect.right = ConversationScrollBarRect.right - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.035;
                         MyMessagePositionRect.bottom = MyMessagePositionRect.top + MessageHeight - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.015;
                         RoundRect(Mdc_Conversation_child,MyMessagePositionRect.left,MyMessagePositionRect.top,MyMessagePositionRect.right,MyMessagePositionRect.bottom,
                         (WndRect.right-WndRect.left)*0.0175,(WndRect.right-WndRect.left)*0.0175);
