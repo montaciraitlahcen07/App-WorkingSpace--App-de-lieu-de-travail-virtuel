@@ -71,6 +71,7 @@ WNDPROC OriginalMessageBarProc = NULL;
 WNDPROC OriginalConversationBarProc = NULL;
 // 
 extern bool BubbleLogo;
+bool safety;
 LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg)
     {
@@ -169,7 +170,8 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                     Conversation_scrolloffset = 0;
                 }
                 DrawConversationScrollBar(Mdc_Conversation_child,hwnd,WindowSize,HeightIncrementationChecking);
-                RenderingConversationMessage(hwnd,HandleWnd,Mdc_Conversation_child,ConnectingTools.PrivateMessage.SelectedRecipient);        
+                bool FontSize = (((WindowSize.right - WindowSize.left) >= 1000 && (WindowSize.bottom - WindowSize.top) >= 700)?TRUE:FALSE);
+                RenderingConversationMessage(hwnd,HandleWnd,Mdc_Conversation_child,ConnectingTools.PrivateMessage.SelectedRecipient,FontSize);        
             }
             BitBlt(DeviceContext_ChildConversation, 0, 0, ConversationScrollBarRect.right - ConversationScrollBarRect.left, 
             ConversationScrollBarRect.bottom - ConversationScrollBarRect.top, Mdc_Conversation_child, 0, 0, SRCCOPY);
@@ -206,7 +208,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                     // make a call here for a conversation
                     for(int k=0;k<countclient;k++)
                     {
-                        if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more))
+                        if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && !(RecipientPass[k].messages_left))
                         {
                             if(new_pos < Conversation_thumb.current_val)
                             {
@@ -306,7 +308,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 float track_height = client_rect.bottom - thumb_height;
                 for(int k=0;k<countclient;k++)
                 {
-                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more))
+                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && !(RecipientPass[k].messages_left))
                     {
                         
                         if(pt.y < Conversation_thumb.thumb_rect.top)
@@ -453,7 +455,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 // make a call here for a conversation based on step is sign
                 for(int k=0;k<countclient;k++)
                 {
-                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more))
+                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && !(RecipientPass[k].messages_left))
                     {
                         if(step < 0)
                         {
@@ -592,13 +594,20 @@ LRESULT CALLBACK PasswordBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     {
         case WM_CHAR:
         {
-            if(Login && GetFocus() == PLogin && wParam == VK_RETURN)
+            if(!safety)
             {
-                Green = TRUE;
-                InvalidateRect(HandleWnd,&WindowSize,FALSE);
+                if(Login && GetFocus() == PLogin && wParam == VK_RETURN)
+                {
+                    Green = TRUE;
+                    InvalidateRect(HandleWnd,NULL,TRUE);
+                    return 0;
+                }
+                return CallWindowProc(OriginalPasswordBarProc, hwnd, msg, wParam, lParam);
+            }
+            else
+            {
                 return 0;
             }
-            return CallWindowProc(OriginalPasswordBarProc, hwnd, msg, wParam, lParam);
         }
         default:
         return CallWindowProc(OriginalPasswordBarProc, hwnd, msg, wParam, lParam);
@@ -611,12 +620,20 @@ LRESULT CALLBACK UsernameBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     {
         case WM_CHAR:
         {
-            if(Login && GetFocus() == ULogin && wParam == VK_RETURN)
+            if(!safety)
             {
-                SetFocus(PLogin);
+                if(Login && GetFocus() == ULogin && wParam == VK_RETURN)
+                {
+                    SetFocus(PLogin);
+                    InvalidateRect(HandleWnd,NULL,TRUE);
+                    return 0;
+                }
+                return CallWindowProc(OriginalUsernameBarProc, hwnd, msg, wParam, lParam);
+            }
+            else 
+            {
                 return 0;
             }
-            return CallWindowProc(OriginalUsernameBarProc, hwnd, msg, wParam, lParam);
         }
         default:
         return CallWindowProc(OriginalUsernameBarProc, hwnd, msg, wParam, lParam);
@@ -826,25 +843,6 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             // this is when i click on a recipient to chat with him 
             else if(pt.y >= 0 && PointInRect(pt,&client_rect))
             {
-                // this is for hiding the two logo of a message when i click on a recipient 
-                if(!BubbleLogo)
-                {
-                    BubbleLogo = TRUE;
-                    // creating message bar 
-                    RECT MessageBarRect;
-                    GetClientRect(HandleWnd, &MessageBarRect);
-                    MessageBarHandle = CreateWindowEx(0,"EDIT",0, 
-                    WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
-                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375,MessageBarRect.bottom - (MessageBarRect.bottom - MessageBarRect.top)*0.09,
-                    (MessageBarRect.right - MessageBarRect.left)*0.41,(MessageBarRect.bottom - MessageBarRect.top)*0.07,
-                    HandleWnd,0,IDhInstance, NULL);
-                    if(MessageBarHandle)
-                    {
-                        OriginalMessageBarProc = (WNDPROC)SetWindowLongPtr(MessageBarHandle, GWLP_WNDPROC, (LONG_PTR)MessageBarProc);
-                    }
-                    // taking a copy for the sending thread
-                    SendingTools.MessageBarHandle = MessageBarHandle;
-                }
                 char EmptyFull[50];
                 int Index = GetClickedRecipient(pt);
                 GetWindowText(HandleSearch,EmptyFull,sizeof(EmptyFull));
@@ -905,6 +903,25 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                         }
                     }
                 }
+                // this is for hiding the two logo of a message when i click on a recipient 
+                if(!BubbleLogo && strlen(ConnectingTools.PrivateMessage.SelectedRecipient) > 0 && strcmp(ConnectingTools.PrivateMessage.SelectedRecipient,"FALSE") != 0 && strcmp(ConnectingTools.PrivateMessage.SelectedRecipient,"TRUE") != 0)
+                {
+                    BubbleLogo = TRUE;
+                    // creating message bar 
+                    RECT MessageBarRect;
+                    GetClientRect(HandleWnd, &MessageBarRect);
+                    MessageBarHandle = CreateWindowEx(0,"EDIT",0, 
+                    WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
+                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375,MessageBarRect.bottom - (MessageBarRect.bottom - MessageBarRect.top)*0.09,
+                    (MessageBarRect.right - MessageBarRect.left)*0.41,(MessageBarRect.bottom - MessageBarRect.top)*0.07,
+                    HandleWnd,0,IDhInstance, NULL);
+                    if(MessageBarHandle)
+                    {
+                        OriginalMessageBarProc = (WNDPROC)SetWindowLongPtr(MessageBarHandle, GWLP_WNDPROC, (LONG_PTR)MessageBarProc);
+                    }
+                    // taking a copy for the sending thread
+                    SendingTools.MessageBarHandle = MessageBarHandle;
+                }
                 InvalidateRect(ConversationScrollBar,NULL,TRUE);
             }
             SetFocus(MessageBarHandle);
@@ -951,7 +968,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             WindowTop = WindowSize.top;
             WindowWidth = WindowSize.right - WindowSize.left;
             WindowHeight = WindowSize.bottom - WindowSize.top;
-                        
             if(UiInbox )
             {
                 RECT rect;
@@ -1010,7 +1026,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             SendingTrdStatus.ScrollBar = ScrollBar;
             UpdateScrollbarRange(ScrollBar,ScrollBarRect, &g_scrollbar);
             // creating a conversation child window 
-            float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.15));
+            float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.15)) - (WindowSize.right-WindowSize.left)*0.005;
             ConversationScrollBar = CreateWindowEx(
             0,
             "CustomConversationScrollChildWindow",
@@ -1182,18 +1198,41 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 ShowWindow(ULogin,SW_SHOW);
                 ShowWindow(PLogin,SW_SHOW);
                 ShowWindow(LogInButton,SW_SHOW);
-
+                if(Find)
+                {
+                    HFONT Font=CreateFont(22,9,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+                    DEFAULT_PITCH|FF_SWISS,"Arial");
+                    HFONT OldFont=(HFONT)SelectObject(Mdc,Font);
+                    Autorisa.left=WindowSize.left+(WindowSize.right/2)-70;
+                    Autorisa.top=WindowSize.top+(WindowSize.bottom/2)+150;
+                    Autorisa.right=Autorisa.left+140;
+                    Autorisa.bottom=Autorisa.top+100;
+                    HPEN Pen=CreatePen(PS_DOT,1,RGB(244, 239, 206));
+                    HBRUSH Brush=CreateSolidBrush(RGB(244, 239, 206));
+                    HPEN OldPen=SelectObject(Mdc,Pen);
+                    HBRUSH OldBrush=SelectObject(Mdc,Brush);
+                    RoundRect(Mdc,Autorisa.left-30,Autorisa.top,Autorisa.right+30,Autorisa.bottom-30,40,30);
+                    RECT CheckText=Autorisa;
+                    CheckText.top=CheckText.top+20;
+                    SetTimer(HandleWnd,TimerLogIn,2000,NULL);
+                    DrawText(Mdc,"Correct",-1,&CheckText,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
+                    SelectObject(Mdc,OldFont);
+                    SelectObject(Mdc,OldPen);
+                    SelectObject(Mdc,OldBrush);
+                    DeleteObject(Font);
+                    DeleteObject(Brush);
+                    DeleteObject(Pen);
+                }
             }
             else
             {
                 ShowWindow(ULogin,SW_HIDE);
                 ShowWindow(PLogin,SW_HIDE);
                 ShowWindow(LogInButton,SW_HIDE);
-
             }
             if(Green)
             {
-                Authentification(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,hwnd,&SendingTools,ConnectingTools,&Green);
+                Authentification(ULogin,PLogin,UserData_2,Creme,WindowSize,Mdc,hwnd,&SendingTools,ConnectingTools,&Green,&safety);
             }
             Green=FALSE;
             if(Start)
@@ -1327,9 +1366,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             Login=TRUE;
             LogInCtl=TRUE;
         }
-        if(LOWORD(wParam) == ID_LogIn)
+        if(LOWORD(wParam) == ID_LogIn && !safety)
         {
             Green=TRUE;
+        }
+        else if(LOWORD(wParam) == ID_LogIn && safety)
+        {
+            return 0;
         }
         InvalidateRect(hwnd, &WindowSize, FALSE);
         break;
@@ -1346,6 +1389,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             Green=FALSE;
             Account=TRUE;
             LogInCtl=FALSE;
+            Find = FALSE;
             break;
             case MessageTimer :
             // this is updating the the button message every time
@@ -1592,12 +1636,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if(HoveringEmoji && !WasHoveringEmoji)
         {
             // increase the button is size
-            SetTimer(hwnd,EmojiTimer,12,NULL);
+            SetTimer(hwnd,EmojiTimer,14,NULL);
         }
         else if(!HoveringEmoji && WasHoveringEmoji)
         {
             // decrease the button is size
-            SetTimer(hwnd,EmojiTimer,12,NULL); 
+            SetTimer(hwnd,EmojiTimer,14,NULL); 
         }
         // Attach hovering 
         Attach_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.335 - CurrentHAttach;
@@ -1610,12 +1654,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if(HoveringAttach && !WasHoveringAttach)
         {
             // increase the button is size
-            SetTimer(hwnd,AttachTimer,12,NULL);
+            SetTimer(hwnd,AttachTimer,14,NULL);
         }
         else if(!HoveringAttach && WasHoveringAttach)
         {
             // decrease the button is size
-            SetTimer(hwnd,AttachTimer,12,NULL); 
+            SetTimer(hwnd,AttachTimer,14,NULL); 
         }
         // Send hovering 
         Send_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
@@ -1629,12 +1673,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if(HoveringSend && !WasHoveringSend)
         {
             // increase the button is size
-            SetTimer(hwnd,SendTimer,12,NULL);
+            SetTimer(hwnd,SendTimer,14,NULL);
         }
         else if(!HoveringSend && WasHoveringSend)
         {
             // decrease the button is size
-            SetTimer(hwnd,SendTimer,12,NULL); 
+            SetTimer(hwnd,SendTimer,14,NULL); 
         }
          break;
         }

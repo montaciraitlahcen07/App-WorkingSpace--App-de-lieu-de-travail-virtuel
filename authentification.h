@@ -44,7 +44,7 @@ typedef struct
 }CntTrd;
 CntTrd ConnectingTools;
 //
-void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT WindowSize,HDC Mdc,HWND HandleWnd,SndTrd *SendingTools,CntTrd ConnectingTools,bool *Green)
+void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT WindowSize,HDC Mdc,HWND HandleWnd,SndTrd *SendingTools,CntTrd ConnectingTools,bool *Green,bool *safety)
 {
     typedef struct
     {
@@ -68,8 +68,8 @@ void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT
         Autorisa.right=Autorisa.left+140;
         Autorisa.bottom=Autorisa.top+100;
         HPEN Pen=CreatePen(PS_DOT,1,RGB(244, 239, 206));
-        HBRUSH Brush=CreateSolidBrush(RGB(244, 239, 206));
         HPEN OldPen=SelectObject(Mdc,Pen);
+        HBRUSH Brush=CreateSolidBrush(RGB(244, 239, 206));
         HBRUSH OldBrush=SelectObject(Mdc,Brush);
         RoundRect(Mdc,Autorisa.left-30,Autorisa.top,Autorisa.right+30,Autorisa.bottom-30,40,30);
         RECT CheckText=Autorisa;
@@ -82,7 +82,6 @@ void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT
         DeleteObject(Brush);
         DeleteObject(Pen);
         *Green = FALSE;
-        
     }
     if(*Green)
     {
@@ -148,7 +147,7 @@ void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT
             DeleteObject(Font);
             DeleteObject(Brush);
             DeleteObject(Pen);
-            Find=FALSE;
+            *safety = TRUE;
         }
         else
         {
