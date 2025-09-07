@@ -1,6 +1,6 @@
     #include <windows.h>
     #include <stdbool.h>
-
+    #include <ctype.h>
     #define MAX_BUTTON_WIDTHP 180
     #define MAX_BUTTON_HEIGHTP 72
     #define MIN_BUTTON_WIDTHP 135
@@ -52,6 +52,7 @@
     int GetClickedRecipient(POINT click_point);
     void BuildVisibleItemsList(HDC hdc, HWND hwnd, RECT ScrollBarRect, Clients Message[], ScrollbarInfo *g_scrollbar);
     void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc,const char * Recipient,bool FontSize);
+    bool HasOnlyWhitespace(HWND hwndEdit);
     // creatign the interface when the user click on the button message inbox
     void CreateMessageUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,float CurrentHInbox,float CurrentVInbox,float CurrentHGeneral,float CurrentVGeneral,bool FontSize)
     {
@@ -761,7 +762,7 @@ void DrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float HeightIn
         Conversation_thumb.thumb_rect.bottom,
         6, 6);
     }
-    float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - (PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.074)) - (WindowSize.right-WindowSize.left)*0.005;
+    float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - (PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.074)) - (WindowSize.right-WindowSize.left)*0.007;
     MoveWindow(hwnd,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.2877,
     PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.072,
     WindowSize.right - (Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.2877),
@@ -802,8 +803,8 @@ void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,S
     } 
     else
     {
-        Conversation_thumb->max_val = Conversation_total_messages - Conversation_messages_per_page + 1;
-        Conversation_thumb->max_val = Conversation_thumb->max_val / 1.5;
+        Conversation_thumb->max_val = Conversation_total_messages - Conversation_messages_per_page;
+        Conversation_thumb->max_val = Conversation_thumb->max_val;
     }   
 }
 // filtering messages and render them on the screen in function with the scroll bar and the size of the window and the font 
@@ -827,17 +828,26 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
     if(CharactersPerLine <= 0) CharactersPerLine = 1; // Prevent division by zero
     int check_message_left;
     HFONT Font;
+    HFONT FontTimeStamp;
+    HFONT OldFontTimeStamp;
+    float TimeStamp_Height,TimeStamp_Width;
     if(FontSize)
     {
         Font=CreateFont(23,10,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+        DEFAULT_PITCH|FF_SWISS,"Segoe UI");
+        FontTimeStamp = CreateFont(19,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
         DEFAULT_PITCH|FF_SWISS,"Segoe UI");
     }
     else 
     {
         Font=CreateFont(20,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
         DEFAULT_PITCH|FF_SWISS,"Segoe UI");
+        FontTimeStamp = CreateFont(16,6,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+        DEFAULT_PITCH|FF_SWISS,"Segoe UI");
     }
     HFONT OldFont=SelectObject(Mdc_Conversation_child,Font);
+    TimeStamp_Height = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.11;
+    TimeStamp_Width = (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.17;
     for(int i=0;i<countclient && i<40;i++)
     {
         if(strcmp(MessagesConversations[i].OwnerName,Recipient) == 0)
@@ -873,7 +883,7 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
                         HBRUSH old_brush = SelectObject(Mdc_Conversation_child,RecipientBrush);
                         RECT RecipientMessagePositionRect;
                         float widthMessage = textSize.cx + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.06;
-                        if(widthMessage > (ConversationScrollBarRect.right /1.72))
+                        if(widthMessage > (ConversationScrollBarRect.right /1.85))
                         {
                             widthMessage = ((ConversationScrollBarRect.right - ConversationScrollBarRect.left) - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.18);
                         }
@@ -886,10 +896,24 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
                         RecipientMessagePositionRect.left += (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.01;
                         RecipientMessagePositionRect.right -= (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.01;
                         DrawText(Mdc_Conversation_child,MessagesConversations[i].Conversation[k].message,-1,&RecipientMessagePositionRect,DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
+                        MessagePosition -= TimeStamp_Height;
+                        RoundRect(Mdc_Conversation_child,((ConversationScrollBarRect.right - ConversationScrollBarRect.left) / 2) - (TimeStamp_Width / 2),RecipientMessagePositionRect.top - (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.083,
+                        ((ConversationScrollBarRect.right - ConversationScrollBarRect.left) / 2) + (TimeStamp_Width / 2),
+                        RecipientMessagePositionRect.top - (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.023,(WndRect.right-WndRect.left)*0.01,(WndRect.right-WndRect.left)*0.01);
+                        RECT TimeStampRect;
+                        TimeStampRect.left = ((ConversationScrollBarRect.right - ConversationScrollBarRect.left) / 2) - (TimeStamp_Width / 2);
+                        TimeStampRect.top = RecipientMessagePositionRect.top - (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.083;
+                        TimeStampRect.right = ((ConversationScrollBarRect.right - ConversationScrollBarRect.left) / 2) + (TimeStamp_Width / 2);
+                        TimeStampRect.bottom = RecipientMessagePositionRect.top - (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.023;
+                        OldFontTimeStamp=SelectObject(Mdc_Conversation_child,FontTimeStamp);
+                        char TimeStampBuffer[50];
+                        strftime(TimeStampBuffer, sizeof(TimeStampBuffer), "%m-%d-%Y, %H:%M",&MessagesConversations[i].Conversation[k].TimeStamp);
+                        DrawText(Mdc_Conversation_child,TimeStampBuffer,-1,&TimeStampRect,DT_CENTER | DT_SINGLELINE);
                         SelectObject(Mdc_Conversation_child, old_brush);
                         DeleteObject(RecipientBrush);
                         SelectObject(Mdc_Conversation_child, hOldPen);
                         DeleteObject(hPen);
+                        SelectObject(Mdc_Conversation_child,OldFontTimeStamp);
                     }
                     else if(strcmp(MessagesConversations[i].Conversation[k].owner,SendingTools.username) == 0)
                     {
@@ -903,7 +927,7 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
                         {
                             widthMessage = ConversationScrollBarRect.right/2;
                         }
-                        MyMessagePositionRect.left = (ConversationScrollBarRect.right - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.06  - textSize.cx);
+                        MyMessagePositionRect.left = (ConversationScrollBarRect.right - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.056  - textSize.cx);
                         if(MyMessagePositionRect.left < (ConversationScrollBarRect.right - ConversationScrollBarRect.left)/2.3)
                         {
                             MyMessagePositionRect.left = ConversationScrollBarRect.right - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.7;
@@ -917,10 +941,28 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
                         MyMessagePositionRect.left += (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.01;
                         MyMessagePositionRect.right -= (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.008;
                         DrawText(Mdc_Conversation_child,MessagesConversations[i].Conversation[k].message,-1,&MyMessagePositionRect,DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
+                        hPen = CreatePen(PS_SOLID, 1, RGB(210, 210, 210));
+                        hOldPen = (HPEN)SelectObject(Mdc_Conversation_child, hPen);
+                        MyBrush = CreateSolidBrush(RGB(210, 210, 210));
+                        old_brush = SelectObject(Mdc_Conversation_child,MyBrush);
+                        MessagePosition -= TimeStamp_Height;
+                        RoundRect(Mdc_Conversation_child,(ConversationScrollBarRect.right / 2) - (TimeStamp_Width / 2),MyMessagePositionRect.top - (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.083,
+                        (ConversationScrollBarRect.right / 2) + (TimeStamp_Width / 2),
+                        MyMessagePositionRect.top - (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.023,(WndRect.right-WndRect.left)*0.01,(WndRect.right-WndRect.left)*0.01);
+                        RECT TimeStampRect;
+                        OldFontTimeStamp=SelectObject(Mdc_Conversation_child,FontTimeStamp);
+                        TimeStampRect.left = (ConversationScrollBarRect.right / 2) - (TimeStamp_Width / 2);
+                        TimeStampRect.top = MyMessagePositionRect.top - (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.083;
+                        TimeStampRect.right = (ConversationScrollBarRect.right / 2) + (TimeStamp_Width / 2);
+                        TimeStampRect.bottom = MyMessagePositionRect.top - (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.023;
+                        char TimeStampBuffer[50];
+                        strftime(TimeStampBuffer, sizeof(TimeStampBuffer), "%m-%d-%Y, %H:%M",&MessagesConversations[i].Conversation[k].TimeStamp);
+                        DrawText(Mdc_Conversation_child,TimeStampBuffer,-1,&TimeStampRect,DT_CENTER | DT_SINGLELINE);
                         SelectObject(Mdc_Conversation_child, old_brush);
                         DeleteObject(MyBrush);
                         SelectObject(Mdc_Conversation_child, hOldPen);
                         DeleteObject(hPen);
+                        SelectObject(Mdc_Conversation_child,OldFontTimeStamp);
                     }
                     /*else 
                     {
@@ -955,4 +997,27 @@ void RenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_Conversation_
     }
     SelectObject(Mdc_Conversation_child,OldFont);
     DeleteObject(Font);  
+    SelectObject(Mdc_Conversation_child,OldFontTimeStamp);
+    DeleteObject(FontTimeStamp);
+}
+bool HasOnlyWhitespace(HWND hwndEdit)
+{
+    int textLength = GetWindowTextLength(hwndEdit);
+    if (textLength == 0)
+    {
+        return TRUE; 
+    }
+    char* buffer = malloc(textLength + 1);
+    if (!buffer) return FALSE;
+    GetWindowText(hwndEdit, buffer, textLength + 1);
+    for (int i = 0; i < textLength; i++)
+    {
+        if (!isspace((unsigned char)buffer[i]))
+        {
+            free(buffer);
+            return FALSE; 
+        }
+    }
+    free(buffer);
+    return TRUE; 
 }

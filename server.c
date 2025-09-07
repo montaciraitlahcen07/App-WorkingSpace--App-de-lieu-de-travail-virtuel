@@ -5,6 +5,7 @@
 #include <process.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 #pragma comment(lib, "ws2_32.lib")
 
 typedef struct 
@@ -34,6 +35,7 @@ typedef struct
 {
     char Recipient[100];
     char Buffer[200];
+    struct tm TimeStamp;
 }PrivateGeneralMessage;
 // client is socket
 typedef struct 
@@ -70,6 +72,7 @@ typedef struct
     char message[200];
     char owner[50];
     int index;
+    struct tm TimeStamp;
 }MessageStoring;
 typedef struct
 {
@@ -77,13 +80,14 @@ typedef struct
     char owner[50];
     char sender[50];
     char recipient[50];
+    struct tm TimeStamp;
 }ResponseData;
 unsigned __stdcall ReceivingAndPrintingData(void *param);
 bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus);
 void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsData,StatusType *UserStatus,char username[30]);
 void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET senderSocket,FILE *ClientsData);
-bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message,SOCKET senderSocketReceiving,FILE *ClientsData);
-void StoringConversation(const char* Sender, const char* Recipient,const char* message);
+bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message,SOCKET senderSocketReceiving,FILE *ClientsData,struct tm TimeStamp);
+void StoringConversation(const char* Sender, const char* Recipient,const char* message,struct tm TimeStamp);
 void SendClient(char username[20],SOCKET clientSocketc,FILE *ClientsData);
 unsigned __stdcall ConversationThread(void *param);
 int main()
@@ -359,12 +363,12 @@ void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsDat
 
     Clients ClientsStoring;
     
-    while (fread(&ClientsStoring, sizeof(ClientsStoring), 1, ClientsData) == 1) {
+    while (fread(&ClientsStoring, sizeof(ClientsStoring), 1, ClientsData) == 1)
+    {
         if (ClientsStoring.ClientsS == clientSocket)
         {
             fseek(ClientsData, -sizeof(Clients), SEEK_CUR);
             ClientsStoring.IsActive = FALSE;
-            
             fwrite(&ClientsStoring, sizeof(ClientsStoring), 1, ClientsData);
             fflush(ClientsData); 
             printf("User %s disconnected\n", ClientsStoring.Username);
@@ -407,7 +411,7 @@ void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET
     fclose(ClientsData); 
 }
 
-bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message,SOCKET senderSocketReceiving,FILE *ClientsData)
+bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message,SOCKET senderSocketReceiving,FILE *ClientsData,struct tm TimeStamp)
 {
     ClientsData = fopen("ClientsData.txt", "rb");
     if(ClientsData == NULL)
@@ -420,6 +424,7 @@ bool SendPrivateMessage(const char* senderUsername, const char* recipient, const
     {
         char Sender[50];
         char buffer[200];
+        struct tm TimeStamp;
     }messaget;
     messaget messagetest;
     bool found = false;
@@ -430,6 +435,7 @@ bool SendPrivateMessage(const char* senderUsername, const char* recipient, const
             found = TRUE;
             strcpy(messagetest.Sender,senderUsername);
             strcpy(messagetest.buffer,message);
+            messagetest.TimeStamp = TimeStamp;
             if(send(tempClient.ClientsR,(char *)&messagetest,sizeof(messagetest), 0) == SOCKET_ERROR)
             {
                 printf("Failed to send private message header to %s\n", recipient);
@@ -521,7 +527,7 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
         {
             // for sending the user the whole list of users who are they online rn
             SendClient(Message.Username,SocketAndMessage.Sockets->SendingSocket,ClientsData);
-            // receiving the recipient is name and the message 
+            // receiving the recipient is name and the message and the time stamp
             resultnumber = recv(SocketAndMessage.Sockets->SendingSocket,(char *)&SocketAndMessage.MessageTools,sizeof(SocketAndMessage.MessageTools), 0);
             if (resultnumber <= 0)
             {
@@ -540,10 +546,10 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
                 SocketAndMessage.MessageTools.Buffer[--len] = '\0';
             }
             // storing message data inside a file  
-            StoringConversation(Message.Username,SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer);
+            StoringConversation(Message.Username,SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer,SocketAndMessage.MessageTools.TimeStamp);
             printf("Private message from %s to %s: %s\n", Message.Username, SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer);
             // sending the message into the recipient by the name of the sender
-            bool messageSent = SendPrivateMessage(Message.Username,SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer,SocketAndMessage.Sockets->ReceivingSocket,ClientsData);
+            bool messageSent = SendPrivateMessage(Message.Username,SocketAndMessage.MessageTools.Recipient,SocketAndMessage.MessageTools.Buffer,SocketAndMessage.Sockets->ReceivingSocket,ClientsData,SocketAndMessage.MessageTools.TimeStamp);
             if(!messageSent)
             {
                 printf("Recipient %s not found or not active\n", SocketAndMessage.MessageTools.Recipient);           
@@ -637,7 +643,8 @@ unsigned __stdcall ConversationThread(void *param)
         sprintf(filename, "%s.txt", result);
         FILE *Conversation = fopen(filename, "rb");
         
-        if (!Conversation) {
+        if (!Conversation)
+        {
             // No conversation file exists
             strcpy(Response.Sender, RequestCnv.sender);
             strcpy(Response.Recipient, RequestCnv.recipient);
@@ -720,13 +727,12 @@ unsigned __stdcall ConversationThread(void *param)
             // Seek to the specific message (1-based indexing)
             fseek(Conversation, (msg_index - 1) * sizeof(MessageStoring), SEEK_SET);
             fread(&ReadingData, sizeof(MessageStoring), 1, Conversation);
-            
             // Prepare message data
             strcpy(SendingData.message, ReadingData.message);
             strcpy(SendingData.owner, ReadingData.owner);
             strcpy(SendingData.recipient, RequestCnv.recipient);
             strcpy(SendingData.sender, RequestCnv.sender);
-            
+            SendingData.TimeStamp = ReadingData.TimeStamp;
             // Send message data
             send(ConversationSocket, (char *)&SendingData, sizeof(ResponseData), 0);
             Sleep(15); // Small delay between messages
@@ -738,7 +744,7 @@ unsigned __stdcall ConversationThread(void *param)
     return 0;
 }
 // storing the message into conversation files
-void StoringConversation(const char* Sender, const char* Recipient,const char* message)
+void StoringConversation(const char* Sender, const char* Recipient,const char* message,struct tm TimeStamp)
 {
     char result[100];
     MessageStoring MessageData,ReadingData;
@@ -764,6 +770,7 @@ void StoringConversation(const char* Sender, const char* Recipient,const char* m
         MessageData.index = long_file + 1;
         strcpy(MessageData.owner,Sender);
         strcpy(MessageData.message,message);
+        MessageData.TimeStamp = TimeStamp;
         fwrite(&MessageData,sizeof(MessageStoring),1,Conversation);
     }
     // if the file does not have any data
@@ -772,6 +779,7 @@ void StoringConversation(const char* Sender, const char* Recipient,const char* m
         MessageData.index = 1;
         strcpy(MessageData.owner,Sender);
         strcpy(MessageData.message,message);
+        MessageData.TimeStamp = TimeStamp;
         fwrite(&MessageData,sizeof(MessageStoring),1,Conversation);
     }
     fclose(Conversation);

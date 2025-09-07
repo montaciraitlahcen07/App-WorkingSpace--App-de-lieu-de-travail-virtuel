@@ -42,7 +42,7 @@ typedef struct
 {
     char message[200];
     char owner[50];
-    // time stamp i need to add it 
+    struct tm TimeStamp;
 }ConversationData;
 typedef struct 
 {
@@ -90,10 +90,14 @@ typedef struct
     HWND HandleWnd;
 }RcvSetting;
 RcvSetting RcvStg;
+// time stamp 
+time_t rawtime;
+struct tm *timeinfo;
+struct tm TimeStamp;
 unsigned __stdcall receivingClient(void *param);
 unsigned __stdcall SendingThread(void *param);
 int FillingSearchRecipientList(HWND HandleSearch,int countclient,Clients Message[100],int ListSearchedRecipient[100],int CompSearchedRecipient);
-void insert_at_bottom(const char* Sender,const char* message,const char *owner);
+void insert_at_bottom(const char* Sender,const char* message,const char *owner,struct tm TimeStamp);
 // add in this thread function to disperse between inbox message and general message
 unsigned __stdcall receivingClient(void *param)
 {
@@ -115,6 +119,7 @@ unsigned __stdcall receivingClient(void *param)
             {
                 char Sender[50];
                 char buffer[200];
+                struct tm TimeStamp;
             }messaget;
             messaget messagetest;
             int result = recv(ConnectingTools.ClientSocketReceiving,(char *)&messagetest,sizeof(messagetest),0);
@@ -138,14 +143,8 @@ unsigned __stdcall receivingClient(void *param)
             {
                 messagetest.buffer[--len] = '\0';
             }
-            insert_at_bottom(messagetest.Sender,messagetest.buffer,messagetest.Sender);
+            insert_at_bottom(messagetest.Sender,messagetest.buffer,messagetest.Sender,messagetest.TimeStamp);
             printf("Received message from %s: %s\n", messagetest.Sender, messagetest.buffer);
-
-            /*HPEN Pen=CreatePen(BS_SOLID,3,RGB(0,0,0));
-            HPEN OldPen=SelectObject(ConnectingTools.Mdc,Pen);
-            SelectObject(ConnectingTools.Mdc,OldPen);
-            DeleteObject(Pen);
-            InvalidateRect(RcvStg->HandleWnd,NULL,FALSE);*/
         }
     }
     closesocket(ConnectingTools.ClientSocketReceiving);
@@ -246,10 +245,14 @@ unsigned __stdcall SendingThread(void *param)
             {
                 ConnectingTools.PrivateMessage.Buffer[--lenb] = '\0';
             }
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+            TimeStamp = *timeinfo;
             if(lenb !=0)
             {
                 // storing the message in the array of the conversation
-                insert_at_bottom(ConnectingTools.PrivateMessage.SelectedRecipient,ConnectingTools.PrivateMessage.Buffer,SendingTools.username);
+                insert_at_bottom(ConnectingTools.PrivateMessage.SelectedRecipient,ConnectingTools.PrivateMessage.Buffer,SendingTools.username,TimeStamp);
+                ConnectingTools.PrivateMessage.TimeStamp = TimeStamp;
                 sendResult = send(ConnectingTools.ClientSocketSending,(char*)&ConnectingTools.PrivateMessage, sizeof(ConnectingTools.PrivateMessage), 0);
                 if(sendResult == SOCKET_ERROR)
                 {
@@ -257,7 +260,7 @@ unsigned __stdcall SendingThread(void *param)
                 }
                 SetWindowText(SendingTools.MessageBarHandle,"");
             }
-            Sleep(200);
+            Sleep(100);
             Send = FALSE;
         }
     }  
@@ -365,7 +368,6 @@ unsigned __stdcall ConversationThread(void *param)
         int last_index;
         bool no_more;
     } ResponseSetting;
-
     ResponseSetting Response;
     SOCKET ConversationSocket = *(SOCKET *)param;
     while(true)
@@ -391,6 +393,7 @@ unsigned __stdcall ConversationThread(void *param)
                 char owner[50];
                 char sender[50];
                 char recipient[50];
+                struct tm TimeStamp;
             }ResponseData;
             ResponseData SendingData;
             for(int k=0;k<countclient;k++)
@@ -403,7 +406,13 @@ unsigned __stdcall ConversationThread(void *param)
                         ConversationData NewData;
                         strcpy(NewData.message,SendingData.message);
                         strcpy(NewData.owner,SendingData.owner);
-                        MessagesConversations[k].Conversation[MessagesConversations[k].count] = NewData;
+                        NewData.TimeStamp = SendingData.TimeStamp;
+                        // Insert at beginning to maintain newest-first ordering like insert_at_bottom
+                        for(int shift = MessagesConversations[k].count; shift > 0; shift--)
+                        {
+                            MessagesConversations[k].Conversation[shift] = MessagesConversations[k].Conversation[shift-1];
+                        }
+                        MessagesConversations[k].Conversation[0] = NewData;
                         if(Response.no_more)
                         {
                             MessagesConversations[k].last_index = 0;
@@ -420,7 +429,7 @@ unsigned __stdcall ConversationThread(void *param)
     return 0;
 }
 // inserting new message at the bottom of the array
-void insert_at_bottom(const char* Sender,const char* message,const char * owner)
+void insert_at_bottom(const char* Sender,const char* message,const char * owner,struct tm TimeStamp)
 {
     // Safety checks for null pointers
     if(!Sender || !message || !owner)
@@ -438,6 +447,7 @@ void insert_at_bottom(const char* Sender,const char* message,const char * owner)
             ConversationData NewData;
             strcpy(NewData.owner,owner);
             strcpy(NewData.message,message);
+            NewData.TimeStamp = TimeStamp;
             for(int j=MessagesConversations[i].count;j>0;j--)
             {
                 MessagesConversations[i].Conversation[j] = MessagesConversations[i].Conversation[j-1];

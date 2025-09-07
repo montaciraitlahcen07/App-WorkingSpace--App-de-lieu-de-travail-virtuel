@@ -76,27 +76,22 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
     switch (msg)
     {
         case WM_CREATE:
-            Conversation_total_messages = 11;
-            Conversation_messages_per_page = 7;
-            Conversation_total_messages = 50;
-            Conversation_messages_per_page = 6;
+            Conversation_total_messages = 15;
+            Conversation_messages_per_page = 11;
             Conversation_thumb.min_val = 0;
-            Conversation_thumb.page_size = Conversation_messages_per_page;
-            if(Conversation_total_messages <= Conversation_messages_per_page)
             Conversation_thumb.page_size = Conversation_messages_per_page;
             if(Conversation_total_messages <= Conversation_messages_per_page)
             {
                 Conversation_thumb.max_val = Conversation_total_messages - Conversation_messages_per_page ;
-                Conversation_thumb.max_val = Conversation_thumb.max_val / 1.5;
+                Conversation_thumb.max_val = Conversation_thumb.max_val;
             } 
             else
             {
                 Conversation_thumb.max_val = Conversation_total_messages - Conversation_messages_per_page ;
-                Conversation_thumb.max_val = Conversation_thumb.max_val / 1.5;
-                //Conversation_thumb.max_val = Conversation_total_messages - Conversation_messages_per_page + 1;
+                Conversation_thumb.max_val = Conversation_thumb.max_val;
             }
             Conversation_thumb.current_val = Conversation_thumb.max_val;
-            InvalidateRect(hwnd,NULL, FALSE);
+            InvalidateRect(hwnd,NULL, TRUE);
             break;
         case WM_PAINT:
         {
@@ -104,8 +99,6 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
             DeviceContext_ChildConversation = BeginPaint(hwnd, &ps);
             GetClientRect(hwnd, &ConversationScrollBarRect);
             GetClientRect(HandleWnd,&WindowSize);
-            //MemoryDcSndTool.ConversationScrollBarRect = ConversationScrollBarRect;
-            //SendingTrdStatus.ScrolBarRect = ConversationScrollBarRect;
             Mdc_Conversation_child = CreateCompatibleDC(DeviceContext_ChildConversation);
             HBITMAP memBitmap = CreateCompatibleBitmap(DeviceContext_ChildConversation, 
             ConversationScrollBarRect.right - ConversationScrollBarRect.left, ConversationScrollBarRect.bottom - ConversationScrollBarRect.top);
@@ -152,15 +145,12 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 {
                     Conversation_scrolloffset = 0;
                 }
-                if(HeightIncrementationChecking > (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top))
+                for(int j=0;j<countclient;j++)
                 {
-                    for(int j=0;j<countclient;j++)
+                    if(strcmp(MessagesConversations[j].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
                     {
-                        if(strcmp(MessagesConversations[j].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
-                        {
-                            UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count);
-                            break;
-                        }
+                        UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count);
+                        break;
                     }
                 }
                 // showing the message i sent auto
@@ -370,6 +360,14 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                     {
                         Conversation_thumb.current_val = Conversation_thumb.max_val;
                     }
+                    for(int j=0;j<countclient;j++)
+                    {
+                        if(strcmp(MessagesConversations[j].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                        {
+                            UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count);
+                            break;
+                        }
+                    }
                     UpdateConversationScrollValue(hwnd, Conversation_thumb.current_val);
                     // for rendering messages 
                     if((Frontier / (client_rect.bottom - client_rect.top)) > 0)
@@ -391,7 +389,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 }
             }
             InvalidateRect(HandleWnd,&WindowSize,FALSE);
-            InvalidateRect(hwnd,NULL,FALSE);
+            InvalidateRect(hwnd,NULL,TRUE);
             break;
         }
         case WM_LBUTTONUP:
@@ -482,7 +480,7 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 Conversation_thumb.current_val += step;
                 UpdateConversationScrollValue(hwnd, Conversation_thumb.current_val);
             }
-            InvalidateRect(hwnd,NULL, FALSE);
+            InvalidateRect(hwnd,NULL, TRUE);
             break;
         }
         default:
@@ -517,7 +515,7 @@ LRESULT CALLBACK MessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             if(UiInbox && GetFocus() == MessageBarHandle && wParam == VK_RETURN)
             {
                 GetWindowText(hwnd, buffer, sizeof(buffer));
-                if(strlen(buffer) != 0)
+                if(strlen(buffer) != 0 && !HasOnlyWhitespace(MessageBarHandle))
                 {
                     Send = TRUE;
                 }
@@ -850,6 +848,14 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                 {
                     if(strcmp(ConnectingTools.PrivateMessage.SelectedRecipient,Message[Index].Username) != 0)
                     {
+                        for(int j=0;j<countclient;j++)
+                        {
+                            if(strcmp(MessagesConversations[j].OwnerName,Message[Index].Username) == 0)
+                            {
+                                UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count);
+                                break;
+                            }
+                        }
                         Conversation_scrolloffset = 0;
                         Conversation_thumb.current_val = Conversation_thumb.max_val;
                     }
@@ -880,6 +886,14 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                 {
                     if(strcmp(ConnectingTools.PrivateMessage.SelectedRecipient,Message[Index].Username) != 0)
                     {
+                        for(int j=0;j<countclient;j++)
+                        {
+                            if(strcmp(MessagesConversations[j].OwnerName,Message[Index].Username) == 0)
+                            {
+                                UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count);
+                                break;
+                            }
+                        }
                         Conversation_scrolloffset = 0;
                         Conversation_thumb.current_val = Conversation_thumb.max_val;
                     }
@@ -958,7 +972,6 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 // this WndProc is for the main window 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    static BOOL s_trackingMouseLeave = FALSE;
     switch (msg)
     {
             case WM_SIZE:
@@ -1026,7 +1039,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             SendingTrdStatus.ScrollBar = ScrollBar;
             UpdateScrollbarRange(ScrollBar,ScrollBarRect, &g_scrollbar);
             // creating a conversation child window 
-            float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.15)) - (WindowSize.right-WindowSize.left)*0.005;
+            float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.15)) - (WindowSize.right-WindowSize.left)*0.007;
             ConversationScrollBar = CreateWindowEx(
             0,
             "CustomConversationScrollChildWindow",
@@ -1499,7 +1512,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 if(x>=left && x<=right && y>= top && y<=bottom)
                 {
                     GetWindowText(MessageBarHandle, buffer, sizeof(buffer));
-                    if(strlen(buffer) != 0)
+                    if(strlen(buffer) != 0 && !HasOnlyWhitespace(MessageBarHandle))
                     {
                         Send = TRUE;
                     }
@@ -1511,19 +1524,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
         case WM_MOUSEMOVE :
         {
-        	// Begin tracking mouse leave so we get WM_MOUSELEAVE when cursor enters a child or leaves the client area
-        	if(!s_trackingMouseLeave)
-        	{
-        		TRACKMOUSEEVENT tme;
-        		tme.cbSize = sizeof(TRACKMOUSEEVENT);
-        		tme.dwFlags = TME_LEAVE;
-        		tme.hwndTrack = hwnd;
-        		tme.dwHoverTime = 0;
-        		if(TrackMouseEvent(&tme))
-        		{
-        			s_trackingMouseLeave = TRUE;
-        		}
-        	}
         GetClientRect(hwnd,&WindowSize);
         Mx=LOWORD(lParam);
         My=HIWORD(lParam);
@@ -1684,7 +1684,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
         case WM_MOUSELEAVE:
         {
-        	s_trackingMouseLeave = FALSE;
         	if(HoveringMessage){ HoveringMessage = FALSE;}
         	if(HoveringOnline){ HoveringOnline = FALSE;}
         	if(HoveringTask){ HoveringTask = FALSE;}

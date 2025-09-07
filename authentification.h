@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
+#include <time.h>
 char username[50];
 char password[30];
 RECT Autorisa;
@@ -26,6 +27,7 @@ typedef struct
 {
     char SelectedRecipient[100];
     char Buffer[200];
+    struct tm TimeStamp;
 }InboxMessage;
 InboxMessage PrivateMessage;
 typedef struct 
