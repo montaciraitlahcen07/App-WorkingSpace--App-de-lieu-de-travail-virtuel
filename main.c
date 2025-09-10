@@ -1139,6 +1139,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 ReleaseDC(hwnd,Mdc);
             }
+            if(UiInbox != LastUiInbox || UiGeneral != LastUiGeneral)
+            {
+                ResetChoice = TRUE;
+            }
+            LastUiInbox = UiInbox;
+            LastUiGeneral = UiGeneral;
             WindowLeft = WindowSize.left;
             WindowTop = WindowSize.top;
             WindowWidth = WindowSize.right - WindowSize.left;

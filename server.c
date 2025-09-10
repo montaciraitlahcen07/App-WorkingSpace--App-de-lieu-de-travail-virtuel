@@ -26,6 +26,7 @@ typedef struct
     char Buffer[100];
     char Recipient[30];
     char GeneralPrivate[20];
+    char ChoiceChanging[50];
 }Into;
 
 int Counter = 0;
@@ -36,6 +37,7 @@ typedef struct
     char Recipient[100];
     char Buffer[200];
     struct tm TimeStamp;
+    char ChoiceChanging[50];
 }PrivateGeneralMessage;
 // client is socket
 typedef struct 
@@ -393,16 +395,20 @@ void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsDat
 void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET senderSocket,FILE *ClientsData)
 {
     ClientsData = fopen("ClientsData.txt", "rb"); 
-    if (ClientsData == NULL) {
+    if (ClientsData == NULL)
+    {
         printf("Failed to open ClientsData.txt for broadcasting\n");
         return;
     }
     Clients tempClient;
-    while (fread(&tempClient, sizeof(tempClient), 1, ClientsData) == 1) {
-        if (tempClient.ClientsS != senderSocket && tempClient.IsActive) {
+    while (fread(&tempClient, sizeof(tempClient), 1, ClientsData) == 1)
+    {
+        if(tempClient.ClientsS != senderSocket && tempClient.IsActive && strcmp(tempClient.Username,senderUsername) != 0)
+        {
             printf("Sending to %s\n", tempClient.Username);
-            if (send(tempClient.ClientsS, senderUsername, strlen(senderUsername), 0) == SOCKET_ERROR ||
-                send(tempClient.ClientsS, message, strlen(message), 0) == SOCKET_ERROR) {
+            // do it in one send here and add the time stamp of the message and add a color of the user name 
+            if(send(tempClient.ClientsS, senderUsername, strlen(senderUsername), 0) == SOCKET_ERROR || send(tempClient.ClientsS, message, strlen(message), 0) == SOCKET_ERROR)
+            {
                 printf("Failed to send to %s (client may have disconnected)\n", tempClient.Username);
             }
         }
@@ -458,12 +464,14 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
     Authentification :
     memset(&Message, 0, sizeof(Message));
     int resultnumber = recv(SocketAndMessage.Sockets->SendingSocket, Message.Username, sizeof(Message.Username) - 1, 0);
-    if (resultnumber <= 0) {
+    if (resultnumber <= 0)
+    {
         printf("Failed to receive username from client\n");
         goto cleanup;
     }
     int resultnumberP = recv(SocketAndMessage.Sockets->SendingSocket, Message.PassWord, sizeof(Message.PassWord) - 1, 0);
-    if (resultnumberP <= 0) {
+    if (resultnumberP <= 0)
+    {
         printf("Failed to receive username from client\n");
         goto cleanup;
     }
@@ -492,32 +500,36 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
         goto Authentification;
     }
     IsNewConnection = FALSE;
-    while (TRUE)
+    while(TRUE)
     {
+        ChoiceChanging :
         memset(Message.GeneralPrivate, 0, sizeof(Message.GeneralPrivate));
         int resultnumberBool = recv(SocketAndMessage.Sockets->SendingSocket, Message.GeneralPrivate, sizeof(Message.GeneralPrivate) - 1, 0);
-        if (resultnumberBool <= 0){
+        if (resultnumberBool <= 0)
+        {
             printf("Client %s disconnected (choice receive failed)\n", Message.Username);
             break;
         }
         Message.GeneralPrivate[resultnumberBool] = '\0';
         len = strlen(Message.GeneralPrivate);
-        while (len > 0 && (Message.GeneralPrivate[len-1] == '\n' || Message.GeneralPrivate[len-1] == '\r' || 
-                          Message.GeneralPrivate[len-1] == '\t' || Message.GeneralPrivate[len-1] == ' ')) {
+        while (len > 0 && (Message.GeneralPrivate[len-1] == '\n' || Message.GeneralPrivate[len-1] == '\r' || Message.GeneralPrivate[len-1] == '\t' || Message.GeneralPrivate[len-1] == ' '))
+        {
             Message.GeneralPrivate[--len] = '\0';
         }
         printf("Message type from %s: %s\n", Message.Username, Message.GeneralPrivate);
-        if (strcmp(Message.GeneralPrivate, "TRUE") == 0) {
+        if (strcmp(Message.GeneralPrivate, "TRUE") == 0)
+        {
             memset(Message.Buffer, 0, sizeof(Message.Buffer));
             resultnumber = recv(SocketAndMessage.Sockets->SendingSocket, Message.Buffer, sizeof(Message.Buffer) - 1, 0);
-            if (resultnumber <= 0) {
+            if (resultnumber <= 0)
+            {
                 printf("Failed to receive message from %s\n", Message.Username);
                 break;
             }
             Message.Buffer[resultnumber] = '\0';
             len = strlen(Message.Buffer);
-            while (len > 0 && (Message.Buffer[len-1] == '\n' || Message.Buffer[len-1] == '\r' || 
-                              Message.Buffer[len-1] == '\t' || Message.Buffer[len-1] == ' ')) {
+            while (len > 0 && (Message.Buffer[len-1] == '\n' || Message.Buffer[len-1] == '\r' || Message.Buffer[len-1] == '\t' || Message.Buffer[len-1] == ' '))
+            {
                 Message.Buffer[--len] = '\0';
             }
             printf("Broadcasting message from %s: %s\n", Message.Username, Message.Buffer);
@@ -527,6 +539,16 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
         {
             // for sending the user the whole list of users who are they online rn
             SendClient(Message.Username,SocketAndMessage.Sockets->SendingSocket,ClientsData);
+            // checking the ChoiceChanging String
+            len = strlen(SocketAndMessage.MessageTools.ChoiceChanging);
+            while (len > 0 && (SocketAndMessage.MessageTools.ChoiceChanging[len-1] == '\n' || SocketAndMessage.MessageTools.ChoiceChanging[len-1] == '\r' || 
+                              SocketAndMessage.MessageTools.ChoiceChanging[len-1] == '\t' || SocketAndMessage.MessageTools.ChoiceChanging[len-1] == ' ')) {
+                SocketAndMessage.MessageTools.ChoiceChanging[--len] = '\0';
+            }
+            if(strcmp(SocketAndMessage.MessageTools.ChoiceChanging,"RESET") == 0)
+            {
+                goto ChoiceChanging;
+            }
             // receiving the recipient is name and the message and the time stamp
             resultnumber = recv(SocketAndMessage.Sockets->SendingSocket,(char *)&SocketAndMessage.MessageTools,sizeof(SocketAndMessage.MessageTools), 0);
             if (resultnumber <= 0)
@@ -784,3 +806,12 @@ void StoringConversation(const char* Sender, const char* Recipient,const char* m
     }
     fclose(Conversation);
 }
+/*// Creating a thread for ResetChoice and make it inside this thread to prevent passing it and waiting  for the cycle of sending or receving messages
+unsigned __stdcall ResetChoiceThread(void *param)
+{
+    while(TRUE)
+    {
+
+    }
+    return 0;
+}*/

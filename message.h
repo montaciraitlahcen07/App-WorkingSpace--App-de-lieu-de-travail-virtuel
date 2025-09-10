@@ -18,8 +18,11 @@
     bool MessageButtonClicked = FALSE;
     // when the button inbox is clicked 
     bool UiInbox = FALSE;
+    bool LastUiInbox;
     // when the button general is clicked
     bool UiGeneral = FALSE;
+    bool LastUiGeneral;
+    bool ResetChoice;
     // for the inbox ui
     RECT ChatRect;
     HWND HandleSearch;

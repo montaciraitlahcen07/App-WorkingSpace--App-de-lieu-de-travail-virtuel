@@ -51,6 +51,7 @@ typedef struct
     int count;
     char OwnerName[50];
     int render_index;
+    char color[50];
 }conversationsOwners;
 conversationsOwners MessagesConversations[40];
 typedef struct
@@ -94,10 +95,29 @@ RcvSetting RcvStg;
 time_t rawtime;
 struct tm *timeinfo;
 struct tm TimeStamp;
+// RGB 
+typedef struct
+{
+    int r, g, b;
+} RGB;
+typedef struct
+{
+    const char* name;
+    RGB rgb;
+} ColorMap;
+typedef struct 
+{
+    char name[50];
+    char color[50];
+}ColorsNames;
+ColorsNames UsersNameColor[20];
+extern bool ResetChoice;
 unsigned __stdcall receivingClient(void *param);
 unsigned __stdcall SendingThread(void *param);
 int FillingSearchRecipientList(HWND HandleSearch,int countclient,Clients Message[100],int ListSearchedRecipient[100],int CompSearchedRecipient);
 void insert_at_bottom(const char* Sender,const char* message,const char *owner,struct tm TimeStamp);
+const char * UsersColors(int C);
+RGB ColorRgb(const char * Colorname);
 // add in this thread function to disperse between inbox message and general message
 unsigned __stdcall receivingClient(void *param)
 {
@@ -162,7 +182,17 @@ unsigned __stdcall SendingThread(void *param)
     char Buffer[100]; 
     while(TRUE)
     {
+        while(TRUE)
+        {
+            if(ResetChoice)
+            {
+                ResetChoice = FALSE;
+                goto ChoiceChanging;
+            }
+            Sleep(200);
+        }
         char Choice[20];
+        ChoiceChanging :
         memset(Choice, 0, sizeof(Choice));
         if(MemoryDcSndTool.UiInbox)
         {  
@@ -191,6 +221,8 @@ unsigned __stdcall SendingThread(void *param)
                     // naming the array each users get his own array 
                     strcpy(MessagesConversations[j].OwnerName,Message[j].Username);
                     strcpy(RecipientPass[j].recipient,Message[j].Username);
+                    strcpy(UsersNameColor[j].name,Message[j].Username);
+                    strcpy(UsersNameColor[j].color,UsersColors(j));
                 }
                 SelectObject(MemoryDcSndTool.Mdc_Child_1, OldPen);
                 DeleteObject(Pen);
@@ -220,16 +252,31 @@ unsigned __stdcall SendingThread(void *param)
             {
                 continue;
             }
-            
             Sleep(100);   
         }
         else if(strcmp(Choice,"FALSE") == 0)
         {
             GETBACK :
-            if(!Send)
+            /*if(!Send)
             {
                 Sleep(100);
                 goto GETBACK;
+            }*/
+            while(!Send)
+            {
+                if(ResetChoice)
+                {
+                    ResetChoice = FALSE;
+                    char *ChoiceChanging = "RESET";
+                    strcpy(ConnectingTools.PrivateMessage.ChoiceChanging,ChoiceChanging);
+                    sendResult = send(ConnectingTools.ClientSocketSending,(char*)&ConnectingTools.PrivateMessage, sizeof(ConnectingTools.PrivateMessage), 0);
+                    if(sendResult == SOCKET_ERROR)
+                    {
+                        continue;
+                    }
+                    goto ChoiceChanging;
+                }
+                Sleep(10);
             }
             int lenRecipient = strlen(ConnectingTools.PrivateMessage.SelectedRecipient);
             while(lenRecipient > 0 && (ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\n' || ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\r' || 
@@ -253,6 +300,8 @@ unsigned __stdcall SendingThread(void *param)
                 // storing the message in the array of the conversation
                 insert_at_bottom(ConnectingTools.PrivateMessage.SelectedRecipient,ConnectingTools.PrivateMessage.Buffer,SendingTools.username,TimeStamp);
                 ConnectingTools.PrivateMessage.TimeStamp = TimeStamp;
+                char *ChoiceChanging = "NORMAL";
+                strcpy(ConnectingTools.PrivateMessage.ChoiceChanging,ChoiceChanging);
                 sendResult = send(ConnectingTools.ClientSocketSending,(char*)&ConnectingTools.PrivateMessage, sizeof(ConnectingTools.PrivateMessage), 0);
                 if(sendResult == SOCKET_ERROR)
                 {
@@ -457,4 +506,31 @@ void insert_at_bottom(const char* Sender,const char* message,const char * owner,
             break;
         }
     }
+}
+const char * UsersColors(int C)
+{
+    const char* colors[] = {
+        "Red", "Blue", "Green", "Pink", 
+        "Purple", "Orange", "Cyan", "Yellow",
+        "Gray", "Magenta", "Teal", "Navy"
+    };
+    if(C < 0)
+    {
+        return colors[8];
+    }
+    return colors[C];
+}
+RGB ColorRgb(const char * Colorname)
+{
+    ColorMap colorDatabase[] = {
+    {"Red", {255, 0, 0}}, {"Blue", {0, 0, 255}}, {"Green", {0, 255, 0}}, {"Pink", {255, 192, 203}}, {"Purple", {128, 0, 128}}, {"Orange", {255, 165, 0}}, {"Cyan", {0, 255, 255}}, {"Yellow", {255, 255, 0}}, {"Gray", {128, 128, 128}}, {"Magenta", {255, 0, 255}}, {"Teal", {0, 128, 128}}, {"Navy", {0, 0, 128}}
+    };
+    for(int j = 0;j < 13 ; j++)
+    {
+        if(strcmp(colorDatabase[j].name,Colorname) == 0)
+        {
+            return colorDatabase[j].rgb;
+        }
+    }
+    return colorDatabase[8].rgb;
 }

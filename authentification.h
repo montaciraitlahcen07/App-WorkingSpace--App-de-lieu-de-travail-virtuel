@@ -28,6 +28,7 @@ typedef struct
     char SelectedRecipient[100];
     char Buffer[200];
     struct tm TimeStamp;
+    char ChoiceChanging[50];
 }InboxMessage;
 InboxMessage PrivateMessage;
 typedef struct 
