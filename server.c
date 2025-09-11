@@ -539,6 +539,13 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
         {
             // for sending the user the whole list of users who are they online rn
             SendClient(Message.Username,SocketAndMessage.Sockets->SendingSocket,ClientsData);
+            // receiving the recipient is name and the message and the time stamp
+            resultnumber = recv(SocketAndMessage.Sockets->SendingSocket,(char *)&SocketAndMessage.MessageTools,sizeof(SocketAndMessage.MessageTools), 0);
+            if (resultnumber <= 0)
+            {
+                printf("Failed to receive private message from %s\n", Message.Username);
+                break;
+            }
             // checking the ChoiceChanging String
             len = strlen(SocketAndMessage.MessageTools.ChoiceChanging);
             while (len > 0 && (SocketAndMessage.MessageTools.ChoiceChanging[len-1] == '\n' || SocketAndMessage.MessageTools.ChoiceChanging[len-1] == '\r' || 
@@ -547,14 +554,8 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
             }
             if(strcmp(SocketAndMessage.MessageTools.ChoiceChanging,"RESET") == 0)
             {
+                printf("Choice Changed From Inbox into General\n");
                 goto ChoiceChanging;
-            }
-            // receiving the recipient is name and the message and the time stamp
-            resultnumber = recv(SocketAndMessage.Sockets->SendingSocket,(char *)&SocketAndMessage.MessageTools,sizeof(SocketAndMessage.MessageTools), 0);
-            if (resultnumber <= 0)
-            {
-                printf("Failed to receive private message from %s\n", Message.Username);
-                break;
             }
             int lenr = strlen(SocketAndMessage.MessageTools.Recipient);
             while (lenr > 0 && (SocketAndMessage.MessageTools.Recipient[lenr-1] == '\n' || SocketAndMessage.MessageTools.Recipient[lenr-1] == '\r' || 

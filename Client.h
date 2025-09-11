@@ -182,15 +182,6 @@ unsigned __stdcall SendingThread(void *param)
     char Buffer[100]; 
     while(TRUE)
     {
-        while(TRUE)
-        {
-            if(ResetChoice)
-            {
-                ResetChoice = FALSE;
-                goto ChoiceChanging;
-            }
-            Sleep(200);
-        }
         char Choice[20];
         ChoiceChanging :
         memset(Choice, 0, sizeof(Choice));
@@ -256,8 +247,8 @@ unsigned __stdcall SendingThread(void *param)
         }
         else if(strcmp(Choice,"FALSE") == 0)
         {
-            GETBACK :
-            /*if(!Send)
+            /*GETBACK :
+            if(!Send)
             {
                 Sleep(100);
                 goto GETBACK;
@@ -309,8 +300,8 @@ unsigned __stdcall SendingThread(void *param)
                 }
                 SetWindowText(SendingTools.MessageBarHandle,"");
             }
-            Sleep(100);
             Send = FALSE;
+            Sleep(50);
         }
     }  
     closesocket(ConnectingTools.ClientSocketSending);
@@ -456,12 +447,7 @@ unsigned __stdcall ConversationThread(void *param)
                         strcpy(NewData.message,SendingData.message);
                         strcpy(NewData.owner,SendingData.owner);
                         NewData.TimeStamp = SendingData.TimeStamp;
-                        // Insert at beginning to maintain newest-first ordering like insert_at_bottom
-                        for(int shift = MessagesConversations[k].count; shift > 0; shift--)
-                        {
-                            MessagesConversations[k].Conversation[shift] = MessagesConversations[k].Conversation[shift-1];
-                        }
-                        MessagesConversations[k].Conversation[0] = NewData;
+                        MessagesConversations[k].Conversation[MessagesConversations[k].count] = NewData;
                         if(Response.no_more)
                         {
                             MessagesConversations[k].last_index = 0;
