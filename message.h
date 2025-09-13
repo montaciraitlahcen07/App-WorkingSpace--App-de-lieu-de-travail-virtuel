@@ -19,6 +19,7 @@
     // when the button inbox is clicked 
     bool UiInbox = FALSE;
     bool LastUiInbox;
+    int UiInboxTimes,UiGeneralTimes;
     // when the button general is clicked
     bool UiGeneral = FALSE;
     bool LastUiGeneral;
