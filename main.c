@@ -69,16 +69,21 @@ WNDPROC OriginalUsernameBarProc = NULL;
 WNDPROC OriginalPasswordBarProc = NULL;
 WNDPROC OriginalMessageBarProc = NULL;
 WNDPROC OriginalConversationBarProc = NULL;
+WNDPROC OriginalUiGeneralConversationBarProc = NULL;
 //
 extern bool BubbleLogo;
 bool safety;
 // UiGeenral variables
 bool CWndCreation;
+HWND UiGeneralConversationWndH;
+RECT UiGeneralConversationRect;
+HDC DC_UiGeneral_Conversation,Mdc_UiGeneralConversation_child;
+HBITMAP BM_Conversation_Child,OldBM_Conversation_Child;
 // General Conversation's Child Window
 LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg)
     {
-        case WM_CREATE:
+        /*case WM_CREATE:
             Conversation_total_messages = 15;
             Conversation_messages_per_page = 11;
             Conversation_thumb.min_val = 0;
@@ -95,30 +100,35 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
             }
             Conversation_thumb.current_val = Conversation_thumb.max_val;
             InvalidateRect(hwnd,NULL, TRUE);
-            break;
+            break;*/
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            DeviceContext_ChildConversation = BeginPaint(hwnd, &ps);
-            GetClientRect(hwnd, &ConversationScrollBarRect);
+            DC_UiGeneral_Conversation = BeginPaint(hwnd, &ps);
+            GetClientRect(hwnd, &UiGeneralConversationRect);
             GetClientRect(HandleWnd,&WindowSize);
-            Mdc_Conversation_child = CreateCompatibleDC(DeviceContext_ChildConversation);
-            HBITMAP memBitmap = CreateCompatibleBitmap(DeviceContext_ChildConversation, 
-            ConversationScrollBarRect.right - ConversationScrollBarRect.left, ConversationScrollBarRect.bottom - ConversationScrollBarRect.top);
-            HBITMAP oldBitmap = SelectObject(Mdc_Conversation_child, memBitmap);
-            HBRUSH Creme = CreateSolidBrush(RGB(250,245,230));
-            FillRect(Mdc_Conversation_child, &ConversationScrollBarRect, Creme);
-            DeleteObject(Creme);
+            Mdc_UiGeneralConversation_child = CreateCompatibleDC(DC_UiGeneral_Conversation);
+            HBITMAP memBitmap = CreateCompatibleBitmap(DC_UiGeneral_Conversation, 
+            UiGeneralConversationRect.right - UiGeneralConversationRect.left, UiGeneralConversationRect.bottom - UiGeneralConversationRect.top);
+            HBITMAP oldBitmap = SelectObject(Mdc_UiGeneralConversation_child, memBitmap);
+            float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.142));
+            MoveWindow(hwnd,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,
+            (WindowSize.bottom - WindowSize.top)*0.272,
+            WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,
+            ConversationHeight,TRUE);
+            HBRUSH DarkCreme = CreateSolidBrush(RGB(247, 240, 217));
+            FillRect(Mdc_UiGeneralConversation_child, &UiGeneralConversationRect, DarkCreme);
+            DeleteObject(DarkCreme);
             HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-            HPEN oldPen = SelectObject(Mdc_Conversation_child, borderPen);
-            HBRUSH oldBrush = SelectObject(Mdc_Conversation_child, GetStockObject(NULL_BRUSH));
-            SetBkMode(Mdc_Conversation_child, TRANSPARENT);
-            float FontWidth = 9;
+            HPEN oldPen = SelectObject(Mdc_UiGeneralConversation_child, borderPen);
+            HBRUSH oldBrush = SelectObject(Mdc_UiGeneralConversation_child, GetStockObject(NULL_BRUSH));
+            SetBkMode(Mdc_UiGeneralConversation_child, TRANSPARENT);
+            /*float FontWidth = 9;
             float FontHeight = 20; 
             int CharactersPerLine,NumberOfLines;
             float MessageHeight;
             // Calculate characters per line based on conversation window width
-            CharactersPerLine = ((ConversationScrollBarRect.right - ConversationScrollBarRect.left) - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.18)/FontWidth;
+            CharactersPerLine = ((UiGeneralConversationRect.right - UiGeneralConversationRect.left) - (UiGeneralConversationRect.right - UiGeneralConversationRect.left)*0.18)/FontWidth;
             if(CharactersPerLine <= 0) CharactersPerLine = 1; // Prevent division by zero
             
             if(UiInbox && BubbleLogo && strlen(ConnectingTools.PrivateMessage.SelectedRecipient) > 0)
@@ -132,7 +142,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                         {
                             int message_length = strlen(MessagesConversations[i].Conversation[k].message);
                             NumberOfLines = max(1, message_length/ CharactersPerLine);
-                            MessageHeight = NumberOfLines*FontHeight + (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.07;
+                            MessageHeight = NumberOfLines*FontHeight + (UiGeneralConversationRect.bottom - UiGeneralConversationRect.top)*0.07;
                             HeightIncrementationChecking += MessageHeight;
                         }
                         HeightIncrementationChecking += 5;
@@ -152,7 +162,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                 {
                     if(strcmp(MessagesConversations[j].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
                     {
-                        UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count);
+                        UpdateConversationScrollbarRange(ConversationScrollBar,UiGeneralConversationRect,&Conversation_thumb,MessagesConversations[j].count);
                         break;
                     }
                 }
@@ -162,22 +172,22 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                     Conversation_thumb.current_val = Conversation_thumb.max_val;
                     Conversation_scrolloffset = 0;
                 }
-                DrawConversationScrollBar(Mdc_Conversation_child,hwnd,WindowSize,HeightIncrementationChecking);
+                DrawConversationScrollBar(Mdc_UiGeneralConversation_child,hwnd,WindowSize,HeightIncrementationChecking);
                 bool FontSize = (((WindowSize.right - WindowSize.left) >= 1000 && (WindowSize.bottom - WindowSize.top) >= 700)?TRUE:FALSE);
-                RenderingConversationMessage(hwnd,HandleWnd,Mdc_Conversation_child,ConnectingTools.PrivateMessage.SelectedRecipient,FontSize);        
-            }
-            BitBlt(DeviceContext_ChildConversation, 0, 0, ConversationScrollBarRect.right - ConversationScrollBarRect.left, 
-            ConversationScrollBarRect.bottom - ConversationScrollBarRect.top, Mdc_Conversation_child, 0, 0, SRCCOPY);
-            SelectObject(Mdc_Conversation_child, oldBrush);
-            SelectObject(Mdc_Conversation_child, oldPen);
-            SelectObject(Mdc_Conversation_child, oldBitmap);
+                RenderingConversationMessage(hwnd,HandleWnd,Mdc_UiGeneralConversation_child,ConnectingTools.PrivateMessage.SelectedRecipient,FontSize);        
+            }*/
+            BitBlt(DC_UiGeneral_Conversation, 0, 0, UiGeneralConversationRect.right - UiGeneralConversationRect.left, 
+            UiGeneralConversationRect.bottom - UiGeneralConversationRect.top, Mdc_UiGeneralConversation_child, 0, 0, SRCCOPY);
+            SelectObject(Mdc_UiGeneralConversation_child, oldBrush);
+            SelectObject(Mdc_UiGeneralConversation_child, oldPen);
+            SelectObject(Mdc_UiGeneralConversation_child, oldBitmap);
             DeleteObject(borderPen);
             DeleteObject(memBitmap);
-            DeleteDC(Mdc_Conversation_child);
+            DeleteDC(Mdc_UiGeneralConversation_child);
             EndPaint(hwnd, &ps);
             break;
         }
-        case WM_MOUSEMOVE:
+        /*case WM_MOUSEMOVE:
         {
             POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             BOOL was_hovering = Conversation_thumb.thumb_hover;
@@ -189,7 +199,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
             }
             if(Conversation_thumb.is_dragging)
             {
-                RECT ConversationScrollBarRect;
+                RECT UiGeneralConversationRect;
                 GetClientRect(hwnd, &ConversationScrollBarRect);
                 float scrollbar_height = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top - 4);
                 int range = Conversation_thumb.max_val - Conversation_thumb.min_val;
@@ -485,7 +495,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
             }
             InvalidateRect(hwnd,NULL, TRUE);
             break;
-        }
+        }*/
         default:
         return DefWindowProc(hwnd, msg, wParam, lParam);
     }
@@ -1357,6 +1367,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                     SendingTools.MessageBarHandle = MessageBarHandle;
                 }
                 InvalidateRect(ConversationScrollBar,NULL,TRUE);
+                InvalidateRect(UiGeneralConversationWndH,NULL,TRUE);
             }
             SetFocus(MessageBarHandle);
             InvalidateRect(MessageBarHandle,NULL,FALSE);
@@ -1401,7 +1412,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             WindowTop = WindowSize.top;
             WindowWidth = WindowSize.right - WindowSize.left;
             WindowHeight = WindowSize.bottom - WindowSize.top;
-            if(UiInbox )
+            if(UiInbox)
             {
                 RECT rect;
                 GetClientRect(HandleSearch, &rect);
@@ -1414,6 +1425,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 // resize conversation child window 
                 InvalidateRect(ConversationScrollBar,NULL,TRUE);
                 InvalidateRect(HandleSearch,&rect, FALSE);
+            }
+            else if(UiGeneral)
+            {
+                InvalidateRect(UiGeneralConversationWndH,NULL,TRUE);
             }
             UpdateScrollbarRange(ScrollBar, ScrollBarRect, &g_scrollbar);
             InvalidateRect(hwnd, &WindowSize, FALSE);
@@ -1474,6 +1489,23 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if(ConversationScrollBar)
             {
                 OriginalConversationBarProc = (WNDPROC)SetWindowLongPtr(ConversationScrollBar, GWLP_WNDPROC, (LONG_PTR)ConversationWindowProc);
+            }
+            // creating an UiGeenral Conversation child window
+            float ConversationHeightG = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.142));
+            UiGeneralConversationWndH = CreateWindowEx(
+            0,
+            "CustomUiGeneralConversationScrollChildWindow",
+            NULL,
+            WS_CHILD,
+            Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,
+            PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.0492,
+            WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,
+            ConversationHeightG,
+            hwnd, NULL, IDhInstance, NULL
+            );
+            if(UiGeneralConversationWndH)
+            {
+                OriginalUiGeneralConversationBarProc = (WNDPROC)SetWindowLongPtr(UiGeneralConversationWndH, GWLP_WNDPROC, (LONG_PTR)UiGeneralConversationWindowProc);
             }
             // this is for the client winsock2 things
             WSADATA wsaData;
@@ -1789,6 +1821,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     ShowWindow(ScrollBar, SW_HIDE); 
                     ShowWindow(HandleSearch,SW_HIDE);
                 }
+                if(UiGeneral)
+                {
+                    ShowWindow(UiGeneralConversationWndH, SW_SHOW); 
+                    UiGeneralConversation(HandleWnd,Mdc,ConnectingTools,WindowSize,PanelRect,CurrentHEmoji,CurrentVEmoji,CurrentHAttach,CurrentVAttach,CurrentHSend,CurrentVSend);
+                }
+                else
+                {
+                    ShowWindow(UiGeneralConversationWndH, SW_HIDE); 
+                }
             }    
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);
@@ -1879,8 +1920,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if((x>=Choice_1_Button.left && x<=Choice_1_Button.right) && (y>=Choice_1_Button.top && y<=Choice_1_Button.bottom ))
         {
             UiMessage=TRUE;   
-            /*UiGeneral = TRUE;
-            UiGeneralTimes++;*/
+            UiGeneral = FALSE;
+            // taking a copy for the receiving thread
+            RcvStg.UiGeneral = UiGeneral;
             UiInbox = FALSE;
             // taking a copy for the receiving thread
             RcvStg.UiInbox = UiInbox;
@@ -2189,6 +2231,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     Conversation_child.lpszClassName = CHILD_CONVERSATION_CLASS_NAME;
     Conversation_child.hCursor = LoadCursor(NULL, IDC_ARROW);
     RegisterClass(&Conversation_child);
+    // UiGeneral conversation child window with a scroll bar
+    const char* UIGENERAL_CHILD_CONVERSATION_CLASS_NAME = "CustomUiGeneralConversationScrollChildWindow";
+    WNDCLASS UiGeneralConversation_child = {0};
+    UiGeneralConversation_child.lpfnWndProc = UiGeneralConversationWindowProc; 
+    UiGeneralConversation_child.hInstance = hInstance;
+    UiGeneralConversation_child.lpszClassName = UIGENERAL_CHILD_CONVERSATION_CLASS_NAME;
+    UiGeneralConversation_child.hCursor = LoadCursor(NULL, IDC_ARROW);
+    RegisterClass(&UiGeneralConversation_child);
     // creating the main window
     HandleWnd = CreateWindowEx(
         0,

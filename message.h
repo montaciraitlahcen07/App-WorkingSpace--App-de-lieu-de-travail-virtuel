@@ -1025,3 +1025,114 @@ bool HasOnlyWhitespace(HWND hwndEdit)
     free(buffer);
     return TRUE; 
 }
+// this function it draw the converstion all the workers in the company (adding the feature in it which is using file of the conversation )
+void UiGeneralConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT WindowSize,RECT PanelRect,float CurrentHEmoji,float CurrentVEmoji,float CurrentHAttach,float CurrentVAttach,float CurrentHSend,float CurrentVSend)
+{
+    HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
+    HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
+    SetBkMode(Mdc,TRANSPARENT);
+    HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    GetClientRect(HandleWnd,&WindowSize);   
+    RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.19,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.009,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.68,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.06,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+    // emoji circle Button
+    Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.19 - CurrentHEmoji,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - CurrentVEmoji,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.22 + CurrentHEmoji,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + CurrentVEmoji);
+    // Attach Button
+    Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.228 - CurrentHAttach,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - CurrentVAttach,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.259 + CurrentHAttach,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + CurrentVAttach);
+    // send message button 
+    RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.6454 - CurrentHSend,
+    WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.68 + CurrentHSend,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + 
+    (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend,
+    (WindowSize.right - WindowSize.left)*0.0175,(WindowSize.bottom - WindowSize.top)*0.026); 
+    SelectObject(Mdc,OldPen);
+    DeleteObject(Pen);
+    SelectObject(Mdc,OldButtonColor);
+    DeleteObject(OldButtonColor);
+    // rendering the recipient is name
+    RECT RecipientRect;
+    RecipientRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3;
+    RecipientRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.022;
+    RecipientRect.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.554;
+    RecipientRect.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.05;
+    HBRUSH ButtonColorRecipient = CreateSolidBrush(RGB(0,0,0));
+    HBRUSH OldButtonColorRecipient = SelectObject(Mdc,ButtonColorRecipient);
+    HFONT Font=CreateFont(23,11,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_OUTLINE_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,
+    DEFAULT_PITCH | FF_DONTCARE,"Segoe UI");
+    HFONT OldFont=(HFONT)SelectObject(Mdc,Font);
+    HPEN PenRecipient=CreatePen(PS_DOT,2,RGB(0,0,0));
+    HPEN OldPenRecipient=SelectObject(Mdc,PenRecipient);
+    DrawText(Mdc,"MonTech's General Chat",-1,&RecipientRect,DT_SINGLELINE | DT_CENTER);
+    SelectObject(Mdc,OldFont);
+    DeleteObject(Font);
+    // Emoji form
+    // left eye
+    Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.303 - CurrentHEmoji/4.2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0633 - CurrentVEmoji/4.2,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.307 + CurrentHEmoji/4.2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.058 + CurrentVEmoji/4.2);
+    // right eye
+    Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.316 - CurrentHEmoji/4.2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0633 - CurrentVEmoji/4.2,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.31953 + CurrentHEmoji/4.2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.058 + CurrentVEmoji/4.2);
+    // smile 
+    Arc(Mdc,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.303 - CurrentHEmoji/4.7,
+    WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.054 - CurrentVEmoji/4.2,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.319 + CurrentHEmoji/4.2,     
+    WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.04 + CurrentVEmoji/3,       
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.303 - CurrentHEmoji/4.2,     
+    WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.048 + CurrentVEmoji/4.2,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.319 + CurrentHEmoji/4.2,
+    WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.048 + CurrentVEmoji/4.2);
+    // attach
+    // first line
+    MoveToEx(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3415 - CurrentHAttach/5.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0615 - CurrentVAttach/5.8,NULL);
+    LineTo(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.358 + CurrentHAttach/5.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0615 + CurrentVAttach/5.8);
+    // second line
+    MoveToEx(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3415 - CurrentHAttach/5.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.05 - CurrentVAttach/5.8,NULL);
+    LineTo(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.358 + CurrentHAttach/5.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVAttach/5.8);
+    // first line is ellipse
+    Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.34475 - CurrentHAttach/6.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.065 - CurrentVAttach/6.5,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3484 + CurrentHAttach/6.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0562 + CurrentVAttach/6.25);
+    // second line is ellipse
+    Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.35278 - CurrentHAttach/6.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0539 - CurrentVAttach/6.5,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3564 + CurrentHAttach/6.5,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.045 + CurrentVAttach/6.5);
+    SelectObject(Mdc,OldButtonColorRecipient);
+    DeleteObject(OldButtonColorRecipient);
+    SelectObject(Mdc,OldPenRecipient);
+    DeleteObject(PenRecipient);
+    // search button where you can search in the conversation about some words or infos
+    HBRUSH Gray = CreateSolidBrush(RGB(210, 210, 210));
+    OldButtonColor=SelectObject(Mdc,Gray);
+    HPEN penSend = CreatePen(PS_SOLID,3,RGB(0, 0, 0));
+    HPEN oldPenSend = SelectObject(Mdc,penSend);
+    /*Ellipse(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.364 + (WindowSize.right - WindowSize.left)*0.43,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.024,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.368 + (WindowSize.right - WindowSize.left)*0.447,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.0452);
+    MoveToEx(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.364 + (WindowSize.right - WindowSize.left)*0.43085,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.04222,NULL);
+    LineTo(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.364 + (WindowSize.right - WindowSize.left)*0.42605,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.04705);*/
+    SelectObject(Mdc,OldButtonColor);
+    DeleteObject(Gray);
+    // bracket on button send 
+    // down line 
+    MoveToEx(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
+    (WindowSize.right - WindowSize.left)*0.02)/2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.071 - CurrentVSend/5,NULL);
+    LineTo(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
+    (WindowSize.right - WindowSize.left)*0.02)/2,
+    WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.095 + (WindowSize.bottom - WindowSize.top)*0.0505 + CurrentVSend/5);
+    // left line
+    MoveToEx(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
+    (WindowSize.right - WindowSize.left)*0.02)/2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.071 - CurrentVSend/5,NULL);
+    LineTo(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.38 + (WindowSize.right - WindowSize.left)*0.4222 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.441)/2,
+    WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.059 - CurrentVSend/5);
+    // right line 
+    MoveToEx(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
+    (WindowSize.right - WindowSize.left)*0.02)/2,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.071 - CurrentVSend/5,NULL);
+    LineTo(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.377 + (WindowSize.right - WindowSize.left)*0.424 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3765 + (WindowSize.right - WindowSize.left)*0.44 +  
+    (WindowSize.right - WindowSize.left)*0.03405)/2,
+    WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.059 - CurrentVSend/5);
+    SelectObject(Mdc,oldPenSend);
+    DeleteObject(penSend);
+    SelectObject(Mdc,OldButtonColorRecipient);
+    DeleteObject(OldButtonColorRecipient);
+}
