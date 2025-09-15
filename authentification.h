@@ -20,7 +20,8 @@ typedef struct
     HWND ScrollBar;
     char username[30];
     char password[30];
-    HWND MessageBarHandle;
+    HWND UiInboxMessageBarHandle;
+    HWND UiGeneralMessageBarHandle;
 }SndTrd;
 SndTrd SendingTools;
 typedef struct

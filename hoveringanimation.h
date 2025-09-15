@@ -78,6 +78,13 @@ float CurrentVEmoji=0.0f;
 bool HoveringEmoji=FALSE;
 bool WasHoveringEmoji=FALSE;
 bool CheckEmoji=FALSE;
+
+#define UiGeneralEmojiTimer 2000
+float UiGeneralCurrentHEmoji=0.0f;
+float UiGeneralCurrentVEmoji=0.0f;
+bool UiGeneralHoveringEmoji=FALSE;
+bool UiGeneralWasHoveringEmoji=FALSE;
+bool UiGeneralCheckEmoji=FALSE;
 #define HOVER_H_C 4
 #define HOVER_V_C 4
 
@@ -89,6 +96,13 @@ bool HoveringAttach=FALSE;
 bool WasHoveringAttach=FALSE;
 bool CheckAttach=FALSE;
 
+#define UiGeneralAttachTimer 2001
+float UiGeneralCurrentHAttach=0.0f;
+float UiGeneralCurrentVAttach=0.0f;
+bool UiGeneralHoveringAttach=FALSE;
+bool UiGeneralWasHoveringAttach=FALSE;
+bool UiGeneralCheckAttach=FALSE;
+
 // Send variable
 #define SendTimer 1021
 float CurrentHSend=0.0f;
@@ -96,6 +110,14 @@ float CurrentVSend=0.0f;
 bool HoveringSend=FALSE;
 bool WasHoveringSend=FALSE;
 bool CheckSend=FALSE;
+
+#define UiGeneralSendTimer 2002
+float UiGeneralCurrentHSend=0.0f;
+float UiGeneralCurrentVSend=0.0f;
+bool UiGeneralHoveringSend=FALSE;
+bool UiGeneralWasHoveringSend=FALSE;
+bool UiGeneralCheckSend=FALSE;
+
 // Animation message
 void UpdateMessageAnimation(bool HoveringMessage,HWND HandleWnd)
 {
@@ -408,6 +430,91 @@ void UpdateSendAnimation(bool HoveringSend,HWND HandleWnd,RECT WindowSize)
             CurrentHSend=0;
             CurrentVSend=0;
             KillTimer(HandleWnd,SendTimer);
+        }
+    }        
+    InvalidateRect(HandleWnd,&WindowSize,FALSE);
+}
+// the same as the previous in UiInbox but those are in UiGeneral
+void UiGeneralUpdateEmojiAnimation(bool UiGeneralHoveringEmoji,HWND HandleWnd,RECT WindowSize)
+{
+    float IncremmentHEmoji=HOVER_H_C/3;
+    float IncremmentVEmoji=HOVER_V_C/3;
+    if(UiGeneralHoveringEmoji)
+    {
+        UiGeneralCurrentHEmoji+=IncremmentHEmoji;
+        UiGeneralCurrentVEmoji+=IncremmentVEmoji;
+        if(UiGeneralCurrentHEmoji >=HOVER_H_C)
+        {
+            UiGeneralCurrentHEmoji=HOVER_H_C;
+            UiGeneralCurrentVEmoji=HOVER_V_C;
+            KillTimer(HandleWnd,UiGeneralEmojiTimer);
+        }
+    }
+    else
+    {
+        UiGeneralCurrentHEmoji-=IncremmentHEmoji;
+        UiGeneralCurrentVEmoji-=IncremmentVEmoji;
+        if(UiGeneralCurrentHEmoji <=0)
+        {
+            UiGeneralCurrentHEmoji=0;
+            UiGeneralCurrentVEmoji=0;
+            KillTimer(HandleWnd,UiGeneralEmojiTimer);
+        }
+    }        
+    InvalidateRect(HandleWnd,&WindowSize,FALSE);
+}
+void UiGeneralUpdateAttachAnimation(bool UiGeneralHoveringAttach,HWND HandleWnd,RECT WindowSize)
+{
+    float IncremmentHAttach=HOVER_H_C/3;
+    float IncremmentVAttach=HOVER_V_C/3;
+    if(UiGeneralHoveringAttach)
+    {
+        UiGeneralCurrentHAttach+=IncremmentHAttach;
+        UiGeneralCurrentVAttach+=IncremmentVAttach;
+        if(UiGeneralCurrentHAttach >=HOVER_H_C)
+        {
+            UiGeneralCurrentHAttach=HOVER_H_C;
+            UiGeneralCurrentVAttach=HOVER_V_C;
+            KillTimer(HandleWnd,UiGeneralAttachTimer);
+        }
+    }
+    else
+    {
+        UiGeneralCurrentHAttach-=IncremmentHAttach;
+        UiGeneralCurrentVAttach-=IncremmentVAttach;
+        if(UiGeneralCurrentHAttach <=0)
+        {
+            UiGeneralCurrentHAttach=0;
+            UiGeneralCurrentVAttach=0;
+            KillTimer(HandleWnd,UiGeneralAttachTimer);
+        }
+    }        
+    InvalidateRect(HandleWnd,&WindowSize,FALSE);
+}
+void UiGeneralUpdateSendAnimation(bool UiGeneralHoveringSend,HWND HandleWnd,RECT WindowSize)
+{
+    float IncremmentHSend=HOVER_H_C/3;
+    float IncremmentVSend=HOVER_V_C/3;
+    if(UiGeneralHoveringSend)
+    {
+        UiGeneralCurrentHSend+=IncremmentHSend;
+        UiGeneralCurrentVSend+=IncremmentVSend;
+        if(UiGeneralCurrentHSend >=HOVER_H_C)
+        {
+            UiGeneralCurrentHSend=HOVER_H_C;
+            UiGeneralCurrentVSend=HOVER_V_C;
+            KillTimer(HandleWnd,UiGeneralSendTimer);
+        }
+    }
+    else
+    {
+        UiGeneralCurrentHSend-=IncremmentHSend;
+        UiGeneralCurrentVSend-=IncremmentVSend;
+        if(UiGeneralCurrentHSend <=0)
+        {
+            UiGeneralCurrentHSend=0;
+            UiGeneralCurrentVSend=0;
+            KillTimer(HandleWnd,UiGeneralSendTimer);
         }
     }        
     InvalidateRect(HandleWnd,&WindowSize,FALSE);

@@ -20,10 +20,13 @@ RECT Choice_5_Button;
 RECT PanelRect;
 // Emoji
 RECT Emoji_Button;
+RECT UiGeneralEmoji_Button;
 // Attach
 RECT Attach_Button;
+RECT UiGeneralAttach_Button;
 // Send
 RECT Send_Button;
+RECT UiGeneralSend_Button;
 //Comapany Big logo
 HICON CompanyBigLogo;
 HWND HandleBigLogo;

@@ -101,3 +101,28 @@ bool CheckSendRect(RECT Send_Button,HWND HandleWnd,int Mx,int My)
     }
     return FALSE;
 }
+// the same as the previous in UiInbox but those are in UiGeneral
+bool UiGeneralCheckEmojiRect(RECT UiGeneralEmoji_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=UiGeneralEmoji_Button.left && Mx<=UiGeneralEmoji_Button.right) && (My >=UiGeneralEmoji_Button.top && My<=UiGeneralEmoji_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+bool UiGeneralCheckAttachRect(RECT UiGeneralSend_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=UiGeneralAttach_Button.left && Mx<=UiGeneralAttach_Button.right) && (My >=UiGeneralAttach_Button.top && My<=UiGeneralAttach_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+bool UiGeneralCheckSendRect(RECT UiGeneralSend_Button,HWND HandleWnd,int Mx,int My)
+{
+    if((Mx >=UiGeneralSend_Button.left && Mx<=UiGeneralSend_Button.right) && (My >=UiGeneralSend_Button.top && My<=UiGeneralSend_Button.bottom))
+    {
+        return TRUE;
+    }
+    return FALSE;
+}

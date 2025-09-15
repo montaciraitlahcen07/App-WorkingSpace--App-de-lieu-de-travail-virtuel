@@ -46,14 +46,14 @@ typedef struct
 }ConversationData;
 typedef struct 
 {
-    ConversationData Conversation[100];
+    ConversationData Conversation[150];
     int last_index;
     int count;
     char OwnerName[50];
     int render_index;
     char color[50];
 }conversationsOwners;
-conversationsOwners MessagesConversations[40];
+conversationsOwners MessagesConversations[60];
 typedef struct
 {
     char sender[50];
@@ -276,7 +276,7 @@ unsigned __stdcall SendingThread(void *param)
                 ConnectingTools.PrivateMessage.SelectedRecipient[--lenRecipient] = '\0';
             }
            // taking the message from message bar
-            GetWindowText(SendingTools.MessageBarHandle,ConnectingTools.PrivateMessage.Buffer,sizeof(ConnectingTools.PrivateMessage.Buffer));
+            GetWindowText(SendingTools.UiInboxMessageBarHandle,ConnectingTools.PrivateMessage.Buffer,sizeof(ConnectingTools.PrivateMessage.Buffer));
             int lenb = strlen(ConnectingTools.PrivateMessage.Buffer);
             while (lenb > 0 && (ConnectingTools.PrivateMessage.Buffer[lenb-1] == '\n' || ConnectingTools.PrivateMessage.Buffer[lenb-1] == '\r' || 
             ConnectingTools.PrivateMessage.Buffer[lenb-1] == '\t' || ConnectingTools.PrivateMessage.Buffer[lenb-1] == ' '))
@@ -298,7 +298,7 @@ unsigned __stdcall SendingThread(void *param)
                 {
                     continue;
                 }
-                SetWindowText(SendingTools.MessageBarHandle,"");
+                SetWindowText(SendingTools.UiInboxMessageBarHandle,"");
             }
             Send = FALSE;
             Sleep(50);

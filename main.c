@@ -70,6 +70,7 @@ WNDPROC OriginalPasswordBarProc = NULL;
 WNDPROC OriginalMessageBarProc = NULL;
 WNDPROC OriginalConversationBarProc = NULL;
 WNDPROC OriginalUiGeneralConversationBarProc = NULL;
+WNDPROC UiGeneralOriginalMessageBarProc = NULL;
 //
 extern bool BubbleLogo;
 bool safety;
@@ -79,6 +80,105 @@ HWND UiGeneralConversationWndH;
 RECT UiGeneralConversationRect;
 HDC DC_UiGeneral_Conversation,Mdc_UiGeneralConversation_child;
 HBITMAP BM_Conversation_Child,OldBM_Conversation_Child;
+// creating window proc for the message bar in UiGeneral 
+LRESULT CALLBACK UiGeneralMessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch(msg)
+    {
+        case WM_PAINT :
+        {
+            MoveWindow(hwnd,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.266,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09,
+            Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.232,(WindowSize.bottom - WindowSize.top)*0.07,TRUE);
+            LRESULT result = CallWindowProc(UiGeneralOriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                HDC hdc = GetDC(hwnd);
+                RECT rect;
+                GetClientRect(hwnd,&rect);
+                SetTextColor(hdc, RGB(128, 128, 128));
+                SetBkMode(hdc, TRANSPARENT);
+                rect.left += (rect.right - rect.left)*0.021;
+                DrawText(hdc, "Type a message...", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                ReleaseDC(hwnd, hdc);
+            }
+            return result;
+        }
+        case WM_CHAR:
+        {
+            if(UiGeneral && GetFocus() == UiGeneralMessageBarHandle && wParam == VK_RETURN)
+            {
+                /*GetWindowText(hwnd, buffer, sizeof(buffer));
+                if(strlen(buffer) != 0 && !HasOnlyWhitespace(UiGeneralMessageBarHandle))
+                {
+                    Send = TRUE;
+                }*/
+                InvalidateRect(HandleWnd,&WindowSize,TRUE);
+                return 0;
+            }
+            InvalidateRect(UiGeneralMessageBarHandle,NULL,TRUE);
+            return CallWindowProc(UiGeneralOriginalMessageBarProc, hwnd, msg, wParam, lParam);
+        }
+        case WM_LBUTTONDOWN:
+        {
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                SetFocus(hwnd);
+                InvalidateRect(hwnd, NULL, TRUE);
+                InvalidateRect(HandleSearch, NULL, TRUE);
+                return 0;
+            }
+            InvalidateRect(hwnd, NULL, TRUE);
+            InvalidateRect(HandleSearch, NULL, TRUE);
+            return CallWindowProc(UiGeneralOriginalMessageBarProc, hwnd, msg, wParam, lParam);
+        }
+        case WM_LBUTTONDBLCLK:
+        {
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                SetFocus(hwnd);
+                InvalidateRect(hwnd, NULL, TRUE);
+                return 0;
+            }
+            InvalidateRect(hwnd, NULL, TRUE);
+            return CallWindowProc(UiGeneralOriginalMessageBarProc, hwnd, msg, wParam, lParam);
+        }
+        case WM_PASTE:
+        {
+            LRESULT result = CallWindowProc(UiGeneralOriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, TRUE);
+            return result;
+        }
+        case EM_SETSEL:
+        {
+            GetWindowText(hwnd, buffer, sizeof(buffer));
+            if(strlen(buffer) == 0)
+            {
+                InvalidateRect(hwnd, NULL, TRUE);
+                return 0;
+            }
+            LRESULT result = CallWindowProc(UiGeneralOriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, TRUE);
+            return result;
+        }
+        case WM_SETFOCUS:
+        {
+            LRESULT result = CallWindowProc(UiGeneralOriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, TRUE);
+            return result;
+        }
+        case WM_KILLFOCUS:
+        {
+            LRESULT result = CallWindowProc(UiGeneralOriginalMessageBarProc, hwnd, msg, wParam, lParam);
+            InvalidateRect(hwnd, NULL, TRUE);
+            return result;
+        }
+        default:
+        return CallWindowProc(UiGeneralOriginalMessageBarProc, hwnd, msg, wParam, lParam);
+    }
+}
 // General Conversation's Child Window
 LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg)
@@ -111,7 +211,16 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
             HBITMAP memBitmap = CreateCompatibleBitmap(DC_UiGeneral_Conversation, 
             UiGeneralConversationRect.right - UiGeneralConversationRect.left, UiGeneralConversationRect.bottom - UiGeneralConversationRect.top);
             HBITMAP oldBitmap = SelectObject(Mdc_UiGeneralConversation_child, memBitmap);
-            float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.142));
+            bool FontSize = (((WindowSize.right - WindowSize.left) >= 1000 && (WindowSize.bottom - WindowSize.top) >= 700)?TRUE:FALSE);
+            float ConversationHeight;
+            if(!FontSize)
+            {
+                ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.139));
+            }
+            else 
+            {
+                ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.146));
+            }
             MoveWindow(hwnd,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,
             (WindowSize.bottom - WindowSize.top)*0.272,
             WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,
@@ -1351,20 +1460,20 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                 if(!BubbleLogo && strlen(ConnectingTools.PrivateMessage.SelectedRecipient) > 0 && strcmp(ConnectingTools.PrivateMessage.SelectedRecipient,"FALSE") != 0 && strcmp(ConnectingTools.PrivateMessage.SelectedRecipient,"TRUE") != 0)
                 {
                     BubbleLogo = TRUE;
-                    // creating message bar 
-                    RECT MessageBarRect;
-                    GetClientRect(HandleWnd, &MessageBarRect);
+                    // creating message bar for UiInbox
+                    RECT UiInboxMessageBarRect;
+                    GetClientRect(HandleWnd, &UiInboxMessageBarRect);
                     MessageBarHandle = CreateWindowEx(0,"EDIT",0, 
                     WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
-                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375,MessageBarRect.bottom - (MessageBarRect.bottom - MessageBarRect.top)*0.09,
-                    (MessageBarRect.right - MessageBarRect.left)*0.41,(MessageBarRect.bottom - MessageBarRect.top)*0.07,
+                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375,UiInboxMessageBarRect.bottom - (UiInboxMessageBarRect.bottom - UiInboxMessageBarRect.top)*0.09,
+                    (UiInboxMessageBarRect.right - UiInboxMessageBarRect.left)*0.41,(UiInboxMessageBarRect.bottom - UiInboxMessageBarRect.top)*0.07,
                     HandleWnd,0,IDhInstance, NULL);
                     if(MessageBarHandle)
                     {
                         OriginalMessageBarProc = (WNDPROC)SetWindowLongPtr(MessageBarHandle, GWLP_WNDPROC, (LONG_PTR)MessageBarProc);
                     }
                     // taking a copy for the sending thread
-                    SendingTools.MessageBarHandle = MessageBarHandle;
+                    SendingTools.UiInboxMessageBarHandle = MessageBarHandle;
                 }
                 InvalidateRect(ConversationScrollBar,NULL,TRUE);
                 InvalidateRect(UiGeneralConversationWndH,NULL,TRUE);
@@ -1587,16 +1696,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             break;
             case WM_PAINT:
             GetClientRect(hwnd,&WindowSize);
-            if(Mdc)
-            {
-                ReleaseDC(hwnd,Mdc);
-            }
             if(UiGeneral && UiGeneralTimes >= 1 && UiInboxTimes >= 1)
             {
                 ResetChoice = TRUE;
             }
-            LastUiInbox = UiInbox;
-            LastUiGeneral = UiGeneral;
             WindowLeft = WindowSize.left;
             WindowTop = WindowSize.top;
             WindowWidth = WindowSize.right - WindowSize.left;
@@ -1824,11 +1927,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 if(UiGeneral)
                 {
                     ShowWindow(UiGeneralConversationWndH, SW_SHOW); 
-                    UiGeneralConversation(HandleWnd,Mdc,ConnectingTools,WindowSize,PanelRect,CurrentHEmoji,CurrentVEmoji,CurrentHAttach,CurrentVAttach,CurrentHSend,CurrentVSend);
+                    ShowWindow(UiGeneralMessageBarHandle, SW_SHOW); 
+                    MoveWindow(UiGeneralMessageBarHandle,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.266,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09,
+                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.232,(WindowSize.bottom - WindowSize.top)*0.07,TRUE);
+                    UiGeneralConversation(HandleWnd,Mdc,ConnectingTools,WindowSize,PanelRect,UiGeneralCurrentHEmoji,UiGeneralCurrentVEmoji,UiGeneralCurrentHAttach,UiGeneralCurrentVAttach,UiGeneralCurrentHSend,UiGeneralCurrentVSend);
                 }
                 else
                 {
                     ShowWindow(UiGeneralConversationWndH, SW_HIDE); 
+                    ShowWindow(UiGeneralMessageBarHandle, SW_HIDE); 
                 }
             }    
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
@@ -1870,6 +1977,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             Account=TRUE;
             LogInCtl=FALSE;
             Find = FALSE;
+            safety = FALSE;
             break;
             case MessageTimer :
             // this is updating the the button message every time
@@ -1911,88 +2019,119 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             case SendTimer :
             UpdateSendAnimation(HoveringSend,hwnd,WindowSize);
             break;
+            case UiGeneralEmojiTimer :
+            UiGeneralUpdateEmojiAnimation(UiGeneralHoveringEmoji,hwnd,WindowSize);
+            break;
+            case UiGeneralAttachTimer :
+            UiGeneralUpdateAttachAnimation(UiGeneralHoveringAttach,hwnd,WindowSize);
+            break;
+            case UiGeneralSendTimer :
+            UiGeneralUpdateSendAnimation(UiGeneralHoveringSend,hwnd,WindowSize);
+            break;
         }
         InvalidateRect(hwnd,&AreaRedraw,FALSE);
         break;
         case WM_LBUTTONDOWN :
-        x =GET_X_LPARAM(lParam);
-        y =GET_Y_LPARAM(lParam);
-        if((x>=Choice_1_Button.left && x<=Choice_1_Button.right) && (y>=Choice_1_Button.top && y<=Choice_1_Button.bottom ))
+        if(!safety)
         {
-            UiMessage=TRUE;   
-            UiGeneral = FALSE;
-            // taking a copy for the receiving thread
-            RcvStg.UiGeneral = UiGeneral;
-            UiInbox = FALSE;
-            // taking a copy for the receiving thread
-            RcvStg.UiInbox = UiInbox;
-            MessageButtonClicked = TRUE;   
-        }
-        else if(MessageButtonClicked)
-        {
-            // i need to make a condition in the end of the condition messagebuttonclicked about turning messagebuttonclicked into false
-            //MessageButtonClicked = FALSE;
-            // this is for checking the inbox button 
-            if((x>=Choice_1_Inbox_Button.left && x<=Choice_1_Inbox_Button.right) && (y>=Choice_1_Inbox_Button.top && y<=Choice_1_Inbox_Button.bottom ))
+            x =GET_X_LPARAM(lParam);
+            y =GET_Y_LPARAM(lParam);
+            if((x>=Choice_1_Button.left && x<=Choice_1_Button.right) && (y>=Choice_1_Button.top && y<=Choice_1_Button.bottom ))
             {
-                UiInbox = TRUE;
-                UiInboxTimes++;
-                MemoryDcSndTool.UiInbox = UiInbox;
-                // taking a copy for the receiving thread
-                RcvStg.UiInbox = UiInbox;
-                UiMessage = FALSE;
+                UiMessage=TRUE;   
                 UiGeneral = FALSE;
-                MemoryDcSndTool.UiGeneral = UiGeneral;
-                SetTimer(hwnd,TimerPanel,30,NULL);
-                // for the search of the recipient
-                if(HandleSearch == NULL)
-                {
-                    GetClientRect(hwnd, &WindowSize); 
-                    ChatRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.018;
-                    ChatRect.top = WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043;
-                    ChatRect.right = ChatRect.left + (WindowSize.right - WindowSize.left)*0.1;
-                    ChatRect.bottom = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.04;
-                    HandleSearch = CreateWindowEx(0,"EDIT",0, 
-                    WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
-                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.1,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.22,(WindowSize.bottom - WindowSize.top)*0.064,
-                    hwnd,0,IDhInstance, NULL);
-                    if(HandleSearch)
-                    {
-                        OriginalEditProc = (WNDPROC)SetWindowLongPtr(HandleSearch, GWLP_WNDPROC, (LONG_PTR)SearchBarProc);
-                    }
-                }
-            }
-            else if((x>=Choice_1_General_Button.left && x<=Choice_1_General_Button.right) && (y>=Choice_1_General_Button.top && y<=Choice_1_General_Button.bottom ))
-            {
-                UiGeneral = TRUE;
-                MemoryDcSndTool.UiGeneral = UiGeneral;
-                UiGeneralTimes++;
-                CWndCreation = TRUE;
-                UiMessage = FALSE;
+                // taking a copy for the receiving thread
+                RcvStg.UiGeneral = UiGeneral;
                 UiInbox = FALSE;
-                MemoryDcSndTool.UiInbox = UiInbox;
                 // taking a copy for the receiving thread
                 RcvStg.UiInbox = UiInbox;
-                SetTimer(hwnd,TimerPanel,30,NULL);
+                MessageButtonClicked = TRUE;   
             }
-            else if(UiInbox)
+            else if(MessageButtonClicked)
             {
-                float left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
-                float right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 + (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
-                float top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
-                float bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
-                if(x>=left && x<=right && y>= top && y<=bottom)
+                // i need to make a condition in the end of the condition messagebuttonclicked about turning messagebuttonclicked into false
+                //MessageButtonClicked = FALSE;
+                // this is for checking the inbox button 
+                if((x>=Choice_1_Inbox_Button.left && x<=Choice_1_Inbox_Button.right) && (y>=Choice_1_Inbox_Button.top && y<=Choice_1_Inbox_Button.bottom ) && !UiGeneral)
                 {
-                    GetWindowText(MessageBarHandle, buffer, sizeof(buffer));
-                    if(strlen(buffer) != 0 && !HasOnlyWhitespace(MessageBarHandle))
+                    UiInbox = TRUE;
+                    UiInboxTimes++;
+                    MemoryDcSndTool.UiInbox = UiInbox;
+                    // taking a copy for the receiving thread
+                    RcvStg.UiInbox = UiInbox;
+                    UiMessage = FALSE;
+                    UiGeneral = FALSE;
+                    MemoryDcSndTool.UiGeneral = UiGeneral;
+                    SetTimer(hwnd,TimerPanel,30,NULL);
+                    // for the search of the recipient
+                    if(HandleSearch == NULL)
                     {
-                        Send = TRUE;
+                        GetClientRect(hwnd, &WindowSize); 
+                        ChatRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.018;
+                        ChatRect.top = WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043;
+                        ChatRect.right = ChatRect.left + (WindowSize.right - WindowSize.left)*0.1;
+                        ChatRect.bottom = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.04;
+                        HandleSearch = CreateWindowEx(0,"EDIT",0, 
+                        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
+                        Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.1,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.22,(WindowSize.bottom - WindowSize.top)*0.064,
+                        hwnd,0,IDhInstance, NULL);
+                        if(HandleSearch)
+                        {
+                            OriginalEditProc = (WNDPROC)SetWindowLongPtr(HandleSearch, GWLP_WNDPROC, (LONG_PTR)SearchBarProc);
+                        }
+                    }
+                }
+                else if((x>=Choice_1_General_Button.left && x<=Choice_1_General_Button.right) && (y>=Choice_1_General_Button.top && y<=Choice_1_General_Button.bottom ) && !UiInbox)
+                {
+                    UiGeneral = TRUE;
+                    MemoryDcSndTool.UiGeneral = UiGeneral;
+                    UiGeneralTimes++;
+                    UiMessage = FALSE;
+                    UiInbox = FALSE;
+                    MemoryDcSndTool.UiInbox = UiInbox;
+                    // taking a copy for the receiving thread
+                    RcvStg.UiInbox = UiInbox;
+                    SetTimer(hwnd,TimerPanel,30,NULL);
+                    if(!CWndCreation)
+                    {
+                        CWndCreation = TRUE;
+                        // creating message bar for UiGeneral
+                        RECT UiGeneralMessageBarRect;
+                        GetClientRect(HandleWnd, &UiGeneralMessageBarRect);
+                        UiGeneralMessageBarHandle = CreateWindowEx(0,"EDIT",0, 
+                        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
+                        Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,UiGeneralMessageBarRect.bottom - (UiGeneralMessageBarRect.bottom - UiGeneralMessageBarRect.top)*0.09,
+                        WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,(UiGeneralMessageBarRect.bottom - UiGeneralMessageBarRect.top)*0.07,
+                        HandleWnd,0,IDhInstance, NULL);
+                        if(UiGeneralMessageBarHandle)
+                        {
+                            UiGeneralOriginalMessageBarProc = (WNDPROC)SetWindowLongPtr(UiGeneralMessageBarHandle, GWLP_WNDPROC, (LONG_PTR)UiGeneralMessageBarProc);
+                        }
+                        // taking a copy for the sending thread
+                        SendingTools.UiInboxMessageBarHandle = MessageBarHandle;
+                    }
+                    SetFocus(UiGeneralMessageBarHandle);
+                }
+                else if(UiInbox)
+                {
+                    float left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
+                    float right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 + (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
+                    float top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
+                    float bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
+                    if(x>=left && x<=right && y>= top && y<=bottom)
+                    {
+                        GetWindowText(MessageBarHandle, buffer, sizeof(buffer));
+                        if(strlen(buffer) != 0 && !HasOnlyWhitespace(MessageBarHandle))
+                        {
+                            Send = TRUE;
+                        }
                     }
                 }
             }
+            InvalidateRect(hwnd,&WindowSize,FALSE);
+            InvalidateRect(HandleSearch,NULL,FALSE);
         }
-        InvalidateRect(hwnd,&WindowSize,FALSE);
-        InvalidateRect(HandleSearch,NULL,FALSE);
+        else return 0;
         break;
         case WM_MOUSEMOVE :
         {
@@ -2097,62 +2236,122 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             // decrease the button is size
             SetTimer(hwnd,GeneralTimer,4,NULL); 
         }
-        // Emoji hovering 
-        Emoji_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.296 - CurrentHEmoji;
-        Emoji_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - CurrentVEmoji;
-        Emoji_Button.right =  Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.326 + CurrentHEmoji;
-        Emoji_Button.bottom =  WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + CurrentVEmoji;
-        WasHoveringEmoji=HoveringEmoji;
-        CheckEmoji=CheckEmojiRect(Emoji_Button,hwnd,Mx,My);
-        HoveringEmoji=CheckEmoji;
-        if(HoveringEmoji && !WasHoveringEmoji)
+        if(UiInbox)
         {
-            // increase the button is size
-            SetTimer(hwnd,EmojiTimer,14,NULL);
+            // Emoji hovering 
+            Emoji_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.296 - CurrentHEmoji;
+            Emoji_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - CurrentVEmoji;
+            Emoji_Button.right =  Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.326 + CurrentHEmoji;
+            Emoji_Button.bottom =  WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + CurrentVEmoji;
+            WasHoveringEmoji=HoveringEmoji;
+            CheckEmoji=UiGeneralCheckEmojiRect(Emoji_Button,hwnd,Mx,My);
+            HoveringEmoji=CheckEmoji;
+            if(HoveringEmoji && !WasHoveringEmoji)
+            {
+                // increase the button is size
+                SetTimer(hwnd,EmojiTimer,14,NULL);
+            }
+            else if(!HoveringEmoji && WasHoveringEmoji)
+            {
+                // decrease the button is size
+                SetTimer(hwnd,EmojiTimer,14,NULL); 
+            }
+            // Attach hovering 
+            Attach_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.335 - CurrentHAttach;
+            Attach_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - CurrentVAttach;
+            Attach_Button.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3655 + CurrentHAttach;
+            Attach_Button.bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + CurrentVAttach;
+            WasHoveringAttach=HoveringAttach;
+            CheckAttach=CheckAttachRect(Attach_Button,hwnd,Mx,My);
+            HoveringAttach=CheckAttach;
+            if(HoveringAttach && !WasHoveringAttach)
+            {
+                // increase the button is size
+                SetTimer(hwnd,AttachTimer,14,NULL);
+            }
+            else if(!HoveringAttach && WasHoveringAttach)
+            {
+                // decrease the button is size
+                SetTimer(hwnd,AttachTimer,14,NULL); 
+            }
+            // Send hovering 
+            Send_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
+            Send_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
+            Send_Button.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
+            (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
+            Send_Button.bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
+            WasHoveringSend=HoveringSend;
+            CheckSend=UiGeneralCheckSendRect(Send_Button,hwnd,Mx,My);
+            HoveringSend=CheckSend;
+            if(HoveringSend && !WasHoveringSend)
+            {
+                // increase the button is size
+                SetTimer(hwnd,SendTimer,14,NULL);
+            }
+            else if(!HoveringSend && WasHoveringSend)
+            {
+                // decrease the button is size
+                SetTimer(hwnd,SendTimer,14,NULL); 
+            }
         }
-        else if(!HoveringEmoji && WasHoveringEmoji)
+        else if(UiGeneral)
         {
-            // decrease the button is size
-            SetTimer(hwnd,EmojiTimer,14,NULL); 
+            // Emoji hovering 
+            UiGeneralEmoji_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.19 - UiGeneralCurrentHEmoji;
+            UiGeneralEmoji_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - UiGeneralCurrentVEmoji;
+            UiGeneralEmoji_Button.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.22 + UiGeneralCurrentHEmoji;
+            UiGeneralEmoji_Button.bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + UiGeneralCurrentVEmoji;
+            UiGeneralWasHoveringEmoji=UiGeneralHoveringEmoji;
+            UiGeneralCheckEmoji=UiGeneralCheckEmojiRect(UiGeneralEmoji_Button,hwnd,Mx,My);
+            UiGeneralHoveringEmoji=UiGeneralCheckEmoji;
+            if(UiGeneralHoveringEmoji && !UiGeneralWasHoveringEmoji)
+            {
+                // increase the button is size
+                SetTimer(hwnd,UiGeneralEmojiTimer,14,NULL);
+            }
+            else if(!UiGeneralHoveringEmoji && UiGeneralWasHoveringEmoji)
+            {
+                // decrease the button is size
+                SetTimer(hwnd,UiGeneralEmojiTimer,14,NULL); 
+            }
+            // Attach hovering 
+            UiGeneralAttach_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.228 - UiGeneralCurrentHAttach;
+            UiGeneralAttach_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - UiGeneralCurrentVAttach;
+            UiGeneralAttach_Button.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.259 + UiGeneralCurrentHAttach;
+            UiGeneralAttach_Button.bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + UiGeneralCurrentVAttach;
+            UiGeneralWasHoveringAttach=UiGeneralHoveringAttach;
+            UiGeneralCheckAttach=UiGeneralCheckAttachRect(UiGeneralAttach_Button,hwnd,Mx,My);
+            UiGeneralHoveringAttach=UiGeneralCheckAttach;
+            if(UiGeneralHoveringAttach && !UiGeneralWasHoveringAttach)
+            {
+                // increase the button is size
+                SetTimer(hwnd,UiGeneralAttachTimer,14,NULL);
+            }
+            else if(!UiGeneralHoveringAttach && UiGeneralWasHoveringAttach)
+            {
+                // decrease the button is size
+                SetTimer(hwnd,UiGeneralAttachTimer,14,NULL); 
+            }
+            // Send hovering 
+            UiGeneralSend_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.6454 - UiGeneralCurrentHSend;
+            UiGeneralSend_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - UiGeneralCurrentVSend;
+            UiGeneralSend_Button.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.68 + UiGeneralCurrentHSend;
+            UiGeneralSend_Button.bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + UiGeneralCurrentVSend;
+            UiGeneralWasHoveringSend=UiGeneralHoveringSend;
+            UiGeneralCheckSend=UiGeneralCheckSendRect(UiGeneralSend_Button,hwnd,Mx,My);
+            UiGeneralHoveringSend=UiGeneralCheckSend;
+            if(UiGeneralHoveringSend && !UiGeneralWasHoveringSend)
+            {
+                // increase the button is size
+                SetTimer(hwnd,UiGeneralSendTimer,14,NULL);
+            }
+            else if(!UiGeneralHoveringSend && UiGeneralWasHoveringSend)
+            {
+                // decrease the button is size
+                SetTimer(hwnd,UiGeneralSendTimer,14,NULL); 
+            }
         }
-        // Attach hovering 
-        Attach_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.335 - CurrentHAttach;
-        Attach_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0872 - CurrentVAttach;
-        Attach_Button.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3655 + CurrentHAttach;
-        Attach_Button.bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0285 + CurrentVAttach;
-        WasHoveringAttach=HoveringAttach;
-        CheckAttach=CheckAttachRect(Attach_Button,hwnd,Mx,My);
-        HoveringAttach=CheckAttach;
-        if(HoveringAttach && !WasHoveringAttach)
-        {
-            // increase the button is size
-            SetTimer(hwnd,AttachTimer,14,NULL);
-        }
-        else if(!HoveringAttach && WasHoveringAttach)
-        {
-            // decrease the button is size
-            SetTimer(hwnd,AttachTimer,14,NULL); 
-        }
-        // Send hovering 
-        Send_Button.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
-        Send_Button.top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
-        Send_Button.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 +  
-        (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
-        Send_Button.bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
-        WasHoveringSend=HoveringSend;
-        CheckSend=CheckSendRect(Send_Button,hwnd,Mx,My);
-        HoveringSend=CheckSend;
-        if(HoveringSend && !WasHoveringSend)
-        {
-            // increase the button is size
-            SetTimer(hwnd,SendTimer,14,NULL);
-        }
-        else if(!HoveringSend && WasHoveringSend)
-        {
-            // decrease the button is size
-            SetTimer(hwnd,SendTimer,14,NULL); 
-        }
-         break;
+        break;
         }
         case WM_MOUSELEAVE:
         {
