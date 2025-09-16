@@ -37,7 +37,7 @@ int CreatingThreads = 0;
 //
 CRITICAL_SECTION socketLock;
 //
-// for storing conversation message
+// for storing conversation message (UiInbox)
 typedef struct
 {
     char message[200];
@@ -50,7 +50,6 @@ typedef struct
     int last_index;
     int count;
     char OwnerName[50];
-    int render_index;
     char color[50];
 }conversationsOwners;
 conversationsOwners MessagesConversations[60];
@@ -62,9 +61,18 @@ typedef struct
     int index;
     int type;
 }RequestConversation;
+// for storing conversation message (UiGeneral)
+typedef struct 
+{
+    ConversationData Conversation[150];
+    int last_index;
+    int count;
+}conversationGeneral;
+conversationGeneral GeneralChatConversation;
 // scroll offset we will filter the message that would be shown in the screen 
 float Conversation_scrolloffset;
-// request Conversation messages pass 
+float UiGeneralConversation_scrolloffset;
+// request Conversation messages pass (UiInbox)
 typedef struct
 {
     char recipient[50];
@@ -73,6 +81,13 @@ typedef struct
     int messages_left;
 }firstrequest;
 firstrequest RecipientPass[40];
+// request Conversation messages pass (UiGeneral)
+typedef struct
+{
+    bool no_more;
+    int messages_left;
+}Generalfirstrequest;
+Generalfirstrequest UiGeneralRequestSetting;
 //
 typedef struct
 {
@@ -397,7 +412,7 @@ int FillingSearchRecipientList(HWND HandleSearch,int countclientStatus,Clients M
     }
     return CompSearchedRecipient;
 }
-// creating a conversation thread
+// creating a conversation thread (UiInbox)
 unsigned __stdcall ConversationThread(void *param)
 {
     typedef struct 
@@ -519,4 +534,51 @@ RGB ColorRgb(const char * Colorname)
         }
     }
     return colorDatabase[8].rgb;
+}
+// creating a conversation thread (UiGeneral)
+unsigned __stdcall UiGeneralConversationThread(void *param)
+{
+    typedef struct 
+    {
+        int message_count;
+        int last_index;
+        bool no_more;
+    }ResponseSetting;
+    ResponseSetting Response;
+    SOCKET ConversationSocket = *(SOCKET *)param;
+    while(true)
+    {
+        recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+        if(Response.message_count == 0)
+        {
+            GeneralChatConversation.last_index = 0;
+            UiGeneralRequestSetting.no_more = TRUE;
+        }
+        else if(Response.message_count > 0)
+        {
+            typedef struct
+            {
+                char message[200];
+                char sender[50];
+                struct tm TimeStamp;
+            }ResponseData;
+            ResponseData SendingData;
+            for(int j=0;j<Response.message_count;j++)
+            {
+                recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                ConversationData NewData;
+                strcpy(NewData.message,SendingData.message);
+                NewData.TimeStamp = SendingData.TimeStamp;
+                GeneralChatConversation.Conversation[GeneralChatConversation.count] = NewData;
+                if(Response.no_more)
+                {
+                    GeneralChatConversation.last_index = 0;
+                    UiGeneralRequestSetting.no_more = TRUE;
+                }
+                GeneralChatConversation.count++;
+            }
+        }
+    }
+    closesocket(ConversationSocket);
+    return 0;
 }
