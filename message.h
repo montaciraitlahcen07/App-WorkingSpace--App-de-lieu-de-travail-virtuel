@@ -1168,7 +1168,7 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
     float MessagePosition = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top);
     int CharactersPerLine,NumberOfLines;
     float MessageHeight;
-    float AccumulatedMessagesHeight = 0;
+    float UiGeneralAccumulatedMessagesHeight = 0;
     CharactersPerLine = (int)(((ConversationScrollBarRect.right - ConversationScrollBarRect.left) - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.5)/FontWidth);
     if(CharactersPerLine <= 0) CharactersPerLine = 1; // Prevent division by zero
     int check_message_left;
@@ -1200,9 +1200,9 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
         int message_length = strlen(GeneralChatConversation.Conversation[k].message);
         NumberOfLines = max(1, message_length/ CharactersPerLine);
         MessageHeight = NumberOfLines * textSize.cy + (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.035;
-        AccumulatedMessagesHeight += MessageHeight;
-        if(AccumulatedMessagesHeight > UiGeneralConversation_scrolloffset &&
-        AccumulatedMessagesHeight < (UiGeneralConversation_scrolloffset + ConversationScrollBarRect.bottom + MessageHeight))
+        UiGeneralAccumulatedMessagesHeight += MessageHeight;
+        if(UiGeneralAccumulatedMessagesHeight > UiGeneralConversation_scrolloffset &&
+        UiGeneralAccumulatedMessagesHeight < (UiGeneralConversation_scrolloffset + ConversationScrollBarRect.bottom + MessageHeight))
         {
             // this is for whether you can request new message or not 
             check_message_left = k;
@@ -1215,7 +1215,7 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
                 UiGeneralRequestSettingPass.messages_left = TRUE;
             }
             MessagePosition -= MessageHeight;
-            UiGeneralFrontier = AccumulatedMessagesHeight;
+            UiGeneralFrontier = UiGeneralAccumulatedMessagesHeight;
             if(strcmp(GeneralChatConversation.Conversation[k].owner,SendingTools.username) == 0)
             {
                 HPEN hPen = CreatePen(PS_SOLID, 1, RGB(112, 146, 190));
@@ -1387,13 +1387,13 @@ void UiGeneralCalculateConversationThumbRect(HWND hwnd, RECT* thumb_rect,RECT Wi
     {
         thumb_pos = scrollbar_height - thumb_height;
     }
-    if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
-    {
+    //if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
+    //{
         thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
         thumb_rect->top = thumb_pos;
         thumb_rect->right = client_rect.right - 2;
         thumb_rect->bottom = thumb_rect->top + thumb_height;
-    }
+    //}
 }
 // for drawing the thumb 
 void UiGeneralDrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float UiGeneralHeightIncrementationChecking)
@@ -1407,14 +1407,14 @@ void UiGeneralDrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float
         client_rect.bottom
     };
     HBRUSH track_brush;
-    if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
-    {
+    //if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
+    //{
       track_brush = CreateSolidBrush(TRACK_COLOR);
-    }
-    else
-    {
-        track_brush = CreateSolidBrush(RGB(247, 240, 217));
-    }
+    //}
+    //else
+    //{
+    //    track_brush = CreateSolidBrush(RGB(247, 240, 217));
+    //}
     FillRect(Mdc, &track_rect, track_brush);
     DeleteObject(track_brush);  
     UiGeneralCalculateConversationThumbRect(hwnd,&UiGeneralConversation_thumb.thumb_rect,WindowSize,UiGeneralHeightIncrementationChecking);    
@@ -1431,15 +1431,15 @@ void UiGeneralDrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float
     HBRUSH thumb_brush = CreateSolidBrush(thumb_color);
     HBRUSH old_brush = SelectObject(Mdc, thumb_brush);
     HPEN old_pen = SelectObject(Mdc, CreatePen(PS_SOLID, 1, thumb_color));
-    if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
-    {
+    //if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
+    //{
       RoundRect(Mdc, 
       UiGeneralConversation_thumb.thumb_rect.left + 2, 
       UiGeneralConversation_thumb.thumb_rect.top,
       UiGeneralConversation_thumb.thumb_rect.right - 2, 
       UiGeneralConversation_thumb.thumb_rect.bottom,
       6, 6);
-    }
+    //}
     float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - (PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.074)) - (WindowSize.right-WindowSize.left)*0.007;
     DeleteObject(SelectObject(Mdc, old_pen));
     SelectObject(Mdc, old_brush);

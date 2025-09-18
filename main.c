@@ -183,11 +183,12 @@ LRESULT CALLBACK UiGeneralMessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
     }
 }
 // General Conversation's Child Window
-LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
     switch (msg)
     {
         case WM_CREATE:
-            UiGeneralConversation_total_messages = 15;
+            UiGeneralConversation_total_messages = 20;
             UiGeneralConversation_messages_per_page = 11;
             UiGeneralConversation_thumb.min_val = 0;
             UiGeneralConversation_thumb.page_size = UiGeneralConversation_messages_per_page;
@@ -262,7 +263,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                 {
                     UiGeneralConversation_scrolloffset = 0;
                 }
-                UiGeneralUpdateConversationScrollbarRange(hwnd,UiGeneralConversationRect,&UiGeneralConversation_thumb,GeneralChatConversation.count);
+                //UiGeneralUpdateConversationScrollbarRange(hwnd,UiGeneralConversationRect,&UiGeneralConversation_thumb,GeneralChatConversation.count);
                 // showing the message i sent auto
                 /*if(Send)
                 {
@@ -363,7 +364,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
             InvalidateRect(hwnd,NULL, FALSE);
             break;
         }
-        /*case WM_LBUTTONDOWN:
+        case WM_LBUTTONDOWN:
         {
             RECT client_rect;
             GetClientRect(hwnd, &client_rect);
@@ -373,7 +374,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
             0,
             client_rect.right - 2,
             client_rect.bottom};
-            CalculateConversationThumbRect(hwnd, &UiGeneralConversation_thumb.thumb_rect,WindowSize,UiGeneralHeightIncrementationChecking);
+            UiGeneralCalculateConversationThumbRect(hwnd, &UiGeneralConversation_thumb.thumb_rect,WindowSize,UiGeneralHeightIncrementationChecking);
             client_rect.right -= SCROLLBAR_WIDTH - 2;
             // this is when i click on the thumb
             if(PointInRect(pt, &UiGeneralConversation_thumb.thumb_rect))
@@ -391,33 +392,17 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                 int range = UiGeneralConversation_thumb.max_val - UiGeneralConversation_thumb.min_val;
                 float thumb_height = max(20, (UiGeneralConversation_thumb.page_size * scrollbar_height) / (range + UiGeneralConversation_thumb.page_size));
                 float track_height = client_rect.bottom - thumb_height;
-                for(int k=0;k<countclient;k++)
+                if(!(UiGeneralRequestSettingPass.no_more) && !(UiGeneralRequestSettingPass.messages_left))
                 {
-                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && !(RecipientPass[k].messages_left))
+                    if(pt.y < UiGeneralConversation_thumb.thumb_rect.top)
                     {
-                        
-                        if(pt.y < UiGeneralConversation_thumb.thumb_rect.top)
-                        {
-                            // make a call here for a conversation with scroll up
-                            RequestConversation RequestCnv;
-                            strcpy(RequestCnv.sender,SendingTools.username);
-                            strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
-                            for(int i=0;i<countclient;i++)
-                            {
-                                if(strcmp(GeneralChatConversation.OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
-                                {
-                                    RequestCnv.index = GeneralChatConversation.last_index;
-                                    break;
-                                }
-                            }
-                            RequestCnv.message_requested = 15;
-                            RequestCnv.type = 2;
-                            // filling the type for receiving the right data
-                            //choseentype = RequestCnv.type;
-                            send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
-                        }
-                        break;
-                        }
+                        // make a call here for a conversation with scroll up
+                        UiGeneralRequestConversation UiGeneralRequestCnv;
+                        UiGeneralRequestCnv.index = GeneralChatConversation.last_index;
+                        UiGeneralRequestCnv.message_requested = 15;
+                        UiGeneralRequestCnv.type = 2;
+                        send(ConnectingTools.ConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
+                    }
                 }
                 // update the thumb is current value
                 float incrementation_value;
@@ -429,7 +414,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                     {
                         UiGeneralConversation_thumb.current_val = 0;
                     }
-                    UpdateConversationScrollValue(hwnd, UiGeneralConversation_thumb.current_val);
+                    UiGeneralUpdateConversationScrollValue(hwnd, UiGeneralConversation_thumb.current_val);
                     // for rendering messages 
                     if(((UiGeneralHeightIncrementationChecking - UiGeneralFrontier) / (client_rect.bottom - client_rect.top)) > 0)
                     {
@@ -455,14 +440,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                     {
                         UiGeneralConversation_thumb.current_val = UiGeneralConversation_thumb.max_val;
                     }
-                    for(int j=0;j<countclient;j++)
-                    {
-                        if(strcmp(MessagesConversations[j].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
-                        {
-                            UpdateConversationScrollbarRange(ConversationScrollBar,UiGeneralConversationScrollBarRect,&UiGeneralConversation_thumb,MessagesConversations[j].count,&NewRecipientFlag);
-                            break;
-                        }
-                    }
+                    //UiGeneralUpdateConversationScrollbarRange(hwnd,UiGeneralConversationScrollBarRect,&UiGeneralConversation_thumb,GeneralChatConversation.count);
                     UpdateConversationScrollValue(hwnd, UiGeneralConversation_thumb.current_val);
                     // for rendering messages 
                     if((UiGeneralFrontier / (client_rect.bottom - client_rect.top)) > 0)
@@ -503,88 +481,71 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
             GetClientRect(hwnd,&UiGeneralConversationScrollBarRect);
             float delta = GET_WHEEL_DELTA_WPARAM(wParam);
             float step = (delta > 0) ? -1 : 1;
-            if(UiGeneralHeightIncrementationChecking > (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top))
+            if(step < 0 && UiGeneralConversation_thumb.current_val != UiGeneralConversation_thumb.min_val)
             {
-                if(step < 0 && UiGeneralConversation_thumb.current_val != UiGeneralConversation_thumb.min_val)
+                if(((UiGeneralHeightIncrementationChecking - UiGeneralFrontier) / (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2) > 0)
                 {
-                    if(((UiGeneralHeightIncrementationChecking - UiGeneralFrontier) / (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2) > 0)
+                    UiGeneralConversation_scrolloffset += (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2;
+                    if(UiGeneralConversation_scrolloffset > UiGeneralHeightIncrementationChecking)
                     {
-                        UiGeneralConversation_scrolloffset += (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2;
-                        if(UiGeneralConversation_scrolloffset > UiGeneralHeightIncrementationChecking)
-                        {
-                            UiGeneralConversation_scrolloffset = UiGeneralHeightIncrementationChecking;
-                        }
-                    }
-                    else if((UiGeneralHeightIncrementationChecking - UiGeneralFrontier) > 0)
-                    {
-                        UiGeneralConversation_scrolloffset += (UiGeneralHeightIncrementationChecking - UiGeneralFrontier);
-                        if(UiGeneralConversation_scrolloffset > UiGeneralHeightIncrementationChecking)
-                        {
-                            UiGeneralConversation_scrolloffset = UiGeneralHeightIncrementationChecking;
-                        }
-                    }
-                    //UiGeneralConversation_scrolloffset += (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2;
-                }
-                else if(step > 0 && UiGeneralConversation_thumb.current_val != UiGeneralConversation_thumb.max_val)
-                {
-                    if((UiGeneralFrontier / (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2) > 0)
-                    {
-                        UiGeneralConversation_scrolloffset -= (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2;
-                        if(UiGeneralConversation_scrolloffset < 0)
-                        {
-                            UiGeneralConversation_scrolloffset = 0;
-                        }
-                    }
-                    else 
-                    {
-                        UiGeneralConversation_scrolloffset -= UiGeneralFrontier;
-                        if(UiGeneralConversation_scrolloffset < 0)
-                        {
-                            UiGeneralConversation_scrolloffset = 0;
-                        }
-                    }
-                    //UiGeneralConversation_scrolloffset -= (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2;
-                }
-                // make a call here for a conversation based on step is sign
-                for(int k=0;k<countclient;k++)
-                {
-                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && !(RecipientPass[k].messages_left))
-                    {
-                        if(step < 0)
-                        {
-                            RequestConversation RequestCnv;
-                            strcpy(RequestCnv.sender,SendingTools.username);
-                            strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
-                            for(int i=0;i<countclient;i++)
-                            {
-                                if(strcmp(GeneralChatConversation.OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
-                                {
-                                    RequestCnv.index = GeneralChatConversation.last_index;
-                                    break;
-                                }
-                            }
-                            RequestCnv.message_requested = 15;
-                            RequestCnv.type = 2;
-                            // filling the type for receiving the right data
-                            //choseentype = RequestCnv.type;
-                            send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
-                        }
-                        break;
+                        UiGeneralConversation_scrolloffset = UiGeneralHeightIncrementationChecking;
                     }
                 }
-                UiGeneralConversation_thumb.current_val += step;
-                UpdateConversationScrollValue(hwnd, UiGeneralConversation_thumb.current_val);
+                else if((UiGeneralHeightIncrementationChecking - UiGeneralFrontier) > 0)
+                {
+                    UiGeneralConversation_scrolloffset += (UiGeneralHeightIncrementationChecking - UiGeneralFrontier);
+                    if(UiGeneralConversation_scrolloffset > UiGeneralHeightIncrementationChecking)
+                    {
+                        UiGeneralConversation_scrolloffset = UiGeneralHeightIncrementationChecking;
+                    }
+                }
+                //UiGeneralConversation_scrolloffset += (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2;
             }
+            else if(step > 0 && UiGeneralConversation_thumb.current_val != UiGeneralConversation_thumb.max_val)
+            {
+                if((UiGeneralFrontier / (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2) > 0)
+                {
+                    UiGeneralConversation_scrolloffset -= (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2;
+                    if(UiGeneralConversation_scrolloffset < 0)
+                    {
+                        UiGeneralConversation_scrolloffset = 0;
+                    }
+                }
+                else 
+                {
+                    UiGeneralConversation_scrolloffset -= UiGeneralFrontier;
+                    if(UiGeneralConversation_scrolloffset < 0)
+                    {
+                        UiGeneralConversation_scrolloffset = 0;
+                    }
+                }
+                //UiGeneralConversation_scrolloffset -= (UiGeneralConversationScrollBarRect.bottom - UiGeneralConversationScrollBarRect.top)*0.2;
+            }
+            // make a call here for a conversation based on step is sign
+            if(!(UiGeneralRequestSettingPass.no_more) && !(UiGeneralRequestSettingPass.messages_left))
+            {
+                if(step < 0)
+                {
+                    UiGeneralRequestConversation UiGeneralRequestCnv;
+                    UiGeneralRequestCnv.index = GeneralChatConversation.last_index;
+                    UiGeneralRequestCnv.message_requested = 15;
+                    UiGeneralRequestCnv.type = 2;
+                    send(ConnectingTools.ConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
+                }
+            }
+            UiGeneralConversation_thumb.current_val += step;
+            UiGeneralUpdateConversationScrollValue(hwnd, UiGeneralConversation_thumb.current_val);
             InvalidateRect(hwnd,NULL, TRUE);
             break;
-        }*/
+        }
         default:
         return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     return 0;
 }
 // Inbox Conversation's Child Window
-LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
     switch (msg)
     {
         case WM_CREATE:
@@ -927,78 +888,75 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
             GetClientRect(hwnd,&ConversationScrollBarRect);
             float delta = GET_WHEEL_DELTA_WPARAM(wParam);
             float step = (delta > 0) ? -1 : 1;
-            if(HeightIncrementationChecking > (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top))
+            if(step < 0 && Conversation_thumb.current_val != Conversation_thumb.min_val)
             {
-                if(step < 0 && Conversation_thumb.current_val != Conversation_thumb.min_val)
+                if(((HeightIncrementationChecking - Frontier) / (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2) > 0)
                 {
-                    if(((HeightIncrementationChecking - Frontier) / (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2) > 0)
+                    Conversation_scrolloffset += (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2;
+                    if(Conversation_scrolloffset > HeightIncrementationChecking)
                     {
-                        Conversation_scrolloffset += (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2;
-                        if(Conversation_scrolloffset > HeightIncrementationChecking)
-                        {
-                            Conversation_scrolloffset = HeightIncrementationChecking;
-                        }
-                    }
-                    else if((HeightIncrementationChecking - Frontier) > 0)
-                    {
-                        Conversation_scrolloffset += (HeightIncrementationChecking - Frontier);
-                        if(Conversation_scrolloffset > HeightIncrementationChecking)
-                        {
-                            Conversation_scrolloffset = HeightIncrementationChecking;
-                        }
-                    }
-                    //Conversation_scrolloffset += (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2;
-                }
-                else if(step > 0 && Conversation_thumb.current_val != Conversation_thumb.max_val)
-                {
-                    if((Frontier / (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2) > 0)
-                    {
-                        Conversation_scrolloffset -= (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2;
-                        if(Conversation_scrolloffset < 0)
-                        {
-                            Conversation_scrolloffset = 0;
-                        }
-                    }
-                    else 
-                    {
-                        Conversation_scrolloffset -= Frontier;
-                        if(Conversation_scrolloffset < 0)
-                        {
-                            Conversation_scrolloffset = 0;
-                        }
-                    }
-                    //Conversation_scrolloffset -= (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2;
-                }
-                // make a call here for a conversation based on step is sign
-                for(int k=0;k<countclient;k++)
-                {
-                    if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && !(RecipientPass[k].messages_left))
-                    {
-                        if(step < 0)
-                        {
-                            RequestConversation RequestCnv;
-                            strcpy(RequestCnv.sender,SendingTools.username);
-                            strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
-                            for(int i=0;i<countclient;i++)
-                            {
-                                if(strcmp(MessagesConversations[i].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
-                                {
-                                    RequestCnv.index = MessagesConversations[i].last_index;
-                                    break;
-                                }
-                            }
-                            RequestCnv.message_requested = 15;
-                            RequestCnv.type = 2;
-                            // filling the type for receiving the right data
-                            //choseentype = RequestCnv.type;
-                            send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
-                        }
-                        break;
+                        Conversation_scrolloffset = HeightIncrementationChecking;
                     }
                 }
-                Conversation_thumb.current_val += step;
-                UpdateConversationScrollValue(hwnd, Conversation_thumb.current_val);
+                else if((HeightIncrementationChecking - Frontier) > 0)
+                {
+                    Conversation_scrolloffset += (HeightIncrementationChecking - Frontier);
+                    if(Conversation_scrolloffset > HeightIncrementationChecking)
+                    {
+                        Conversation_scrolloffset = HeightIncrementationChecking;
+                    }
+                }
+                //Conversation_scrolloffset += (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2;
             }
+            else if(step > 0 && Conversation_thumb.current_val != Conversation_thumb.max_val)
+            {
+                if((Frontier / (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2) > 0)
+                {
+                    Conversation_scrolloffset -= (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2;
+                    if(Conversation_scrolloffset < 0)
+                    {
+                        Conversation_scrolloffset = 0;
+                    }
+                }
+                else 
+                {
+                    Conversation_scrolloffset -= Frontier;
+                    if(Conversation_scrolloffset < 0)
+                    {
+                        Conversation_scrolloffset = 0;
+                    }
+                }
+                //Conversation_scrolloffset -= (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.2;
+            }
+            // make a call here for a conversation based on step is sign
+            for(int k=0;k<countclient;k++)
+            {
+                if(strcmp(RecipientPass[k].recipient,ConnectingTools.PrivateMessage.SelectedRecipient) == 0 && !(RecipientPass[k].no_more) && !(RecipientPass[k].messages_left))
+                {
+                    if(step < 0)
+                    {
+                        RequestConversation RequestCnv;
+                        strcpy(RequestCnv.sender,SendingTools.username);
+                        strcpy(RequestCnv.recipient,ConnectingTools.PrivateMessage.SelectedRecipient);
+                        for(int i=0;i<countclient;i++)
+                        {
+                            if(strcmp(MessagesConversations[i].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                            {
+                                RequestCnv.index = MessagesConversations[i].last_index;
+                                break;
+                            }
+                        }
+                        RequestCnv.message_requested = 15;
+                        RequestCnv.type = 2;
+                        // filling the type for receiving the right data
+                        //choseentype = RequestCnv.type;
+                        send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
+                    }
+                    break;
+                }
+            }
+            Conversation_thumb.current_val += step;
+            UpdateConversationScrollValue(hwnd, Conversation_thumb.current_val);
             InvalidateRect(hwnd,NULL, TRUE);
             break;
         }
