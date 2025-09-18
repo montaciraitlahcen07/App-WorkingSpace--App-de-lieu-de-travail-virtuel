@@ -53,6 +53,7 @@ typedef struct
     char color[50];
 }conversationsOwners;
 conversationsOwners MessagesConversations[60];
+// UiInbox
 typedef struct
 {
     char sender[50];
@@ -61,6 +62,13 @@ typedef struct
     int index;
     int type;
 }RequestConversation;
+// UiGeneral
+typedef struct
+{
+    int message_requested;
+    int index;
+    int type;
+}UiGeneralRequestConversation;
 // for storing conversation message (UiGeneral)
 typedef struct 
 {
@@ -87,7 +95,7 @@ typedef struct
     bool no_more;
     int messages_left;
 }Generalfirstrequest;
-Generalfirstrequest UiGeneralRequestSetting;
+Generalfirstrequest UiGeneralRequestSettingPass;
 //
 typedef struct
 {
@@ -552,7 +560,7 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
         if(Response.message_count == 0)
         {
             GeneralChatConversation.last_index = 0;
-            UiGeneralRequestSetting.no_more = TRUE;
+            UiGeneralRequestSettingPass.no_more = TRUE;
         }
         else if(Response.message_count > 0)
         {
@@ -573,7 +581,7 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
                 if(Response.no_more)
                 {
                     GeneralChatConversation.last_index = 0;
-                    UiGeneralRequestSetting.no_more = TRUE;
+                    UiGeneralRequestSettingPass.no_more = TRUE;
                 }
                 GeneralChatConversation.count++;
             }

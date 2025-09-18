@@ -702,22 +702,33 @@ void CalculateConversationThumbRect(HWND hwnd, RECT* thumb_rect,RECT WindowSize,
 {
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
-    float scrollbar_height = (client_rect.bottom - client_rect.top - 4);
+    float scrollbar_height = (client_rect.bottom - client_rect.top);
     int range = Conversation_thumb.max_val - Conversation_thumb.min_val;
     if(range <= 0) range = 1;
     float thumb_height = max(20, (Conversation_thumb.page_size * scrollbar_height) / (range + Conversation_thumb.page_size)) ;
-    float track_height = scrollbar_height - thumb_height;
+    float track_height = scrollbar_height;
     int thumb_pos = 0;
     if(range > 0)
     {
-        thumb_pos = (Conversation_thumb.current_val * track_height) / range;
+        if(Conversation_thumb.current_val >= Conversation_thumb.max_val)
+        {
+            thumb_pos = track_height;
+        }
+        else
+        {
+            thumb_pos = (Conversation_thumb.current_val * track_height) / range;
+        }
+    }
+    if(thumb_pos + thumb_height > scrollbar_height)
+    {
+        thumb_pos = scrollbar_height - thumb_height;
     }
     if(HeightIncrementationChecking > (client_rect.bottom - client_rect.top))
     {
         thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
         thumb_rect->top = thumb_pos;
         thumb_rect->right = client_rect.right - 2;
-        thumb_rect->bottom = thumb_rect->top + thumb_height + 5;
+        thumb_rect->bottom = thumb_rect->top + thumb_height;
     }
 }
 // for drawing the thumb 
@@ -792,7 +803,7 @@ int Conversation_total_messages;
 float Conversation_window_height;
 int Conversation_messages_per_page;
 extern int i;
-void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,ScrollbarInfo *Conversation_thumb,int Message_Count)
+void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,ScrollbarInfo *Conversation_thumb,int Message_Count,bool *NewRecipientFlag)
 {
     GetClientRect(hwnd,&ConversationScrollBarRect);
     Conversation_total_messages = ((Message_Count < 11) ? 11 : Message_Count);
@@ -808,7 +819,13 @@ void UpdateConversationScrollbarRange(HWND hwnd,RECT ConversationScrollBarRect,S
     {
         Conversation_thumb->max_val = Conversation_total_messages - Conversation_messages_per_page;
         Conversation_thumb->max_val = Conversation_thumb->max_val;
-    }   
+    }
+    if(*NewRecipientFlag)   
+    {
+        *NewRecipientFlag = FALSE;
+        Conversation_scrolloffset = 0;
+        Conversation_thumb->current_val = Conversation_thumb->max_val;
+    }
 }
 // filtering messages and render them on the screen in function with the scroll bar and the size of the window and the font 
 float Frontier;
@@ -1191,11 +1208,11 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
             check_message_left = k;
             if(check_message_left == (GeneralChatConversation.count - 1))
             {
-                UiGeneralRequestSetting.messages_left = FALSE;
+                UiGeneralRequestSettingPass.messages_left = FALSE;
             }
             else
             {
-                UiGeneralRequestSetting.messages_left = TRUE;
+                UiGeneralRequestSettingPass.messages_left = TRUE;
             }
             MessagePosition -= MessageHeight;
             UiGeneralFrontier = AccumulatedMessagesHeight;
@@ -1349,7 +1366,7 @@ void UiGeneralCalculateConversationThumbRect(HWND hwnd, RECT* thumb_rect,RECT Wi
 {
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
-    float scrollbar_height = (client_rect.bottom - client_rect.top - 4);
+    float scrollbar_height = (client_rect.bottom - client_rect.top );
     int range = UiGeneralConversation_thumb.max_val - UiGeneralConversation_thumb.min_val;
     if(range <= 0) range = 1;
     float thumb_height = max(20, (UiGeneralConversation_thumb.page_size * scrollbar_height) / (range + UiGeneralConversation_thumb.page_size)) ;
@@ -1357,14 +1374,25 @@ void UiGeneralCalculateConversationThumbRect(HWND hwnd, RECT* thumb_rect,RECT Wi
     int thumb_pos = 0;
     if(range > 0)
     {
-        thumb_pos = (UiGeneralConversation_thumb.current_val * track_height) / range;
+        if(UiGeneralConversation_thumb.current_val >= UiGeneralConversation_thumb.max_val)
+        {
+            thumb_pos = track_height;
+        }
+        else
+        {
+            thumb_pos = (UiGeneralConversation_thumb.current_val * track_height) / range;
+        }
+    }
+    if(thumb_pos + thumb_height > scrollbar_height)
+    {
+        thumb_pos = scrollbar_height - thumb_height;
     }
     if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
     {
         thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
         thumb_rect->top = thumb_pos;
         thumb_rect->right = client_rect.right - 2;
-        thumb_rect->bottom = thumb_rect->top + thumb_height + 5;
+        thumb_rect->bottom = thumb_rect->top + thumb_height;
     }
 }
 // for drawing the thumb 
@@ -1381,7 +1409,7 @@ void UiGeneralDrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float
     HBRUSH track_brush;
     if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
     {
-        track_brush = CreateSolidBrush(TRACK_COLOR);
+      track_brush = CreateSolidBrush(TRACK_COLOR);
     }
     else
     {
@@ -1405,18 +1433,14 @@ void UiGeneralDrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float
     HPEN old_pen = SelectObject(Mdc, CreatePen(PS_SOLID, 1, thumb_color));
     if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
     {
-        RoundRect(Mdc, 
-        UiGeneralConversation_thumb.thumb_rect.left + 2, 
-        UiGeneralConversation_thumb.thumb_rect.top,
-        UiGeneralConversation_thumb.thumb_rect.right - 2, 
-        UiGeneralConversation_thumb.thumb_rect.bottom,
-        6, 6);
+      RoundRect(Mdc, 
+      UiGeneralConversation_thumb.thumb_rect.left + 2, 
+      UiGeneralConversation_thumb.thumb_rect.top,
+      UiGeneralConversation_thumb.thumb_rect.right - 2, 
+      UiGeneralConversation_thumb.thumb_rect.bottom,
+      6, 6);
     }
     float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - (PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.074)) - (WindowSize.right-WindowSize.left)*0.007;
-    /*MoveWindow(hwnd,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.2877,
-    PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.072,
-    WindowSize.right - (Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.2877),
-    ConversationHeight,TRUE);*/
     DeleteObject(SelectObject(Mdc, old_pen));
     SelectObject(Mdc, old_brush);
     DeleteObject(thumb_brush);
@@ -1437,7 +1461,7 @@ void UiGeneralUpdateConversationScrollValue(HWND hwnd, float new_val)
 int UiGeneralConversation_total_messages;
 float UiGeneralConversation_window_height;
 int UiGeneralConversation_messages_per_page;
-void UiGeenralUpdateConversationScrollbarRange(HWND hwnd,RECT UiGeneralConversationScrollBarRect,ScrollbarInfo *UiGeneralConversation_thumb,int Message_Count)
+void UiGeneralUpdateConversationScrollbarRange(HWND hwnd,RECT UiGeneralConversationScrollBarRect,ScrollbarInfo *UiGeneralConversation_thumb,int Message_Count)
 {
     GetClientRect(hwnd,&UiGeneralConversationScrollBarRect);
     UiGeneralConversation_total_messages = ((Message_Count < 11) ? 11 : Message_Count);
