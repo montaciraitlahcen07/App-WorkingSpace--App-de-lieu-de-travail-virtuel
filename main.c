@@ -80,9 +80,15 @@ HWND UiGeneralConversationWndH;
 RECT UiGeneralConversationRect;
 HDC DC_UiGeneral_Conversation,Mdc_UiGeneralConversation_child;
 HBITMAP BM_Conversation_Child,OldBM_Conversation_Child;
-// new Recipient flag
+// Global receive settings for background threads
+RcvSetting RcvStg = {0};
+// new Recipient flag 
+// UiInbox
 bool NewRecipientFlag;
 bool CreateFlag;
+// UiGeneral
+bool UiGeneralNewFlag;
+bool UiGeneralCreateFlag;
 // creating window proc for the message bar in UiGeneral 
 LRESULT CALLBACK UiGeneralMessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -111,11 +117,11 @@ LRESULT CALLBACK UiGeneralMessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
         {
             if(UiGeneral && GetFocus() == UiGeneralMessageBarHandle && wParam == VK_RETURN)
             {
-                /*GetWindowText(hwnd, buffer, sizeof(buffer));
+                GetWindowText(hwnd, buffer, sizeof(buffer));
                 if(strlen(buffer) != 0 && !HasOnlyWhitespace(UiGeneralMessageBarHandle))
                 {
-                    Send = TRUE;
-                }*/
+                    UiGeneralSend = TRUE;
+                }
                 InvalidateRect(HandleWnd,&WindowSize,TRUE);
                 return 0;
             }
@@ -203,6 +209,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                 UiGeneralConversation_thumb.max_val = UiGeneralConversation_thumb.max_val;
             }
             UiGeneralConversation_thumb.current_val = UiGeneralConversation_thumb.max_val;
+            UiGeneralCreateFlag = TRUE;
             InvalidateRect(hwnd,NULL, TRUE);
         break;
         case WM_PAINT:
@@ -263,16 +270,16 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                 {
                     UiGeneralConversation_scrolloffset = 0;
                 }
-                //UiGeneralUpdateConversationScrollbarRange(hwnd,UiGeneralConversationRect,&UiGeneralConversation_thumb,GeneralChatConversation.count);
                 // showing the message i sent auto
-                /*if(Send)
+                if(UiGeneralSend)
                 {
                     UiGeneralConversation_thumb.current_val = UiGeneralConversation_thumb.max_val;
                     UiGeneralConversation_scrolloffset = 0;
-                }*/
+                }
+                UiGeneralUpdateConversationScrollbarRange(hwnd,UiGeneralConversationRect,&UiGeneralConversation_thumb,GeneralChatConversation.count,&UiGeneralNewFlag);
                 UiGeneralDrawConversationScrollBar(Mdc_UiGeneralConversation_child,hwnd,WindowSize,UiGeneralHeightIncrementationChecking);
                 bool FontSize = (((WindowSize.right - WindowSize.left) >= 1000 && (WindowSize.bottom - WindowSize.top) >= 700)?TRUE:FALSE);
-                UiGeneralRenderingConversationMessage(hwnd,HandleWnd,Mdc_UiGeneralConversation_child,ConnectingTools.PrivateMessage.SelectedRecipient,FontSize);
+                UiGeneralRenderingConversationMessage(hwnd,HandleWnd,Mdc_UiGeneralConversation_child,FontSize);
             }
             BitBlt(DC_UiGeneral_Conversation, 0, 0, UiGeneralConversationRect.right - UiGeneralConversationRect.left, 
             UiGeneralConversationRect.bottom - UiGeneralConversationRect.top, Mdc_UiGeneralConversation_child, 0, 0, SRCCOPY);
@@ -289,7 +296,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
         {
             POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             BOOL was_hovering = UiGeneralConversation_thumb.thumb_hover;
-            CalculateConversationThumbRect(hwnd, &UiGeneralConversation_thumb.thumb_rect,WindowSize,UiGeneralHeightIncrementationChecking);
+            UiGeneralCalculateConversationThumbRect(hwnd, &UiGeneralConversation_thumb.thumb_rect,WindowSize,UiGeneralHeightIncrementationChecking);
             UiGeneralConversation_thumb.thumb_hover = PointInRect(pt, &UiGeneralConversation_thumb.thumb_rect);
             if(was_hovering != UiGeneralConversation_thumb.thumb_hover)
             {
@@ -315,7 +322,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                             UiGeneralRequestCnv.index = GeneralChatConversation.last_index;
                             UiGeneralRequestCnv.message_requested = 15;
                             UiGeneralRequestCnv.type = 2;
-                            send(ConnectingTools.ConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
+                            send(ConnectingTools.UiGeneralConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
                         }
                     }           
                     if(new_pos < UiGeneralConversation_thumb.current_val && UiGeneralConversation_thumb.current_val >= UiGeneralConversation_thumb.min_val && new_pos >= UiGeneralConversation_thumb.min_val)
@@ -401,7 +408,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                         UiGeneralRequestCnv.index = GeneralChatConversation.last_index;
                         UiGeneralRequestCnv.message_requested = 15;
                         UiGeneralRequestCnv.type = 2;
-                        send(ConnectingTools.ConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
+                        send(ConnectingTools.UiGeneralConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
                     }
                 }
                 // update the thumb is current value
@@ -416,9 +423,9 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                     }
                     UiGeneralUpdateConversationScrollValue(hwnd, UiGeneralConversation_thumb.current_val);
                     // for rendering messages 
-                    if(((UiGeneralHeightIncrementationChecking - UiGeneralFrontier) / (client_rect.bottom - client_rect.top)) > 0)
+                    if(((UiGeneralHeightIncrementationChecking - UiGeneralFrontier) / (client_rect.bottom - client_rect.top)*0.2) > 0)
                     {
-                        UiGeneralConversation_scrolloffset += (client_rect.bottom - client_rect.top);
+                        UiGeneralConversation_scrolloffset += (client_rect.bottom - client_rect.top)*0.2;
                         if(UiGeneralConversation_scrolloffset > UiGeneralHeightIncrementationChecking)
                         {
                             UiGeneralConversation_scrolloffset = UiGeneralHeightIncrementationChecking;
@@ -440,12 +447,11 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                     {
                         UiGeneralConversation_thumb.current_val = UiGeneralConversation_thumb.max_val;
                     }
-                    //UiGeneralUpdateConversationScrollbarRange(hwnd,UiGeneralConversationScrollBarRect,&UiGeneralConversation_thumb,GeneralChatConversation.count);
-                    UpdateConversationScrollValue(hwnd, UiGeneralConversation_thumb.current_val);
+                    UiGeneralUpdateConversationScrollValue(hwnd, UiGeneralConversation_thumb.current_val);
                     // for rendering messages 
-                    if((UiGeneralFrontier / (client_rect.bottom - client_rect.top)) > 0)
+                    if((UiGeneralFrontier / (client_rect.bottom - client_rect.top)*0.2) > 0)
                     {
-                        UiGeneralConversation_scrolloffset -= (client_rect.bottom - client_rect.top);
+                        UiGeneralConversation_scrolloffset -= (client_rect.bottom - client_rect.top)*0.2;
                         if(UiGeneralConversation_scrolloffset < 0)
                         {
                             UiGeneralConversation_scrolloffset = 0;
@@ -530,7 +536,7 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
                     UiGeneralRequestCnv.index = GeneralChatConversation.last_index;
                     UiGeneralRequestCnv.message_requested = 15;
                     UiGeneralRequestCnv.type = 2;
-                    send(ConnectingTools.ConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
+                    send(ConnectingTools.UiGeneralConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
                 }
             }
             UiGeneralConversation_thumb.current_val += step;
@@ -797,8 +803,6 @@ LRESULT CALLBACK ConversationWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                             }
                             RequestCnv.message_requested = 15;
                             RequestCnv.type = 2;
-                            // filling the type for receiving the right data
-                            //choseentype = RequestCnv.type;
                             send(ConnectingTools.ConversationSocket,(char *)&RequestCnv,sizeof(RequestConversation),0);
                         }
                         break;
@@ -1596,12 +1600,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 return 1;
             }
             int ServerResult=connect(ConnectingTools.ClientSocketSending,(const struct sockaddr *)&ConnectingTools.ServerSending,sizeof(ConnectingTools.ServerSending));
-            Sleep(100);
+            Sleep(50);
             // Receiving connection
             ConnectingTools.ServerReceiving.sin_family=AF_INET;
             ConnectingTools.ServerReceiving.sin_port=htons(8001);
             ConnectingTools.ServerReceiving.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
             //struct sockaddr_in ClientData;
+            // this is for receiving message from the server (UiInbox)
             ConnectingTools.ClientSocketReceiving=socket(AF_INET,SOCK_STREAM,0);
             if(ConnectingTools.ClientSocketReceiving==INVALID_SOCKET)
             {
@@ -1610,7 +1615,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 return 1;
             }
             int ServerResultR=connect(ConnectingTools.ClientSocketReceiving,(const struct sockaddr *)&ConnectingTools.ServerReceiving,sizeof(ConnectingTools.ServerReceiving));
-            Sleep(100);
+            Sleep(50);
             /*struct hostent *hostfirst = gethostbyname("moncef.stil.fun");
             if (hostfirst != NULL)
             {
@@ -1634,11 +1639,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 return 1;
             }
             int StatusResult=connect(ConnectingTools.StatusSocket,(const struct sockaddr *)&ConnectingTools.ServerStatus,sizeof(ConnectingTools.ServerStatus));
-            // this socket is for receiving conversation messages
+            // this socket is for receiving conversation messages (UiInbox)
             ConnectingTools.ServerConversation.sin_family=AF_INET;
             ConnectingTools.ServerConversation.sin_port=htons(8003);
             ConnectingTools.ServerConversation.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
-            //struct sockaddr_in ClientsConversation;
             ConnectingTools.ConversationSocket=socket(AF_INET,SOCK_STREAM,0);
             if(ConnectingTools.ConversationSocket==INVALID_SOCKET)
             {
@@ -1647,13 +1651,36 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 return 1;
             }
             int ConversationResult=connect(ConnectingTools.ConversationSocket,(const struct sockaddr *)&ConnectingTools.ServerConversation,sizeof(ConnectingTools.ServerConversation));
+            Sleep(50);
+            // this socket is for receiving conversation messages (UiGeneral)
+            ConnectingTools.UiGeneralConversationSocket=socket(AF_INET,SOCK_STREAM,0);
+            if(ConnectingTools.UiGeneralConversationSocket==INVALID_SOCKET)
+            {
+                printf("broken socket\n");
+                closesocket(ConnectingTools.UiGeneralConversationSocket);
+                return 1;
+            }
+            ConversationResult=connect(ConnectingTools.UiGeneralConversationSocket,(const struct sockaddr *)&ConnectingTools.ServerConversation,sizeof(ConnectingTools.ServerConversation));
+            Sleep(50);
+            // this is for receiving message from the server (UiGeneral)
+            ConnectingTools.UiGeneralClientSocketReceiving=socket(AF_INET,SOCK_STREAM,0);
+            if(ConnectingTools.UiGeneralClientSocketReceiving==INVALID_SOCKET)
+            {
+                printf("broken socket\n");
+                closesocket(ConnectingTools.UiGeneralClientSocketReceiving);
+                return 1;
+            }
+            // Create separate server address for UiGeneral receiving on port 8004
+            struct sockaddr_in UiGeneralServerReceiving;
+            UiGeneralServerReceiving.sin_family=AF_INET;
+            UiGeneralServerReceiving.sin_port=htons(8004);
+            UiGeneralServerReceiving.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
+            int UiGeneralServerResult=connect(ConnectingTools.UiGeneralClientSocketReceiving,(const struct sockaddr *)&UiGeneralServerReceiving,sizeof(UiGeneralServerReceiving));
+            Sleep(50);
             break;
             case WM_PAINT:
             GetClientRect(hwnd,&WindowSize);
-            if(UiGeneral && UiGeneralTimes >= 1 && UiInboxTimes >= 1)
-            {
-                ResetChoice = TRUE;
-            }
+            // Choice reset logic moved to button click handlers to prevent spurious resets
             WindowLeft = WindowSize.left;
             WindowTop = WindowSize.top;
             WindowWidth = WindowSize.right - WindowSize.left;
@@ -1769,7 +1796,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 HANDLE ThreadSending = (HANDLE)_beginthreadex(NULL ,0,SendingThread,&SendingTools,0,NULL);
                 HANDLE ThreadStatus = (HANDLE)_beginthreadex(NULL, 0,StatusThread,&SendingTrdStatus, 0, NULL);
                 HANDLE ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, &RcvStg, 0, NULL);
+                HANDLE UiGeneralThreadReceive = (HANDLE)_beginthreadex(NULL, 0, UiGeneralreceivingClient, &RcvStg, 0, NULL);
                 HANDLE ThreadConversation = (HANDLE)_beginthreadex(NULL, 0, ConversationThread, &ConnectingTools.ConversationSocket, 0, NULL);
+                HANDLE UiConversationThreadConversation = (HANDLE)_beginthreadex(NULL, 0, UiGeneralConversationThread, &ConnectingTools.UiGeneralConversationSocket, 0, NULL);
                 /*if(ThreadSending)
                 {
                     WaitForSingleObject(ThreadSending, INFINITE);
@@ -1880,16 +1909,32 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 }
                 if(UiGeneral)
                 {
-                    ShowWindow(UiGeneralConversationWndH, SW_SHOW); 
-                    ShowWindow(UiGeneralMessageBarHandle, SW_SHOW); 
-                    MoveWindow(UiGeneralMessageBarHandle,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.266,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09,
-                    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.232,(WindowSize.bottom - WindowSize.top)*0.07,TRUE);
+                    if(UiGeneralConversationWndH)
+                    {
+                        ShowWindow(UiGeneralConversationWndH, SW_SHOW);
+                        /*MoveWindow(UiGeneralConversationWndH,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,
+                        (WindowSize.bottom - WindowSize.top)*0.272,
+                        WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,
+                        ConversationHeight,TRUE);*/
+                    }
+                    if(UiGeneralMessageBarHandle)
+                    {
+                        ShowWindow(UiGeneralMessageBarHandle, SW_SHOW);
+                        MoveWindow(UiGeneralMessageBarHandle,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.266,WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09,
+                        Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.232,(WindowSize.bottom - WindowSize.top)*0.07,TRUE);
+                    }
                     UiGeneralConversation(HandleWnd,Mdc,ConnectingTools,WindowSize,PanelRect,UiGeneralCurrentHEmoji,UiGeneralCurrentVEmoji,UiGeneralCurrentHAttach,UiGeneralCurrentVAttach,UiGeneralCurrentHSend,UiGeneralCurrentVSend);
                 }
                 else
                 {
-                    ShowWindow(UiGeneralConversationWndH, SW_HIDE); 
-                    ShowWindow(UiGeneralMessageBarHandle, SW_HIDE); 
+                    if(UiGeneralConversationWndH)
+                    {
+                        ShowWindow(UiGeneralConversationWndH, SW_HIDE);
+                    }
+                    if(UiGeneralMessageBarHandle)
+                    {
+                        ShowWindow(UiGeneralMessageBarHandle, SW_HIDE);
+                    }
                 }
             }    
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
@@ -2016,6 +2061,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     UiMessage = FALSE;
                     UiGeneral = FALSE;
                     MemoryDcSndTool.UiGeneral = UiGeneral;
+                    // Set reset choice when switching from UiGeneral to UiInbox
+                    if(UiGeneralTimes >= 1 && UiInboxTimes >= 1)
+                    {
+                        UiGeneralResetChoice = TRUE;
+                    }
                     SetTimer(hwnd,TimerPanel,30,NULL);
                     // for the search of the recipient
                     if(HandleSearch == NULL)
@@ -2039,10 +2089,38 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 {
                     UiGeneral = TRUE;
                     MemoryDcSndTool.UiGeneral = UiGeneral;
+                    if(!UiGeneralTimes)
+                    {
+                        // Make initial conversation request to load historical messages
+                        UiGeneralRequestConversation UiGeneralRequestCnv;
+                        UiGeneralRequestCnv.index = 0;
+                        UiGeneralRequestCnv.message_requested = 15;
+                        UiGeneralRequestCnv.type = 1; // Initial request type
+                        send(ConnectingTools.UiGeneralConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
+                    }
                     UiGeneralTimes++;
                     UiMessage = FALSE;
                     UiInbox = FALSE;
                     MemoryDcSndTool.UiInbox = UiInbox;
+                    RcvStg.UiGeneral = UiGeneral;
+                    // Clear conversation data for fresh start (only on first time)
+                    if(UiGeneralTimes == 1)
+                    {
+                        ClearGeneralChatConversation();
+                    }
+                    // Set reset choice when switching from UiInbox to UiGeneral
+                    if(UiGeneralTimes >= 1 && UiInboxTimes >= 1)
+                    {
+                        ResetChoice = TRUE;
+                    }
+                    if(UiGeneralCreateFlag)
+                    {
+                        UiGeneralCreateFlag = FALSE;
+                    }
+                    else 
+                    {
+                        UiGeneralNewFlag = TRUE;
+                    }
                     // taking a copy for the receiving thread
                     RcvStg.UiInbox = UiInbox;
                     SetTimer(hwnd,TimerPanel,30,NULL);
@@ -2062,9 +2140,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                             UiGeneralOriginalMessageBarProc = (WNDPROC)SetWindowLongPtr(UiGeneralMessageBarHandle, GWLP_WNDPROC, (LONG_PTR)UiGeneralMessageBarProc);
                         }
                         // taking a copy for the sending thread
-                        SendingTools.UiInboxMessageBarHandle = MessageBarHandle;
+                        SendingTools.UiGeneralMessageBarHandle = UiGeneralMessageBarHandle;
                     }
                     SetFocus(UiGeneralMessageBarHandle);
+                    // Force UI refresh to show any loaded messages
+                    InvalidateRect(hwnd, NULL, TRUE);
+                    if(UiGeneralConversationWndH)
+                    {
+                        InvalidateRect(UiGeneralConversationWndH, NULL, TRUE);
+                    }
                 }
                 else if(UiInbox)
                 {
@@ -2090,6 +2174,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
+                else if(UiGeneral)
+                {
+                    float left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
+                    float right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 + (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
+                    float top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
+                    float bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
+                    if(x>=left && x<=right && y>= top && y<=bottom)
+                    {
+                        GetWindowText(UiGeneralMessageBarHandle, buffer, sizeof(buffer));
+                        if(strlen(buffer) != 0 && !HasOnlyWhitespace(UiGeneralMessageBarHandle))
+                        {
+                            UiGeneralSend = TRUE;
+                            UiGeneralUpdateConversationScrollbarRange(UiGeneralConversationWndH,UiGeneralConversationScrollBarRect,&UiGeneralConversation_thumb,GeneralChatConversation.count,&UiGeneralNewFlag);
+                            UiGeneralConversation_thumb.current_val = UiGeneralConversation_thumb.max_val;
+                            UiGeneralConversation_scrolloffset = 0;
+                        }
+                    }   
                 }
             }
             InvalidateRect(hwnd,&WindowSize,FALSE);
@@ -2347,7 +2449,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             DestroyIcon(CompanyBigLogo);
         }
-        DeleteCriticalSection(&socketLock);
+        //DeleteCriticalSection(&socketLock);
         PostQuitMessage(0);
         break;
         case WM_GETMINMAXINFO:
@@ -2355,6 +2457,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             MINMAXINFO* pMinMax = (MINMAXINFO*)lParam;
             pMinMax->ptMinTrackSize.x = MIN_WIDTH;
             pMinMax->ptMinTrackSize.y = MIN_HEIGHT;
+            InvalidateRect(hwnd,NULL,TRUE);
+            if(UiGeneral)
+            {
+                InvalidateRect(UiGeneralConversationWndH,NULL,TRUE);
+            }
             return 0;
         }
         default:

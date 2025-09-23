@@ -21,7 +21,9 @@
     int UiInboxTimes,UiGeneralTimes;
     // when the button general is clicked
     bool UiGeneral = FALSE;
+    // changing Choice 
     bool ResetChoice;
+    bool UiGeneralResetChoice;
     // for the inbox ui
     RECT ChatRect;
     HWND HandleSearch;
@@ -1155,17 +1157,14 @@ void UiGeneralConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT Wi
 // filtering messages and render them on the screen in function with the scroll bar and the size of the window and the font 
 float UiGeneralFrontier;
 float UiGeneralHeightIncrementationChecking;
-void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGeneralConversation_child,const char * Recipient,bool FontSize)
+void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGeneralConversation_child,bool FontSize)
 {
-    // Safety check for null or empty recipient
-    if(!Recipient || strlen(Recipient) == 0)
-        return;
     float FontWidth = 8.5;
     float FontHeight = 40;
     RECT WndRect;
     GetClientRect(HandleWnd,&WndRect);
     GetClientRect(hwnd,&ConversationScrollBarRect);
-    float MessagePosition = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top);
+    float MessagePosition = (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top) + UiGeneralConversation_scrolloffset;
     int CharactersPerLine,NumberOfLines;
     float MessageHeight;
     float UiGeneralAccumulatedMessagesHeight = 0;
@@ -1176,8 +1175,11 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
     HFONT FontTimeStamp;
     HFONT OldFontTimeStamp;
     float TimeStamp_Height,TimeStamp_Width;
+    int WidthFirst,HeightFirst;
     if(FontSize)
     {
+        HeightFirst = 23;
+        WidthFirst = 10;
         Font=CreateFont(23,10,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
         DEFAULT_PITCH|FF_SWISS,"Segoe UI");
         FontTimeStamp = CreateFont(19,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
@@ -1185,6 +1187,8 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
     }
     else 
     {
+        HeightFirst = 20;
+        WidthFirst = 8;
         Font=CreateFont(20,8,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
         DEFAULT_PITCH|FF_SWISS,"Segoe UI");
         FontTimeStamp = CreateFont(16,6,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
@@ -1196,13 +1200,12 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
     for(int k=0;k<GeneralChatConversation.count && k<200;k++)
     {
         SIZE textSize;
+        SIZE UsernameSize;
         GetTextExtentPoint32A(Mdc_UiGeneralConversation_child,GeneralChatConversation.Conversation[k].message,strlen(GeneralChatConversation.Conversation[k].message),&textSize);
         int message_length = strlen(GeneralChatConversation.Conversation[k].message);
         NumberOfLines = max(1, message_length/ CharactersPerLine);
         MessageHeight = NumberOfLines * textSize.cy + (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.035;
-        UiGeneralAccumulatedMessagesHeight += MessageHeight;
-        if(UiGeneralAccumulatedMessagesHeight > UiGeneralConversation_scrolloffset &&
-        UiGeneralAccumulatedMessagesHeight < (UiGeneralConversation_scrolloffset + ConversationScrollBarRect.bottom + MessageHeight))
+        if(MessagePosition >= 0 && MessagePosition <= (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top))
         {
             // this is for whether you can request new message or not 
             check_message_left = k;
@@ -1214,10 +1217,11 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
             {
                 UiGeneralRequestSettingPass.messages_left = TRUE;
             }
-            MessagePosition -= MessageHeight;
             UiGeneralFrontier = UiGeneralAccumulatedMessagesHeight;
             if(strcmp(GeneralChatConversation.Conversation[k].owner,SendingTools.username) == 0)
             {
+                MessagePosition -= MessageHeight;
+                UiGeneralAccumulatedMessagesHeight += MessageHeight;
                 HPEN hPen = CreatePen(PS_SOLID, 1, RGB(112, 146, 190));
                 HPEN hOldPen = (HPEN)SelectObject(Mdc_UiGeneralConversation_child, hPen);
                 HBRUSH MyBrush = CreateSolidBrush(RGB(112, 146, 190));
@@ -1242,6 +1246,7 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
                 MyMessagePositionRect.left += (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.01;
                 MyMessagePositionRect.right -= (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.008;
                 DrawText(Mdc_UiGeneralConversation_child,GeneralChatConversation.Conversation[k].message,-1,&MyMessagePositionRect,DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
+                printf("those are the message of me : %s\n",GeneralChatConversation.Conversation[k].message);
                 hPen = CreatePen(PS_SOLID, 1, RGB(210, 210, 210));
                 hOldPen = (HPEN)SelectObject(Mdc_UiGeneralConversation_child, hPen);
                 MyBrush = CreateSolidBrush(RGB(210, 210, 210));
@@ -1265,49 +1270,81 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
                 DeleteObject(hPen);
                 SelectObject(Mdc_UiGeneralConversation_child,OldFontTimeStamp);
             }
-            else if(strcmp(GeneralChatConversation.Conversation[k].owner,SendingTools.username) == 0)
+            else
             {
+                // Create username font to measure its actual size
+                HFONT TempUsernameFont = CreateFont(
+                    HeightFirst - 3, WidthFirst - 1, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+                    OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+                    DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial")
+                );
+                HFONT OldTempFont = (HFONT)SelectObject(Mdc_UiGeneralConversation_child, TempUsernameFont);
+                GetTextExtentPoint32A(Mdc_UiGeneralConversation_child,GeneralChatConversation.Conversation[k].owner,strlen(GeneralChatConversation.Conversation[k].owner),&UsernameSize);
+                SelectObject(Mdc_UiGeneralConversation_child, OldTempFont);
+                DeleteObject(TempUsernameFont);
+                MessagePosition -= (MessageHeight + (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.08);
+                UiGeneralAccumulatedMessagesHeight += (MessageHeight + (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.08);
                 HPEN hPen = CreatePen(PS_SOLID, 1, RGB(210, 210, 210));
                 HPEN hOldPen = (HPEN)SelectObject(Mdc_UiGeneralConversation_child, hPen);
                 HBRUSH RecipientBrush = CreateSolidBrush(RGB(210, 210, 210));
                 HBRUSH old_brush = SelectObject(Mdc_UiGeneralConversation_child,RecipientBrush);
                 RECT RecipientMessagePositionRect;
-                float widthMessage = textSize.cx + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.06 + (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.14;
-                if(widthMessage > (ConversationScrollBarRect.right /1.85))
+                // Calculate message width, but ensure it's at least as wide as the username
+                float widthMessage = textSize.cx + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.05;
+                float usernameWidth = UsernameSize.cx + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.05;
+                if(widthMessage < usernameWidth)
                 {
-                    widthMessage = ((ConversationScrollBarRect.right - ConversationScrollBarRect.left) - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.18);
+                    widthMessage = usernameWidth; // Expand bubble to fit username
                 }
-                MessagePosition -= (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.14;
+                float maxBubbleWidth = ((ConversationScrollBarRect.right - ConversationScrollBarRect.left) - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.18);
+                if(widthMessage > maxBubbleWidth)
+                {
+                    widthMessage = maxBubbleWidth;
+                }
+                if(widthMessage < 10) widthMessage = 10; // safety minimum
                 RecipientMessagePositionRect.left = ConversationScrollBarRect.left + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.035;
                 RecipientMessagePositionRect.top = MessagePosition;
-                RecipientMessagePositionRect.right =  widthMessage;
-                RecipientMessagePositionRect.bottom = RecipientMessagePositionRect.top + MessageHeight - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.011;
+                RecipientMessagePositionRect.right =  RecipientMessagePositionRect.left + widthMessage;
+                RecipientMessagePositionRect.bottom = (RecipientMessagePositionRect.top + (MessageHeight + (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.08) - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.011);
                 RoundRect(Mdc_UiGeneralConversation_child,RecipientMessagePositionRect.left,RecipientMessagePositionRect.top,RecipientMessagePositionRect.right,RecipientMessagePositionRect.bottom,
                 (WndRect.right-WndRect.left)*0.0132,(WndRect.right-WndRect.left)*0.0132);
                 RecipientMessagePositionRect.left += (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.01;
                 RecipientMessagePositionRect.right -= (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.04;
-                RecipientMessagePositionRect.bottom += (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.192;
+                // Draw username with color
+                RECT UsernameRect = RecipientMessagePositionRect;
+                UsernameRect.bottom = UsernameRect.top + (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.06;
+                COLORREF oldTextColor = GetTextColor(Mdc_UiGeneralConversation_child);
+                HFONT UsernameFont = CreateFont(
+                    HeightFirst - 3, // Smaller font size
+                    WidthFirst - 1, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+                    OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+                    DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial")
+                );
+                HFONT OldUsernameFont = (HFONT)SelectObject(Mdc_UiGeneralConversation_child, UsernameFont);
                 for(int i=0;i<countclient && i<40;i++)
                 {
                     if(strcmp(MessagesConversations[i].OwnerName,GeneralChatConversation.Conversation[k].owner) == 0)
                     {
                         RGB ColorRgbValue = ColorRgb(MessagesConversations[i].color);
-                        hPen = CreatePen(PS_SOLID, 1, RGB(ColorRgbValue.r,ColorRgbValue.g,ColorRgbValue.b));
+                        SetTextColor(Mdc_UiGeneralConversation_child, RGB(ColorRgbValue.r,ColorRgbValue.g,ColorRgbValue.b));
                         break;
                     }
                 }
-                hOldPen = (HPEN)SelectObject(Mdc_UiGeneralConversation_child, hPen);
-                DrawText(Mdc_UiGeneralConversation_child,GeneralChatConversation.Conversation[k].owner,-1,&RecipientMessagePositionRect,DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
-                RecipientMessagePositionRect.left = ConversationScrollBarRect.left + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.035;
-                RecipientMessagePositionRect.top = MessagePosition;
-                RecipientMessagePositionRect.right =  widthMessage;
-                RecipientMessagePositionRect.bottom = RecipientMessagePositionRect.top + MessageHeight - (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.011;
+                DrawText(Mdc_UiGeneralConversation_child,GeneralChatConversation.Conversation[k].owner,-1,&UsernameRect,DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
+                // Restore original font and text color
+                SelectObject(Mdc_UiGeneralConversation_child, OldUsernameFont);
+                DeleteObject(UsernameFont);
+                SetTextColor(Mdc_UiGeneralConversation_child, oldTextColor);   
+                // Draw message content
+                RECT MessageRect;
+                MessageRect.left = RecipientMessagePositionRect.left;
+                MessageRect.top = RecipientMessagePositionRect.top + (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.05;
+                MessageRect.right = RecipientMessagePositionRect.right;
+                MessageRect.bottom = RecipientMessagePositionRect.bottom;
                 hPen = CreatePen(PS_SOLID, 1, RGB(210, 210, 210));
                 hOldPen = (HPEN)SelectObject(Mdc_UiGeneralConversation_child, hPen);
-                RecipientMessagePositionRect.left += (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.01;
-                RecipientMessagePositionRect.right -= (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.01;
-                RecipientMessagePositionRect.top += (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.17;
-                DrawText(Mdc_UiGeneralConversation_child,GeneralChatConversation.Conversation[k].message,-1,&RecipientMessagePositionRect,DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
+                DrawText(Mdc_UiGeneralConversation_child,GeneralChatConversation.Conversation[k].message,-1,&MessageRect,DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
+                printf("those are the message of my co-worker : %s\n",GeneralChatConversation.Conversation[k].message);
                 MessagePosition -= TimeStamp_Height;
                 RoundRect(Mdc_UiGeneralConversation_child,((ConversationScrollBarRect.right - ConversationScrollBarRect.left) / 2) - (TimeStamp_Width / 2),RecipientMessagePositionRect.top - (ConversationScrollBarRect.bottom - ConversationScrollBarRect.top)*0.083,
                 ((ConversationScrollBarRect.right - ConversationScrollBarRect.left) / 2) + (TimeStamp_Width / 2),
@@ -1387,13 +1424,13 @@ void UiGeneralCalculateConversationThumbRect(HWND hwnd, RECT* thumb_rect,RECT Wi
     {
         thumb_pos = scrollbar_height - thumb_height;
     }
-    //if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
-    //{
-        thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
-        thumb_rect->top = thumb_pos;
-        thumb_rect->right = client_rect.right - 2;
-        thumb_rect->bottom = thumb_rect->top + thumb_height;
-    //}
+    if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
+    {
+      thumb_rect->left = client_rect.right - SCROLLBAR_WIDTH - 2;
+      thumb_rect->top = thumb_pos;
+      thumb_rect->right = client_rect.right - 2;
+      thumb_rect->bottom = thumb_rect->top + thumb_height;
+    }
 }
 // for drawing the thumb 
 void UiGeneralDrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float UiGeneralHeightIncrementationChecking)
@@ -1407,14 +1444,14 @@ void UiGeneralDrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float
         client_rect.bottom
     };
     HBRUSH track_brush;
-    //if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
-    //{
-      track_brush = CreateSolidBrush(TRACK_COLOR);
-    //}
-    //else
-    //{
-    //    track_brush = CreateSolidBrush(RGB(247, 240, 217));
-    //}
+    if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
+    {
+        track_brush = CreateSolidBrush(TRACK_COLOR);
+    }
+    else
+    {
+        track_brush = CreateSolidBrush(RGB(247, 240, 217));
+    }
     FillRect(Mdc, &track_rect, track_brush);
     DeleteObject(track_brush);  
     UiGeneralCalculateConversationThumbRect(hwnd,&UiGeneralConversation_thumb.thumb_rect,WindowSize,UiGeneralHeightIncrementationChecking);    
@@ -1431,15 +1468,15 @@ void UiGeneralDrawConversationScrollBar(HDC Mdc, HWND hwnd,RECT WindowSize,float
     HBRUSH thumb_brush = CreateSolidBrush(thumb_color);
     HBRUSH old_brush = SelectObject(Mdc, thumb_brush);
     HPEN old_pen = SelectObject(Mdc, CreatePen(PS_SOLID, 1, thumb_color));
-    //if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
-    //{
-      RoundRect(Mdc, 
-      UiGeneralConversation_thumb.thumb_rect.left + 2, 
-      UiGeneralConversation_thumb.thumb_rect.top,
-      UiGeneralConversation_thumb.thumb_rect.right - 2, 
-      UiGeneralConversation_thumb.thumb_rect.bottom,
-      6, 6);
-    //}
+    if(UiGeneralHeightIncrementationChecking > (client_rect.bottom - client_rect.top))
+    {
+    RoundRect(Mdc, 
+    UiGeneralConversation_thumb.thumb_rect.left + 2, 
+    UiGeneralConversation_thumb.thumb_rect.top,
+    UiGeneralConversation_thumb.thumb_rect.right - 2, 
+    UiGeneralConversation_thumb.thumb_rect.bottom,
+    6, 6);
+    }
     float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - (PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.074)) - (WindowSize.right-WindowSize.left)*0.007;
     DeleteObject(SelectObject(Mdc, old_pen));
     SelectObject(Mdc, old_brush);
@@ -1461,7 +1498,7 @@ void UiGeneralUpdateConversationScrollValue(HWND hwnd, float new_val)
 int UiGeneralConversation_total_messages;
 float UiGeneralConversation_window_height;
 int UiGeneralConversation_messages_per_page;
-void UiGeneralUpdateConversationScrollbarRange(HWND hwnd,RECT UiGeneralConversationScrollBarRect,ScrollbarInfo *UiGeneralConversation_thumb,int Message_Count)
+void UiGeneralUpdateConversationScrollbarRange(HWND hwnd,RECT UiGeneralConversationScrollBarRect,ScrollbarInfo *UiGeneralConversation_thumb,int Message_Count,bool *UiGeneralNewFlag)
 {
     GetClientRect(hwnd,&UiGeneralConversationScrollBarRect);
     UiGeneralConversation_total_messages = ((Message_Count < 11) ? 11 : Message_Count);
@@ -1478,4 +1515,10 @@ void UiGeneralUpdateConversationScrollbarRange(HWND hwnd,RECT UiGeneralConversat
         UiGeneralConversation_thumb->max_val = UiGeneralConversation_total_messages - UiGeneralConversation_messages_per_page;
         UiGeneralConversation_thumb->max_val = UiGeneralConversation_thumb->max_val;
     }   
+    if(*UiGeneralNewFlag)
+    {
+        *UiGeneralNewFlag = FALSE;
+        UiGeneralConversation_scrolloffset = 0;
+        UiGeneralConversation_thumb->current_val = UiGeneralConversation_thumb->max_val;
+    }
 }

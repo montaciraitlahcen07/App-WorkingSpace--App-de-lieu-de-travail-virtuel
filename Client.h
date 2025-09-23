@@ -26,9 +26,10 @@ typedef struct
     char PassWord[30];
     int age;
     int salarie;
-    SOCKET Clients;
-    SOCKET ClientsSending;
-    SOCKET StatusClient;
+    SOCKET ClientsS;
+    SOCKET ClientsR;
+    SOCKET StatusClients;
+    SOCKET UiGeneralReceivingSocket;
     bool IsActive;
 }Clients;
 Clients Message[100];
@@ -76,7 +77,13 @@ typedef struct
     int last_index;
     int count;
 }conversationGeneral;
-conversationGeneral GeneralChatConversation;
+conversationGeneral GeneralChatConversation = {0};
+
+// Function to clear UiGeneral conversation data
+void ClearGeneralChatConversation()
+{
+    memset(&GeneralChatConversation, 0, sizeof(conversationGeneral));
+}
 // scroll offset we will filter the message that would be shown in the screen 
 float Conversation_scrolloffset;
 float UiGeneralConversation_scrolloffset;
@@ -113,13 +120,12 @@ typedef struct
     bool UiGeneral; 
     HWND HandleWnd;
 }RcvSetting;
-RcvSetting RcvStg;
 // time stamp 
 time_t rawtime;
 struct tm *timeinfo;
 struct tm TimeStamp;
 // RGB 
-typedef struct
+typedef struct 
 {
     int r, g, b;
 } RGB;
@@ -135,21 +141,21 @@ typedef struct
 }ColorsNames;
 ColorsNames UsersNameColor[20];
 extern bool ResetChoice;
+extern bool UiGeneralResetChoice;
+extern HWND UiGeneralConversationWndH;
+extern HWND ConversationScrollBar;
 unsigned __stdcall receivingClient(void *param);
 unsigned __stdcall SendingThread(void *param);
 int FillingSearchRecipientList(HWND HandleSearch,int countclient,Clients Message[100],int ListSearchedRecipient[100],int CompSearchedRecipient);
 void insert_at_bottom(const char* Sender,const char* message,const char *owner,struct tm TimeStamp);
+void UiGeneralinsert_at_bottom(const char* owner,const char* message,struct tm TimeStamp);
 const char * UsersColors(int C);
 RGB ColorRgb(const char * Colorname);
+unsigned __stdcall UiGeneralreceivingClient(void *param);
+void ClearGeneralChatConversation();
 // add in this thread function to disperse between inbox message and general message
 unsigned __stdcall receivingClient(void *param)
 {
-    typedef struct
-    {
-        bool UiInbox;
-        bool UiGeneral; 
-        HWND HandleWnd;
-    }RcvSetting;
     RcvSetting *RcvStg = (RcvSetting*)param;
     char username[100];
     char buffer[100];
@@ -157,7 +163,8 @@ unsigned __stdcall receivingClient(void *param)
     while(TRUE)
     {
         if(RcvStg->UiInbox)
-        { 
+        {
+            // i need to fix this 
             typedef struct 
             {
                 char Sender[50];
@@ -196,7 +203,9 @@ unsigned __stdcall receivingClient(void *param)
 SndTrd MemoryDcSndTool = {0};
 int countclient = 0;
 int countclientStatus = 0;
+// Sending Flags
 bool Send = FALSE;
+bool UiGeneralSend = FALSE;
 unsigned __stdcall SendingThread(void *param)
 {
     MemoryDcSndTool = *(SndTrd *)param;
@@ -249,24 +258,79 @@ unsigned __stdcall SendingThread(void *param)
             if(sendResult == SOCKET_ERROR)
             {
                 continue;
+            } 
+            else
+            {
+                GetClientRect(MemoryDcSndTool.ScrollBar,&MemoryDcSndTool.ScrollBarRect);
+                HPEN Pen=CreatePen(BS_SOLID,2,RGB(0,0,0));
+                HPEN OldPen=SelectObject(MemoryDcSndTool.Mdc_Child_1,Pen);
+                recv(ConnectingTools.ClientSocketSending,(char *)&countclient,sizeof(countclient),0);
+                // Ensure countclient doesn't exceed array bounds
+                if(countclient > 40) countclient = 40;
+                countclientStatus = countclient;
+                for(int j=0;j<countclient;j++)
+                {
+                    recv(ConnectingTools.ClientSocketSending, (char *)&Message[j], sizeof(Clients), 0);
+                    // incrementing the array of stocking recipient info
+                    i++;
+                    // naming the array each users get his own array 
+                    strcpy(MessagesConversations[j].OwnerName,Message[j].Username);
+                    strcpy(MessagesConversations[j].color,UsersColors(j));
+                    strcpy(RecipientPass[j].recipient,Message[j].Username);
+                    strcpy(UsersNameColor[j].name,Message[j].Username);
+                    strcpy(UsersNameColor[j].color,UsersColors(j));
+                }
+                SelectObject(MemoryDcSndTool.Mdc_Child_1, OldPen);
+                DeleteObject(Pen);
             }
         }
         if(strcmp(Choice,"TRUE") == 0)
         {
-            strcpy(Buffer,"hi");
-            int lenb = strlen(Buffer);
-            while (lenb > 0 && (Buffer[lenb-1] == '\n' || Buffer[lenb-1] == '\r' || 
-            Buffer[lenb-1] == '\t' || Buffer[lenb-1] == ' '))
+            while(!UiGeneralSend)
             {
-                Buffer[--lenb] = '\0';
+                if(UiGeneralResetChoice)
+                {
+                    UiGeneralResetChoice = FALSE;
+                    char *ChoiceChanging = "RESET";
+                    strcpy(UiGeneralMessage.ChoiceChanging,ChoiceChanging);
+                    sendResult = send(ConnectingTools.ClientSocketSending,(char*)&UiGeneralMessage, sizeof(UiGeneralMessage), 0);
+                    if(sendResult == SOCKET_ERROR)
+                    {
+                        continue;
+                    }
+                    printf("it go into inbox\n");
+                    Sleep(100); // Small delay to ensure server processes RESET
+                    goto ChoiceChanging;
+                }
+                Sleep(10);
             }
-            
-            sendResult = send(ConnectingTools.ClientSocketSending, Buffer, strlen(Buffer), 0);
-            if(sendResult == SOCKET_ERROR)
+            // taking the message from message bar
+            GetWindowText(SendingTools.UiGeneralMessageBarHandle,UiGeneralMessage.Buffer,sizeof(UiGeneralMessage.Buffer));
+            int lenb = strlen(UiGeneralMessage.Buffer);
+            while (lenb > 0 && (UiGeneralMessage.Buffer[lenb-1] == '\n' || UiGeneralMessage.Buffer[lenb-1] == '\r' || 
+            UiGeneralMessage.Buffer[lenb-1] == '\t' || UiGeneralMessage.Buffer[lenb-1] == ' '))
             {
-                continue;
+                UiGeneralMessage.Buffer[--lenb] = '\0';
             }
-            Sleep(100);   
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+            TimeStamp = *timeinfo;
+            if(lenb !=0)
+            {
+                // storing the message in the array of the conversation
+                UiGeneralinsert_at_bottom(SendingTools.username,UiGeneralMessage.Buffer,TimeStamp);
+                UiGeneralMessage.TimeStamp = TimeStamp;
+                char *ChoiceChanging = "NORMAL";
+                strcpy(UiGeneralMessage.ChoiceChanging,ChoiceChanging);
+                sendResult = send(ConnectingTools.ClientSocketSending,(char*)&UiGeneralMessage, sizeof(UiGeneralMessage), 0);
+                if(sendResult == SOCKET_ERROR)
+                {
+                    continue;
+                }
+                SetWindowText(SendingTools.UiGeneralMessageBarHandle,"");
+            }
+            UiGeneralSend = FALSE;
+            Sleep(100);
         }
         else if(strcmp(Choice,"FALSE") == 0)
         {
@@ -288,6 +352,7 @@ unsigned __stdcall SendingThread(void *param)
                     {
                         continue;
                     }
+                    printf("it go into UiGeneral\n");
                     goto ChoiceChanging;
                 }
                 Sleep(10);
@@ -298,7 +363,7 @@ unsigned __stdcall SendingThread(void *param)
             {
                 ConnectingTools.PrivateMessage.SelectedRecipient[--lenRecipient] = '\0';
             }
-           // taking the message from message bar
+            // taking the message from message bar
             GetWindowText(SendingTools.UiInboxMessageBarHandle,ConnectingTools.PrivateMessage.Buffer,sizeof(ConnectingTools.PrivateMessage.Buffer));
             int lenb = strlen(ConnectingTools.PrivateMessage.Buffer);
             while (lenb > 0 && (ConnectingTools.PrivateMessage.Buffer[lenb-1] == '\n' || ConnectingTools.PrivateMessage.Buffer[lenb-1] == '\r' || 
@@ -365,8 +430,8 @@ unsigned __stdcall StatusThread(void *param)
                 if(strcmp(Message[j].Username,UserStatus.UserName) == 0)
                 {
                     Message[j].IsActive = TRUE;
-                    Message[j].Clients = UserStatus.socket;
-                    Message[j].StatusClient = UserStatus.Statussocket;
+                    Message[j].ClientsS = UserStatus.socket;
+                    Message[j].StatusClients = UserStatus.Statussocket;
                     break;
                 }
                 j++;
@@ -380,8 +445,8 @@ unsigned __stdcall StatusThread(void *param)
                 if(strcmp(Message[j].Username,UserStatus.UserName) == 0)
                 {
                     Message[j].IsActive = FALSE;
-                    Message[j].Clients = 0;
-                    Message[j].StatusClient = 0;
+                    Message[j].ClientsS = 0;
+                    Message[j].StatusClients = 0;
                     break;
                 }
                 j++;
@@ -393,9 +458,9 @@ unsigned __stdcall StatusThread(void *param)
             if(countclientStatus < 100)
             {
                 strcpy(Message[countclientStatus].Username,UserStatus.UserName);
-                Message[countclientStatus].Clients = UserStatus.socket;
+                Message[countclientStatus].ClientsS = UserStatus.socket;
                 Message[countclientStatus].IsActive = TRUE;
-                Message[countclientStatus].StatusClient = UserStatus.Statussocket;
+                Message[countclientStatus].StatusClients = UserStatus.Statussocket;
                 countclientStatus++;
             }
         }
@@ -486,7 +551,7 @@ unsigned __stdcall ConversationThread(void *param)
     closesocket(ConversationSocket);
     return 0;
 }
-// inserting new message at the bottom of the array
+// inserting new message at the bottom of the array (UiInbox)
 void insert_at_bottom(const char* Sender,const char* message,const char * owner,struct tm TimeStamp)
 {
     // Safety checks for null pointers
@@ -497,21 +562,21 @@ void insert_at_bottom(const char* Sender,const char* message,const char * owner,
     {
         if(strcmp(MessagesConversations[i].OwnerName,Sender) == 0)
         {
-            if(MessagesConversations[i].count >= 100)
-            {
-                printf("Message limit reached for %s array\n", Sender);
-                return;
-            }
             ConversationData NewData;
             strcpy(NewData.owner,owner);
             strcpy(NewData.message,message);
             NewData.TimeStamp = TimeStamp;
             for(int j=MessagesConversations[i].count;j>0;j--)
-            {
+                {
                 MessagesConversations[i].Conversation[j] = MessagesConversations[i].Conversation[j-1];
-            }
+                }
             MessagesConversations[i].Conversation[0] = NewData;
             MessagesConversations[i].count++;
+            // Invalidate the UiInbox conversation window to trigger repaint
+            if(ConversationScrollBar)
+            {
+                InvalidateRect(ConversationScrollBar, NULL, TRUE);
+            }
             break;
         }
     }
@@ -567,26 +632,122 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
             typedef struct
             {
                 char message[200];
+                char owner[50];
                 char sender[50];
+                char recipient[50];
                 struct tm TimeStamp;
             }ResponseData;
             ResponseData SendingData;
             for(int j=0;j<Response.message_count;j++)
             {
                 recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
-                ConversationData NewData;
-                strcpy(NewData.message,SendingData.message);
-                NewData.TimeStamp = SendingData.TimeStamp;
-                GeneralChatConversation.Conversation[GeneralChatConversation.count] = NewData;
+                // Only process non-empty messages
+                if(strlen(SendingData.message) > 0 && strlen(SendingData.owner) > 0)
+                {
+                    printf("the message is sent to the client : %s\n",SendingData.message);
+                    ConversationData NewData;
+                    memset(&NewData, 0, sizeof(ConversationData)); // Clear all memory
+                    strncpy(NewData.message, SendingData.message, sizeof(NewData.message) - 1);
+                    NewData.message[sizeof(NewData.message) - 1] = '\0'; // Ensure null termination
+                    // Ensure owner field is set (server may not fill 'owner', but always has 'sender')
+                    strncpy(NewData.owner, SendingData.owner, sizeof(NewData.owner) - 1);
+                    NewData.owner[sizeof(NewData.owner) - 1] = '\0'; // Ensure null termination
+                    NewData.TimeStamp = SendingData.TimeStamp;
+
+                    if(GeneralChatConversation.count < 100)
+                    {
+                        int idx = GeneralChatConversation.count;
+                        GeneralChatConversation.Conversation[idx] = NewData;
+                        GeneralChatConversation.count++;
+                    }
+                }
                 if(Response.no_more)
                 {
                     GeneralChatConversation.last_index = 0;
                     UiGeneralRequestSettingPass.no_more = TRUE;
                 }
-                GeneralChatConversation.count++;
+            }
+            // Invalidate the UiGeneral conversation window to trigger repaint
+            if(UiGeneralConversationWndH)
+            {
+                InvalidateRect(UiGeneralConversationWndH, NULL, TRUE);
             }
         }
     }
     closesocket(ConversationSocket);
+    return 0;
+}
+// inserting new message at the bottom of the array (UiGeneral)
+void UiGeneralinsert_at_bottom(const char* owner,const char* message,struct tm TimeStamp)
+{
+    // Safety checks for null pointers and empty strings
+    if(!owner || !message || strlen(owner) == 0 || strlen(message) == 0)
+        return;
+    if(GeneralChatConversation.count >= 100)
+    {
+        printf("Message limit reached for %s array\n",owner);
+        return;
+    }
+    ConversationData NewData;
+    memset(&NewData, 0, sizeof(ConversationData)); // Clear all memory
+    strncpy(NewData.owner, owner, sizeof(NewData.owner) - 1);
+    NewData.owner[sizeof(NewData.owner) - 1] = '\0'; // Ensure null termination
+    strncpy(NewData.message, message, sizeof(NewData.message) - 1);
+    NewData.message[sizeof(NewData.message) - 1] = '\0'; // Ensure null termination
+    NewData.TimeStamp = TimeStamp;
+    
+    // Store new messages at index 0 (newest first, matching server pattern)
+    for(int j=GeneralChatConversation.count;j>0;j--)
+    {
+        GeneralChatConversation.Conversation[j] = GeneralChatConversation.Conversation[j-1];
+    }
+    GeneralChatConversation.Conversation[0] = NewData;
+    GeneralChatConversation.count++;
+    
+    // Invalidate the UiGeneral conversation window to trigger repaint
+    if(UiGeneralConversationWndH)
+    {
+        InvalidateRect(UiGeneralConversationWndH, NULL, TRUE);
+    }
+}
+unsigned __stdcall UiGeneralreceivingClient(void *param)
+{
+    RcvSetting *RcvStg = (RcvSetting*)param;
+    while(true)
+    {
+        if(RcvStg->UiGeneral)
+        {
+            typedef struct 
+            {
+                char Sender[50];
+                char buffer[200];
+                struct tm TimeStamp;
+            }messaget;
+            messaget messagetest;
+            int result = recv(ConnectingTools.UiGeneralClientSocketReceiving,(char *)&messagetest,sizeof(messagetest),0);
+            if(result <= 0)
+            {
+                continue;
+            }
+            int lena = strlen(messagetest.Sender);
+            while(lena > 0 && (messagetest.Sender[lena-1] == '\n' || messagetest.Sender[lena-1] == '\r' || 
+            messagetest.Sender[lena-1] == '\t' || messagetest.Sender[lena-1] == ' '))
+            {
+                messagetest.Sender[--lena] = '\0';
+            }
+            int len = strlen(messagetest.buffer);
+            while (len > 0 && (messagetest.buffer[len-1] == '\n' || messagetest.buffer[len-1] == '\r' || 
+            messagetest.buffer[len-1] == '\t' || messagetest.buffer[len-1] == ' '))
+            {
+                messagetest.buffer[--len] = '\0';
+            }
+            if(strlen(messagetest.buffer) > 0 && strlen(messagetest.Sender) > 0 && strcmp(messagetest.Sender, SendingTools.username) != 0)
+            {
+                UiGeneralinsert_at_bottom(messagetest.Sender,messagetest.buffer,messagetest.TimeStamp);
+                printf("Received message from %s: %s\n", messagetest.Sender, messagetest.buffer);
+            }
+        }
+    }
+    closesocket(ConnectingTools.UiGeneralConversationSocket);
     return 0;
 }

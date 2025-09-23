@@ -17,6 +17,7 @@ typedef struct
     SOCKET ClientsS;
     SOCKET ClientsR;
     SOCKET StatusClients;
+    SOCKET UiGeneralReceivingSocket;
     bool IsActive;
 }Clients;
 typedef struct
@@ -44,7 +45,8 @@ typedef struct
 {
     SOCKET SendingSocket;
     SOCKET ReceivingSocket;
-    SOCKET StatusSocket;   
+    SOCKET StatusSocket;
+    SOCKET UiGeneralReceivingSocket;   
 }ClientSockets;
 // client is socket and message
 typedef struct
@@ -84,14 +86,24 @@ typedef struct
     char recipient[50];
     struct tm TimeStamp;
 }ResponseData;
+// Message Send info (UiInbox)
+typedef struct
+{
+    char Buffer[200];
+    struct tm TimeStamp;
+    char ChoiceChanging[50];
+}UiGeneralMessageinfo;
 unsigned __stdcall ReceivingAndPrintingData(void *param);
-bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus);
+unsigned __stdcall UiGeneralReceivingData(void *param);
+bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket, SOCKET UiGeneralReceivingSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus);
 void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsData,StatusType *UserStatus,char username[30]);
-void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET senderSocket,FILE *ClientsData);
+void BroadcastToAllUsers(const char* senderUsername, const char* message,struct tm TimeStamp, SOCKET senderSocket,FILE *ClientsData);
 bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message,SOCKET senderSocketReceiving,FILE *ClientsData,struct tm TimeStamp);
 void StoringConversation(const char* Sender, const char* Recipient,const char* message,struct tm TimeStamp);
 void SendClient(char username[20],SOCKET clientSocketc,FILE *ClientsData);
 unsigned __stdcall ConversationThread(void *param);
+unsigned __stdcall UiGeneralConversationThread(void *param);
+void UiGeneralStoringConversation(const char* Sender,const char* message,struct tm TimeStamp);
 int main()
 {
     // Storing the users is infos
@@ -117,7 +129,7 @@ int main()
         return 1;
     }
 
-    struct sockaddr_in ServerSending, ClientDataSending,ServerReceiving, ClientDataReceiving,StatusData,StatusServer,ConversationData,ConversationServer;
+    struct sockaddr_in ServerSending, ClientDataSending,ServerReceiving, ClientDataReceiving,StatusData,StatusServer,ConversationData,ConversationServer,UiGeneralServerReceiving;
     // Sending Connection
     SOCKET ServerSocketSending = socket(AF_INET, SOCK_STREAM, 0);
     if (ServerSocketSending == INVALID_SOCKET) {
@@ -143,7 +155,7 @@ int main()
         WSACleanup();
         return 1;
     }
-    // receving Connection
+    // receving Connection (UiInbox)
     SOCKET ServerSocketReceiving = socket(AF_INET, SOCK_STREAM, 0);
     if (ServerSocketReceiving == INVALID_SOCKET) {
         printf("Socket creation failed\n");
@@ -217,8 +229,32 @@ int main()
         WSACleanup();
         return 1;
     }
-    printf("Server is listening on port 8000,8001,8002 and 8003...\n");
-    
+    // receving Connection (UiGeneral)
+    SOCKET UiGeneralServerSocketReceiving = socket(AF_INET, SOCK_STREAM, 0);
+    if (UiGeneralServerSocketReceiving == INVALID_SOCKET)
+    {
+        printf("Socket creation failed\n");
+        WSACleanup();
+        return 1;
+    }
+    UiGeneralServerReceiving.sin_family = AF_INET;
+    UiGeneralServerReceiving.sin_port = htons(8004);
+    UiGeneralServerReceiving.sin_addr.S_un.S_addr = INADDR_ANY;
+    //UiGeneralServerReceiving.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+    if (bind(UiGeneralServerSocketReceiving, (struct sockaddr *)&UiGeneralServerReceiving, sizeof(UiGeneralServerReceiving)) == SOCKET_ERROR) {
+        printf("Bind failed with error: %d\n", WSAGetLastError());
+        closesocket(UiGeneralServerSocketReceiving);
+        WSACleanup();
+        return 1;
+    }
+    if(listen(UiGeneralServerSocketReceiving, 5) == SOCKET_ERROR)
+    {
+        printf("Listen failed with error: %d\n", WSAGetLastError());
+        closesocket(UiGeneralServerSocketReceiving);
+        WSACleanup();
+        return 1;
+    }
+    printf("Server is port are listening...\n"); 
     int sizeDataClient = sizeof(ClientDataSending);
     int sizeDataClientReceiving = sizeof(ClientDataReceiving);
     int sizeDataStatus = sizeof(StatusData);
@@ -272,11 +308,28 @@ int main()
             Sleep(50);
             goto CONNECT;
         }
-        // this is connecting with the Conversation socket 
+        // this is connecting with the Conversation socket (UiInbox)
         ConversationClient = accept(ServerSocketConversation, (struct sockaddr *)&ConversationData, &sizeDataConversation);
         if (ConversationClient == INVALID_SOCKET)
         {
             printf("Accept (status) failed: %d\n", WSAGetLastError());
+            Sleep(50);
+            goto CONNECT;
+        }
+        // this is connecting with the Conversation socket (UiGeneral)
+        SOCKET UiGeneralConversationClient = accept(ServerSocketConversation, (struct sockaddr *)&ConversationData, &sizeDataConversation);
+        if (UiGeneralConversationClient == INVALID_SOCKET)
+        {
+            printf("Accept (UiGeneral conversation) failed: %d\n", WSAGetLastError());
+            Sleep(50);
+            goto CONNECT;
+        }
+        // this is connecting with the UiGeneral receiving socket
+        int sizeDataUiGeneralReceiving = sizeof(UiGeneralServerReceiving);
+        SOCKET UiGeneralClientReceiving = accept(UiGeneralServerSocketReceiving, (struct sockaddr *)&UiGeneralServerReceiving, &sizeDataUiGeneralReceiving);
+        if (UiGeneralClientReceiving == INVALID_SOCKET)
+        {
+            printf("Accept (UiGeneral receiving) failed: %d\n", WSAGetLastError());
             Sleep(50);
             goto CONNECT;
         }
@@ -287,24 +340,43 @@ int main()
         SocketAndMessage.Sockets->ReceivingSocket = ClientR;
         // this is for status socket  
         SocketAndMessage.Sockets->StatusSocket = StatusClient;
-        SOCKET *ConversatonSocket = (SOCKET *)malloc(sizeof(SOCKET ));
-        *ConversatonSocket = ConversationClient;
+        // this is for UiGeneral receiving socket
+        SocketAndMessage.Sockets->UiGeneralReceivingSocket = UiGeneralClientReceiving;
+        typedef struct 
+        {
+            SOCKET UiInboxConversationSocket;
+            SOCKET UiGeneralConversationSocket;
+        }ConversationSockets;
+        ConversationSockets *InboxGeneralSockets;
+        InboxGeneralSockets = (ConversationSockets *)malloc(sizeof(ConversationSockets));
+        InboxGeneralSockets->UiInboxConversationSocket = ConversationClient;
+        InboxGeneralSockets->UiGeneralConversationSocket = UiGeneralConversationClient;
         HANDLE ClientThread = (HANDLE)_beginthreadex(NULL, 0, ReceivingAndPrintingData,&SocketAndMessage, 0, NULL);
-        HANDLE ConversationHandle = (HANDLE)_beginthreadex(NULL, 0, ConversationThread,ConversatonSocket, 0, NULL);
+        HANDLE UiGeneralReceivingThread = (HANDLE)_beginthreadex(NULL, 0, UiGeneralReceivingData,&SocketAndMessage, 0, NULL);
+        HANDLE ConversationHandle = (HANDLE)_beginthreadex(NULL, 0, ConversationThread,(void*)&(InboxGeneralSockets->UiInboxConversationSocket), 0, NULL);
+        HANDLE UiGeneralConversationHandle = (HANDLE)_beginthreadex(NULL, 0, UiGeneralConversationThread,(void *)&InboxGeneralSockets->UiGeneralConversationSocket, 0, NULL);
         if(ClientThread)
         {
             CloseHandle(ClientThread);
         }
+        if(UiGeneralReceivingThread)
+        {
+            CloseHandle(UiGeneralReceivingThread);
+        }
         if(ConversationHandle)
         {
             CloseHandle(ConversationHandle);
+        }
+        if(UiGeneralConversationHandle)
+        {
+            CloseHandle(UiGeneralConversationHandle);
         }
     }
     closesocket(ServerSocketSending);
     WSACleanup();
     return 0;
 }
-bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket,bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus)
+bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket, SOCKET UiGeneralReceivingSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus)
 {
     ClientsData = fopen("ClientsData.txt", "r+b");
     if (ClientsData == NULL)
@@ -327,6 +399,7 @@ bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientS
             ClientsStoring.IsActive = TRUE; 
             ClientsStoring.StatusClients = StatusSocket; 
             ClientsStoring.ClientsR = clientSocketReceiving;
+            ClientsStoring.UiGeneralReceivingSocket = UiGeneralReceivingSocket;
             fwrite(&ClientsStoring, sizeof(ClientsStoring), 1, ClientsData);
             fflush(ClientsData); 
             printf("%s connected\n", ClientsStoring.Username);
@@ -392,22 +465,33 @@ void MarkUserAsInactive(SOCKET clientSocket,SOCKET StatusSocket,FILE *ClientsDat
 
     fclose(ClientsData);
 }
-void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET senderSocket,FILE *ClientsData)
+void BroadcastToAllUsers(const char* sender, const char* message,struct tm TimeStamp, SOCKET senderSocket,FILE *ClientsData)
 {
-    ClientsData = fopen("ClientsData.txt", "rb"); 
+    if(!sender || !message || strlen(message) == 0 || strlen(sender) == 0) return ;
+    ClientsData = fopen("ClientsData.txt","rb"); 
     if (ClientsData == NULL)
     {
         printf("Failed to open ClientsData.txt for broadcasting\n");
         return;
-    }
-    Clients tempClient;
-    while (fread(&tempClient, sizeof(tempClient), 1, ClientsData) == 1)
+    }// Message Send info (UiInbox)
+    typedef struct
     {
-        if(tempClient.ClientsS != senderSocket && tempClient.IsActive && strcmp(tempClient.Username,senderUsername) != 0)
+        char sender[50];
+        char buffer[200];
+        struct tm TimeStamp;
+    }UiGeneralBroadrcastingMessage;
+    Clients tempClient;
+    UiGeneralBroadrcastingMessage UiGeneralBroadcasting;
+    strcpy(UiGeneralBroadcasting.buffer,message);
+    strcpy(UiGeneralBroadcasting.sender,sender);
+    UiGeneralBroadcasting.TimeStamp = TimeStamp;
+    while(fread(&tempClient, sizeof(tempClient), 1, ClientsData) == 1)
+    {
+        if(tempClient.ClientsS != senderSocket && tempClient.IsActive && strcmp(tempClient.Username,sender) != 0)
         {
             printf("Sending to %s\n", tempClient.Username);
             // do it in one send here and add the time stamp of the message and add a color of the user name 
-            if(send(tempClient.ClientsS, senderUsername, strlen(senderUsername), 0) == SOCKET_ERROR || send(tempClient.ClientsS, message, strlen(message), 0) == SOCKET_ERROR)
+            if(send(tempClient.UiGeneralReceivingSocket,(char *)&UiGeneralBroadcasting,sizeof(UiGeneralBroadrcastingMessage), 0) == SOCKET_ERROR)
             {
                 printf("Failed to send to %s (client may have disconnected)\n", tempClient.Username);
             }
@@ -416,7 +500,6 @@ void BroadcastToAllUsers(const char* senderUsername, const char* message, SOCKET
 
     fclose(ClientsData); 
 }
-
 bool SendPrivateMessage(const char* senderUsername, const char* recipient, const char* message,SOCKET senderSocketReceiving,FILE *ClientsData,struct tm TimeStamp)
 {
     ClientsData = fopen("ClientsData.txt", "rb");
@@ -490,7 +573,7 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
         Message.PassWord[--lenP] = '\0';
     }
     bool IsNewConnection = FALSE;
-    FindAndUpdateUser(Message.Username,Message.PassWord, SocketAndMessage.Sockets->SendingSocket,SocketAndMessage.Sockets->ReceivingSocket,SocketAndMessage.Sockets->StatusSocket,&IsNewConnection,ClientsData,&UserStatus);
+    FindAndUpdateUser(Message.Username,Message.PassWord, SocketAndMessage.Sockets->SendingSocket,SocketAndMessage.Sockets->ReceivingSocket,SocketAndMessage.Sockets->StatusSocket,SocketAndMessage.Sockets->UiGeneralReceivingSocket,&IsNewConnection,ClientsData,&UserStatus);
     if(IsNewConnection)
     {
         printf("Client username received: %s\n", Message.Username);
@@ -517,23 +600,41 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
             Message.GeneralPrivate[--len] = '\0';
         }
         printf("Message type from %s: %s\n", Message.Username, Message.GeneralPrivate);
-        if (strcmp(Message.GeneralPrivate, "TRUE") == 0)
+        if(strcmp(Message.GeneralPrivate, "TRUE") == 0)
         {
-            memset(Message.Buffer, 0, sizeof(Message.Buffer));
-            resultnumber = recv(SocketAndMessage.Sockets->SendingSocket, Message.Buffer, sizeof(Message.Buffer) - 1, 0);
+            // for sending the user the whole list of users who are they online rn
+            SendClient(Message.Username,SocketAndMessage.Sockets->SendingSocket,ClientsData);
+            UiGeneralMessageinfo ReceivingData;
+            resultnumber = recv(SocketAndMessage.Sockets->SendingSocket,(char *)&ReceivingData, sizeof(UiGeneralMessageinfo), 0);
             if (resultnumber <= 0)
             {
                 printf("Failed to receive message from %s\n", Message.Username);
                 break;
             }
-            Message.Buffer[resultnumber] = '\0';
-            len = strlen(Message.Buffer);
-            while (len > 0 && (Message.Buffer[len-1] == '\n' || Message.Buffer[len-1] == '\r' || Message.Buffer[len-1] == '\t' || Message.Buffer[len-1] == ' '))
+            // checking the ChoiceChanging String
+            len = strlen(ReceivingData.ChoiceChanging);
+            while (len > 0 && (ReceivingData.ChoiceChanging[len-1] == '\n' || ReceivingData.ChoiceChanging[len-1] == '\r' || ReceivingData.ChoiceChanging[len-1] == '\t' || ReceivingData.ChoiceChanging[len-1] == ' '))
             {
-                Message.Buffer[--len] = '\0';
+                ReceivingData.ChoiceChanging[--len] = '\0';
             }
-            printf("Broadcasting message from %s: %s\n", Message.Username, Message.Buffer);
-            BroadcastToAllUsers(Message.Username, Message.Buffer, SocketAndMessage.Sockets->SendingSocket,ClientsData);
+            if(strcmp(ReceivingData.ChoiceChanging,"RESET") == 0)
+            {
+                printf("Choice Changed From General into Inbox\n");
+                goto ChoiceChanging;
+            }
+            len = strlen(ReceivingData.Buffer);
+            while (len > 0 && (ReceivingData.Buffer[len-1] == '\n' || ReceivingData.Buffer[len-1] == '\r' || ReceivingData.Buffer[len-1] == '\t' || ReceivingData.Buffer[len-1] == ' '))
+            {
+                ReceivingData.Buffer[--len] = '\0';
+            }
+            // Only process non-empty messages
+            if(strlen(ReceivingData.Buffer) > 0)
+            {
+                // for storing the message coming into the file of the general chat conversation
+                UiGeneralStoringConversation(Message.Username,ReceivingData.Buffer,ReceivingData.TimeStamp);
+                printf("Broadcasting message from %s: %s\n", Message.Username,ReceivingData.Buffer);
+                BroadcastToAllUsers(Message.Username, ReceivingData.Buffer,ReceivingData.TimeStamp,SocketAndMessage.Sockets->SendingSocket,ClientsData);
+            }
         }
         else if (strcmp(Message.GeneralPrivate, "FALSE") == 0)
         {
@@ -616,8 +717,7 @@ void SendClient(char username[20],SOCKET clientSocket,FILE *ClientsData)
     }
     fclose(ClientsData);
 }
-// creating a conversation thread that will send messages of a conversation into the client 
-// Fixed ConversationThread function for server.c
+// creating a conversation thread that will send messages of a conversation into the client (UiInbox)
 unsigned __stdcall ConversationThread(void *param)
 {
     typedef struct
@@ -637,11 +737,9 @@ unsigned __stdcall ConversationThread(void *param)
         int last_index;    
         bool no_more;      
     }ResponseSetting;
-
     RequestConversation RequestCnv;
     ResponseSetting Response;
     SOCKET ConversationSocket = *(SOCKET *)param;
-    
     while(true)
     {
         int ResultRequest = recv(ConversationSocket, (char *)&RequestCnv, sizeof(RequestConversation), 0);
@@ -766,7 +864,7 @@ unsigned __stdcall ConversationThread(void *param)
     free(param);
     return 0;
 }
-// storing the message into conversation files
+// storing the message into conversation files (UiInbox)
 void StoringConversation(const char* Sender, const char* Recipient,const char* message,struct tm TimeStamp)
 {
     char result[100];
@@ -807,12 +905,194 @@ void StoringConversation(const char* Sender, const char* Recipient,const char* m
     }
     fclose(Conversation);
 }
-/*// Creating a thread for ResetChoice and make it inside this thread to prevent passing it and waiting  for the cycle of sending or receving messages
-unsigned __stdcall ResetChoiceThread(void *param)
+// storing the message into conversation files (UiGeneral)
+void UiGeneralStoringConversation(const char* Sender,const char* message,struct tm TimeStamp)
 {
+    if(!Sender || !message || strlen(message) == 0 || strlen(Sender) == 0) return ;
+    
+    MessageStoring MessageData;
+    FILE *Conversation = fopen("GeneralChat.txt","a+");
+    fseek(Conversation,0,SEEK_END);
+    long file_size = ftell(Conversation);
+    int long_file = file_size/sizeof(MessageStoring);
+    // if the file having some data already
+    if(long_file > 0)
+    {
+        MessageData.index = long_file + 1;
+        strcpy(MessageData.owner,Sender);
+        strcpy(MessageData.message,message);
+        MessageData.TimeStamp = TimeStamp;
+        fwrite(&MessageData,sizeof(MessageStoring),1,Conversation);
+    }
+    // if the file does not have any data
+    else 
+    {
+        MessageData.index = 1;
+        strcpy(MessageData.owner,Sender);
+        strcpy(MessageData.message,message);
+        MessageData.TimeStamp = TimeStamp;
+        fwrite(&MessageData,sizeof(MessageStoring),1,Conversation);
+    }
+    fclose(Conversation);
+}
+// creating a conversation thread that will send messages of a conversation into the client (UiInbox)
+unsigned __stdcall UiGeneralConversationThread(void *param)
+{
+    typedef struct
+    {
+        int message_requested; 
+        int index;             
+        int type;
+    }RequestConversation;
+    typedef struct
+    {
+        int message_count; 
+        int last_index;    
+        bool no_more;      
+    }ResponseSetting;
+    RequestConversation RequestCnv;
+    ResponseSetting Response;
+    SOCKET UiGeneralConversationSocket = *(SOCKET *)param;
+    while(true)
+    {
+        int ResultRequest = recv(UiGeneralConversationSocket, (char *)&RequestCnv, sizeof(RequestConversation), 0);
+        if(ResultRequest <= 0)
+        {
+            continue;
+        }
+        // Create filename for conversation file
+        FILE *Conversation = fopen("GeneralChat.txt","rb");
+        if (!Conversation)
+        {
+            Response.message_count = 0;
+            Response.no_more = TRUE;
+            Response.last_index = 0;
+            send(UiGeneralConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+            continue;
+        }
+        // Get total number of messages in file
+        fseek(Conversation, 0, SEEK_END);
+        long file_size = ftell(Conversation);
+        int total_messages = file_size / sizeof(MessageStoring);
+        if(total_messages == 0)
+        {
+            Response.message_count = 0;
+            Response.no_more = TRUE;
+            Response.last_index = 0;
+            send(UiGeneralConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+            fclose(Conversation);
+            continue;
+        }
+        int start_index;
+        int batch_size = RequestCnv.message_requested;
+        if (RequestCnv.type == 1)
+        {
+            start_index = total_messages;
+        }
+        else if (RequestCnv.type == 2)
+        {
+            start_index = RequestCnv.index;
+            if (start_index < 1) start_index = 1;
+        }
+        else
+        {
+            fclose(Conversation);
+            continue;
+        }
+        if (batch_size > start_index)
+        {
+            batch_size = start_index;
+        }
+        Response.message_count = batch_size;
+        Response.last_index = start_index - batch_size;
+        if (Response.last_index <= 0)
+        {
+            Response.last_index = 0;
+            Response.no_more = TRUE;
+        }
+        else
+        {
+            Response.no_more = FALSE;
+        }
+        send(UiGeneralConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+        Sleep(50);
+        ResponseData SendingData;
+        MessageStoring ReadingData; 
+        for(int j = 0; j < batch_size; j++)
+        {
+            int msg_index = start_index - j;
+            if (msg_index < 1) break;
+            fseek(Conversation, (msg_index - 1) * sizeof(MessageStoring), SEEK_SET);
+            fread(&ReadingData, sizeof(MessageStoring), 1, Conversation);
+            
+            // Only send non-empty messages
+            if(strlen(ReadingData.message) > 0 && strlen(ReadingData.owner) > 0)
+            {
+                strcpy(SendingData.message, ReadingData.message);
+                strcpy(SendingData.owner, ReadingData.owner);
+                SendingData.TimeStamp = ReadingData.TimeStamp;
+                send(UiGeneralConversationSocket, (char *)&SendingData, sizeof(ResponseData), 0);
+                printf("the message is send into the client : %s\n",SendingData.message);
+            }
+            Sleep(15);
+        }
+        fclose(Conversation);
+    }
+    closesocket(UiGeneralConversationSocket);
+    free(param);
+    return 0;
+}
+
+// UiGeneral receiving thread function
+unsigned __stdcall UiGeneralReceivingData(void *param)
+{
+    ClientSocketsAndTools SocketAndMessage = *(ClientSocketsAndTools*)param;
+    UiGeneralMessageinfo ReceivingData;
+    char username[30];
+    
     while(TRUE)
     {
-
+        memset(&ReceivingData, 0, sizeof(ReceivingData));
+        int resultnumber = recv(SocketAndMessage.Sockets->UiGeneralReceivingSocket,(char *)&ReceivingData, sizeof(UiGeneralMessageinfo), 0);
+        
+        if(resultnumber <= 0)
+        {
+            printf("UiGeneral receiving client disconnected or error occurred\n");
+            break;
+        }
+        
+        if(strcmp(ReceivingData.ChoiceChanging,"RESET") == 0)
+        {
+            printf("UiGeneral choice reset received\n");
+            continue;
+        }
+        
+        // Get username from client data
+        ClientsData = fopen("ClientsData.txt", "rb");
+        if(ClientsData != NULL)
+        {
+            Clients tempClient;
+            while(fread(&tempClient, sizeof(tempClient), 1, ClientsData) == 1)
+            {
+                if(tempClient.IsActive && (tempClient.ClientsS == SocketAndMessage.Sockets->SendingSocket || 
+                   tempClient.ClientsR == SocketAndMessage.Sockets->ReceivingSocket))
+                {
+                    strcpy(username, tempClient.Username);
+                    break;
+                }
+            }
+            fclose(ClientsData);
+        }
+        
+        // Store and broadcast the UiGeneral message
+        if(strlen(ReceivingData.Buffer) > 0)
+        {
+            printf("UiGeneral message received from %s: %s\n", username, ReceivingData.Buffer);
+            UiGeneralStoringConversation(username, ReceivingData.Buffer, ReceivingData.TimeStamp);
+            BroadcastToAllUsers(username, ReceivingData.Buffer, ReceivingData.TimeStamp, SocketAndMessage.Sockets->SendingSocket, ClientsData);
+        }
     }
+    
+    closesocket(SocketAndMessage.Sockets->UiGeneralReceivingSocket);
     return 0;
-}*/
+}

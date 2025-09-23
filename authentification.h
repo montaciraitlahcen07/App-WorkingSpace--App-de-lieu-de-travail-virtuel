@@ -24,6 +24,7 @@ typedef struct
     HWND UiGeneralMessageBarHandle;
 }SndTrd;
 SndTrd SendingTools;
+// Message Send info (UiInbox)
 typedef struct
 {
     char SelectedRecipient[100];
@@ -31,17 +32,26 @@ typedef struct
     struct tm TimeStamp;
     char ChoiceChanging[50];
 }InboxMessage;
-InboxMessage PrivateMessage;
+// Message Send info (UiGeneral)
+typedef struct
+{
+    char Buffer[200];
+    struct tm TimeStamp;
+    char ChoiceChanging[50];
+}GeneralMessage;
+GeneralMessage UiGeneralMessage;
 typedef struct 
 {
     struct sockaddr_in ServerSending;
     SOCKET ClientSocketSending;
     struct sockaddr_in ServerReceiving;
     SOCKET ClientSocketReceiving;
+    SOCKET UiGeneralClientSocketReceiving;
     struct sockaddr_in ServerStatus;
     SOCKET StatusSocket;
     struct sockaddr_in ServerConversation;
     SOCKET ConversationSocket;
+    SOCKET UiGeneralConversationSocket;
     RECT WindowSize;
     HDC Mdc;
     InboxMessage PrivateMessage;
