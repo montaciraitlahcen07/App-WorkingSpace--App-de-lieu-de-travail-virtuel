@@ -197,7 +197,7 @@ void CreateOnlineAccount(HDC Mdc,float CurrentHOnline,float CurrentVOnline,RECT 
     HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,OnlineAnimation.left,OnlineAnimation.top-15,OnlineAnimation.right,OnlineAnimation.bottom+2,32,32);
-    DrawText(Mdc,"Online",-1,&OnlineRect,DT_SINGLELINE | DT_CENTER);
+    DrawText(Mdc,"Team",-1,&OnlineRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);
@@ -261,7 +261,7 @@ void CreateTaskAccount(HDC Mdc,float CurrentHTask,float CurrentVTask,RECT Window
     HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,TaskAnimation.left,TaskAnimation.top-15,TaskAnimation.right,TaskAnimation.bottom+2,32,32);
-    DrawText(Mdc,"Task",-1,&TaskRect,DT_SINGLELINE | DT_CENTER);
+    DrawText(Mdc,"Schedule",-1,&TaskRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldButtonColor);
     SelectObject(Mdc,OldFont);
     SelectObject(Mdc,OldPen);
@@ -324,7 +324,7 @@ void CreateProjectAccount(HDC Mdc,float CurrentHProject,float CurrentVProject,RE
     HPEN Pen=CreatePen(BS_SOLID,1,RGB(180, 180, 190));
     HPEN OldPen=SelectObject(Mdc,Pen);
     RoundRect(Mdc,ProjectAnimation.left,ProjectAnimation.top-15,ProjectAnimation.right,ProjectAnimation.bottom+2,32,32);
-    DrawText(Mdc,"Projects",-1,&ProjectRect,DT_SINGLELINE | DT_CENTER);
+    DrawText(Mdc,"Profile",-1,&ProjectRect,DT_SINGLELINE | DT_CENTER);
     SelectObject(Mdc,OldPen);
     SelectObject(Mdc,OldFont);
     DeleteObject(Font);

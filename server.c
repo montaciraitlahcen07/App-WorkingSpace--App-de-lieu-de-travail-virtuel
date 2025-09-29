@@ -134,7 +134,7 @@ int main()
     SOCKET ServerSocketSending = socket(AF_INET, SOCK_STREAM, 0);
     if (ServerSocketSending == INVALID_SOCKET) {
         printf("Socket creation failed\n");
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
 
@@ -145,21 +145,21 @@ int main()
     if (bind(ServerSocketSending, (struct sockaddr *)&ServerSending, sizeof(ServerSending)) == SOCKET_ERROR) {
         printf("Bind failed with error: %d\n", WSAGetLastError());
         closesocket(ServerSocketSending);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     if(listen(ServerSocketSending, 5) == SOCKET_ERROR)
     {
         printf("Listen failed with error: %d\n", WSAGetLastError());
         closesocket(ServerSocketSending);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     // receving Connection (UiInbox)
     SOCKET ServerSocketReceiving = socket(AF_INET, SOCK_STREAM, 0);
     if (ServerSocketReceiving == INVALID_SOCKET) {
         printf("Socket creation failed\n");
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     ServerReceiving.sin_family = AF_INET;
@@ -169,21 +169,21 @@ int main()
     if (bind(ServerSocketReceiving, (struct sockaddr *)&ServerReceiving, sizeof(ServerReceiving)) == SOCKET_ERROR) {
         printf("Bind failed with error: %d\n", WSAGetLastError());
         closesocket(ServerSocketReceiving);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     if(listen(ServerSocketReceiving, 5) == SOCKET_ERROR)
     {
         printf("Listen failed with error: %d\n", WSAGetLastError());
         closesocket(ServerSocketReceiving);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     // Status Connection
     SOCKET ServerSocketStatus = socket(AF_INET, SOCK_STREAM, 0);
     if (ServerSocketStatus == INVALID_SOCKET) {
         printf("Socket creation failed\n");
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     StatusServer.sin_family = AF_INET;
@@ -193,7 +193,7 @@ int main()
     if (bind(ServerSocketStatus, (struct sockaddr *)&StatusServer, sizeof(StatusServer)) == SOCKET_ERROR) {
         printf("Bind failed with error: %d\n", WSAGetLastError());
         closesocket(ServerSocketStatus);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
 
@@ -201,14 +201,14 @@ int main()
     {
         printf("Listen failed with error: %d\n", WSAGetLastError());
         closesocket(ServerSocketStatus);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     // Conversation Connection
     SOCKET ServerSocketConversation = socket(AF_INET, SOCK_STREAM, 0);
     if (ServerSocketConversation == INVALID_SOCKET) {
         printf("Socket creation failed\n");
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     ConversationServer.sin_family = AF_INET;
@@ -218,7 +218,7 @@ int main()
     if (bind(ServerSocketConversation, (struct sockaddr *)&ConversationServer, sizeof(ConversationServer)) == SOCKET_ERROR) {
         printf("Bind failed with error: %d\n", WSAGetLastError());
         closesocket(ServerSocketConversation);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
 
@@ -226,7 +226,7 @@ int main()
     {
         printf("Listen failed with error: %d\n", WSAGetLastError());
         closesocket(ServerSocketConversation);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     // receving Connection (UiGeneral)
@@ -234,7 +234,7 @@ int main()
     if (UiGeneralServerSocketReceiving == INVALID_SOCKET)
     {
         printf("Socket creation failed\n");
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     UiGeneralServerReceiving.sin_family = AF_INET;
@@ -244,14 +244,14 @@ int main()
     if (bind(UiGeneralServerSocketReceiving, (struct sockaddr *)&UiGeneralServerReceiving, sizeof(UiGeneralServerReceiving)) == SOCKET_ERROR) {
         printf("Bind failed with error: %d\n", WSAGetLastError());
         closesocket(UiGeneralServerSocketReceiving);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     if(listen(UiGeneralServerSocketReceiving, 5) == SOCKET_ERROR)
     {
         printf("Listen failed with error: %d\n", WSAGetLastError());
         closesocket(UiGeneralServerSocketReceiving);
-        WSACleanup();
+        //WSACleanup();
         return 1;
     }
     printf("Server is port are listening...\n"); 
@@ -373,7 +373,8 @@ int main()
         }
     }
     closesocket(ServerSocketSending);
-    WSACleanup();
+    printf("it is closed\n");
+    //WSACleanup();
     return 0;
 }
 bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket, SOCKET UiGeneralReceivingSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus)
@@ -539,6 +540,7 @@ bool SendPrivateMessage(const char* senderUsername, const char* recipient, const
     fclose(ClientsData);
     return found;
 }
+int resultnumber;
 unsigned __stdcall ReceivingAndPrintingData(void *param)
 {
     ClientSocketsAndTools SocketAndMessage = *(ClientSocketsAndTools*)param;
@@ -546,7 +548,7 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
     StatusType UserStatus;
     Authentification :
     memset(&Message, 0, sizeof(Message));
-    int resultnumber = recv(SocketAndMessage.Sockets->SendingSocket, Message.Username, sizeof(Message.Username) - 1, 0);
+    resultnumber = recv(SocketAndMessage.Sockets->SendingSocket, Message.Username, sizeof(Message.Username) - 1, 0);
     if (resultnumber <= 0)
     {
         printf("Failed to receive username from client\n");
@@ -555,7 +557,7 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
     int resultnumberP = recv(SocketAndMessage.Sockets->SendingSocket, Message.PassWord, sizeof(Message.PassWord) - 1, 0);
     if (resultnumberP <= 0)
     {
-        printf("Failed to receive username from client\n");
+        printf("Failed to receive Password from client\n");
         goto cleanup;
     }
     Message.Username[resultnumber] = '\0';
@@ -590,7 +592,6 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
         int resultnumberBool = recv(SocketAndMessage.Sockets->SendingSocket, Message.GeneralPrivate, sizeof(Message.GeneralPrivate) - 1, 0);
         if (resultnumberBool <= 0)
         {
-            printf("Client %s disconnected (choice receive failed)\n", Message.Username);
             break;
         }
         Message.GeneralPrivate[resultnumberBool] = '\0';
@@ -608,7 +609,6 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
             resultnumber = recv(SocketAndMessage.Sockets->SendingSocket,(char *)&ReceivingData, sizeof(UiGeneralMessageinfo), 0);
             if (resultnumber <= 0)
             {
-                printf("Failed to receive message from %s\n", Message.Username);
                 break;
             }
             // checking the ChoiceChanging String
@@ -644,7 +644,6 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
             resultnumber = recv(SocketAndMessage.Sockets->SendingSocket,(char *)&SocketAndMessage.MessageTools,sizeof(SocketAndMessage.MessageTools), 0);
             if (resultnumber <= 0)
             {
-                printf("Failed to receive private message from %s\n", Message.Username);
                 break;
             }
             // checking the ChoiceChanging String
@@ -686,7 +685,7 @@ unsigned __stdcall ReceivingAndPrintingData(void *param)
     closesocket(SocketAndMessage.Sockets->SendingSocket);
     closesocket(SocketAndMessage.Sockets->ReceivingSocket);
     closesocket(SocketAndMessage.Sockets->StatusSocket);
-    free(param);
+    free(SocketAndMessage.Sockets);
     return 0;
 }
 void SendClient(char username[20],SOCKET clientSocket,FILE *ClientsData)
@@ -745,7 +744,9 @@ unsigned __stdcall ConversationThread(void *param)
         int ResultRequest = recv(ConversationSocket, (char *)&RequestCnv, sizeof(RequestConversation), 0);
         if(ResultRequest <= 0)
         {
-            continue;
+            closesocket(ConversationSocket);
+            free(param);
+            break;
         }
         // Create filename for conversation file
         char result[100];
@@ -958,7 +959,9 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
         int ResultRequest = recv(UiGeneralConversationSocket, (char *)&RequestCnv, sizeof(RequestConversation), 0);
         if(ResultRequest <= 0)
         {
-            continue;
+            closesocket(UiGeneralConversationSocket);
+            free(param);
+            break;
         }
         // Create filename for conversation file
         FILE *Conversation = fopen("GeneralChat.txt","rb");
@@ -967,7 +970,13 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
             Response.message_count = 0;
             Response.no_more = TRUE;
             Response.last_index = 0;
-            send(UiGeneralConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+            ResultRequest = send(UiGeneralConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+            if(ResultRequest <= 0)
+            {
+                closesocket(UiGeneralConversationSocket);
+                free(param);
+                break;
+            }
             continue;
         }
         // Get total number of messages in file
@@ -979,7 +988,13 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
             Response.message_count = 0;
             Response.no_more = TRUE;
             Response.last_index = 0;
-            send(UiGeneralConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+            ResultRequest = send(UiGeneralConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+            if(ResultRequest <= 0)
+            {
+                closesocket(UiGeneralConversationSocket);
+                free(param);
+                break;
+            }
             fclose(Conversation);
             continue;
         }
@@ -1014,7 +1029,13 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
         {
             Response.no_more = FALSE;
         }
-        send(UiGeneralConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+        ResultRequest = send(UiGeneralConversationSocket, (char *)&Response, sizeof(ResponseSetting), 0);
+        if(ResultRequest <= 0)
+        {
+            closesocket(UiGeneralConversationSocket);
+            free(param);
+            break;
+        }
         Sleep(50);
         ResponseData SendingData;
         MessageStoring ReadingData; 
@@ -1031,7 +1052,13 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
                 strcpy(SendingData.message, ReadingData.message);
                 strcpy(SendingData.owner, ReadingData.owner);
                 SendingData.TimeStamp = ReadingData.TimeStamp;
-                send(UiGeneralConversationSocket, (char *)&SendingData, sizeof(ResponseData), 0);
+                ResultRequest = send(UiGeneralConversationSocket, (char *)&SendingData, sizeof(ResponseData), 0);
+                if(ResultRequest <= 0)
+                {
+                    closesocket(UiGeneralConversationSocket);
+                    free(param);
+                    break;
+                }
                 printf("the message is send into the client : %s\n",SendingData.message);
             }
             Sleep(15);
@@ -1054,13 +1081,13 @@ unsigned __stdcall UiGeneralReceivingData(void *param)
     {
         memset(&ReceivingData, 0, sizeof(ReceivingData));
         int resultnumber = recv(SocketAndMessage.Sockets->UiGeneralReceivingSocket,(char *)&ReceivingData, sizeof(UiGeneralMessageinfo), 0);
-        
         if(resultnumber <= 0)
         {
             printf("UiGeneral receiving client disconnected or error occurred\n");
+            closesocket(SocketAndMessage.Sockets->ReceivingSocket);
+            free(SocketAndMessage.Sockets);
             break;
         }
-        
         if(strcmp(ReceivingData.ChoiceChanging,"RESET") == 0)
         {
             printf("UiGeneral choice reset received\n");
@@ -1092,7 +1119,7 @@ unsigned __stdcall UiGeneralReceivingData(void *param)
             BroadcastToAllUsers(username, ReceivingData.Buffer, ReceivingData.TimeStamp, SocketAndMessage.Sockets->SendingSocket, ClientsData);
         }
     }
-    
-    closesocket(SocketAndMessage.Sockets->UiGeneralReceivingSocket);
+    closesocket(SocketAndMessage.Sockets->ReceivingSocket);
+    free(SocketAndMessage.Sockets);
     return 0;
 }

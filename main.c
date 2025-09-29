@@ -61,7 +61,6 @@ extern HWND HandleLogo;
 int x,y;
 //
 bool Start = TRUE;
-bool StartR = TRUE;
 char buffer[256];
 //
 WNDPROC OriginalEditProc = NULL;
@@ -80,7 +79,6 @@ HWND UiGeneralConversationWndH;
 RECT UiGeneralConversationRect;
 HDC DC_UiGeneral_Conversation,Mdc_UiGeneralConversation_child;
 HBITMAP BM_Conversation_Child,OldBM_Conversation_Child;
-// Global receive settings for background threads
 RcvSetting RcvStg = {0};
 // new Recipient flag 
 // UiInbox
@@ -89,6 +87,95 @@ bool CreateFlag;
 // UiGeneral
 bool UiGeneralNewFlag;
 bool UiGeneralCreateFlag;
+bool Disconnect;
+
+// Global thread handles for proper cleanup
+HANDLE g_ThreadSending = NULL;
+HANDLE g_ThreadStatus = NULL;
+HANDLE g_ThreadReceive = NULL;
+HANDLE g_UiGeneralThreadReceive = NULL;
+HANDLE g_ThreadConversation = NULL;
+HANDLE g_UiConversationThreadConversation = NULL;
+
+// Function to cleanup all client threads and sockets
+void CleanupClientResources()
+{
+    // Set disconnect flag first
+    Disconnect = TRUE;
+    
+    // Give threads time to detect the flag
+    Sleep(100);
+    
+    // Close all sockets to force recv/send to return
+    if(ConnectingTools.ClientSocketSending != INVALID_SOCKET)
+    {
+        closesocket(ConnectingTools.ClientSocketSending);
+        ConnectingTools.ClientSocketSending = INVALID_SOCKET;
+    }
+    if(ConnectingTools.ClientSocketReceiving != INVALID_SOCKET)
+    {
+        closesocket(ConnectingTools.ClientSocketReceiving);
+        ConnectingTools.ClientSocketReceiving = INVALID_SOCKET;
+    }
+    if(ConnectingTools.StatusSocket != INVALID_SOCKET)
+    {
+        closesocket(ConnectingTools.StatusSocket);
+        ConnectingTools.StatusSocket = INVALID_SOCKET;
+    }
+    if(ConnectingTools.ConversationSocket != INVALID_SOCKET)
+    {
+        closesocket(ConnectingTools.ConversationSocket);
+        ConnectingTools.ConversationSocket = INVALID_SOCKET;
+    }
+    if(ConnectingTools.UiGeneralConversationSocket != INVALID_SOCKET)
+    {
+        closesocket(ConnectingTools.UiGeneralConversationSocket);
+        ConnectingTools.UiGeneralConversationSocket = INVALID_SOCKET;
+    }
+    if(ConnectingTools.UiGeneralClientSocketReceiving != INVALID_SOCKET)
+    {
+        closesocket(ConnectingTools.UiGeneralClientSocketReceiving);
+        ConnectingTools.UiGeneralClientSocketReceiving = INVALID_SOCKET;
+    }
+    
+    // Wait for all threads to finish (with timeout)
+    HANDLE threads[] = {g_ThreadSending, g_ThreadStatus, g_ThreadReceive, 
+                       g_UiGeneralThreadReceive, g_ThreadConversation, 
+                       g_UiConversationThreadConversation};
+    
+    for(int i = 0; i < 6; i++)
+    {
+        if(threads[i] != NULL)
+        {
+            DWORD result = WaitForSingleObject(threads[i], 1000);
+            if(result == WAIT_TIMEOUT)
+            {
+                // Force terminate if thread doesn't exit gracefully
+                TerminateThread(threads[i], 0);
+            }
+            CloseHandle(threads[i]);
+        }
+    }
+    
+    // Reset thread handles
+    g_ThreadSending = NULL;
+    g_ThreadStatus = NULL;
+    g_ThreadReceive = NULL;
+    g_UiGeneralThreadReceive = NULL;
+    g_ThreadConversation = NULL;
+    g_UiConversationThreadConversation = NULL;
+    
+    // Reset connection state
+    Start = FALSE;
+    Green = FALSE;
+    
+    // Clear conversation data
+    memset(&MessagesConversations, 0, sizeof(MessagesConversations));
+    memset(&GeneralChatConversation, 0, sizeof(GeneralChatConversation));
+    
+    printf("Client resources cleaned up successfully\n");
+}
+
 // creating window proc for the message bar in UiGeneral 
 LRESULT CALLBACK UiGeneralMessageBarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -1468,6 +1555,7 @@ LRESULT CALLBACK ScrollBarWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     return 0;
 }
 // this WndProc is for the main window 
+int Wm_Creation;
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
@@ -1503,84 +1591,88 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             case WM_CREATE:
             //InitializeCriticalSection(&socketLock);
             GetClientRect(hwnd, &WindowSize);
-            ButtonHandle = CreateWindowEx( 0,"BUTTON","Log in",WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_FLAT,
-            0, 0, 100, 32,hwnd,(HMENU)ButtonID,IDhInstance,NULL); 
-            // thoose are for rendering the logo of the company in the first page
-            int logoSize = min(WindowWidth, WindowHeight) * 0.2;
-            CompanyLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,logoSize,logoSize,LR_LOADFROMFILE);   
-            HandleLogo=CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
-            (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.149),
-            (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.2),
-            (WindowSize.right-WindowSize.left)*0.3,(WindowSize.bottom-WindowSize.top)*0.45,
-            hwnd,0,0,NULL);
-            SendMessage(HandleLogo,STM_SETICON,(WPARAM)CompanyLogo,0); 
-            // company big logo in the account page
-            int BiglogoSize = min(WindowWidth, WindowHeight) * 0.5;
-            CompanyBigLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,
-            (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,LR_LOADFROMFILE);   
-            HandleBigLogo=CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
-            (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.28),
-            (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.32),
-            (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,
-            hwnd,0,0,NULL);
-            SendMessage(HandleBigLogo,STM_SETICON,(WPARAM)CompanyBigLogo,0); 
-            ShowWindow(HandleBigLogo,SW_HIDE);
-            // creating a scroll bar child window 
-            ScrollBar = CreateWindowEx(
-            0,
-            "CustomScrollChildWindow",
-            "",
-            WS_CHILD,
-            ((WindowSize.right-WindowSize.left)*0.02f + MeasureWindowSize((WindowSize.right-WindowSize.left)*0.12f,MIN_BUTTON_WIDTH,MAX_BUTTON_WIDTH)) + (WindowSize.right-WindowSize.left)*0.03,
-            (WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043 + (WindowSize.bottom - WindowSize.top)*0.04) + (WindowSize.bottom - WindowSize.top)*0.08,
-            (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
-            (WindowSize.bottom-WindowSize.top)*0.643,
-            hwnd, NULL, IDhInstance, NULL
-            );
-            MemoryDcSndTool.ScrollBar = ScrollBar;
-            SendingTrdStatus.ScrollBar = ScrollBar;
-            UpdateScrollbarRange(ScrollBar,ScrollBarRect, &g_scrollbar);
-            // creating a conversation child window 
-            float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.15)) - (WindowSize.right-WindowSize.left)*0.007;
-            ConversationScrollBar = CreateWindowEx(
-            0,
-            "CustomConversationScrollChildWindow",
-            NULL,
-            WS_CHILD,
-            Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.4253,
-            PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.148,
-            WindowSize.right - (Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.2877),
-            ConversationHeight,
-            hwnd, NULL, IDhInstance, NULL
-            );
-            if(ConversationScrollBar)
+            if(!Wm_Creation)
             {
-                OriginalConversationBarProc = (WNDPROC)SetWindowLongPtr(ConversationScrollBar, GWLP_WNDPROC, (LONG_PTR)ConversationWindowProc);
+                ButtonHandle = CreateWindowEx( 0,"BUTTON","Log in",WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_FLAT,
+                0, 0, 100, 32,hwnd,(HMENU)ButtonID,IDhInstance,NULL); 
+                // thoose are for rendering the logo of the company in the first page
+                int logoSize = min(WindowWidth, WindowHeight) * 0.2;
+                CompanyLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,logoSize,logoSize,LR_LOADFROMFILE);   
+                HandleLogo=CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
+                (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.149),
+                (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.2),
+                (WindowSize.right-WindowSize.left)*0.3,(WindowSize.bottom-WindowSize.top)*0.45,
+                hwnd,0,0,NULL);
+                SendMessage(HandleLogo,STM_SETICON,(WPARAM)CompanyLogo,0); 
+                // company big logo in the account page
+                int BiglogoSize = min(WindowWidth, WindowHeight) * 0.5;
+                CompanyBigLogo=(HICON)LoadImage(0,"CompanyLogo.ico",IMAGE_ICON,
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,LR_LOADFROMFILE);   
+                HandleBigLogo=CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
+                (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.28),
+                (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.32),
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,
+                hwnd,0,0,NULL);
+                SendMessage(HandleBigLogo,STM_SETICON,(WPARAM)CompanyBigLogo,0); 
+                ShowWindow(HandleBigLogo,SW_HIDE);
+                // creating a scroll bar child window 
+                ScrollBar = CreateWindowEx(
+                0,
+                "CustomScrollChildWindow",
+                "",
+                WS_CHILD,
+                ((WindowSize.right-WindowSize.left)*0.02f + MeasureWindowSize((WindowSize.right-WindowSize.left)*0.12f,MIN_BUTTON_WIDTH,MAX_BUTTON_WIDTH)) + (WindowSize.right-WindowSize.left)*0.03,
+                (WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043 + (WindowSize.bottom - WindowSize.top)*0.04) + (WindowSize.bottom - WindowSize.top)*0.08,
+                (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
+                (WindowSize.bottom-WindowSize.top)*0.643,
+                hwnd, NULL, IDhInstance, NULL
+                );
+                MemoryDcSndTool.ScrollBar = ScrollBar;
+                SendingTrdStatus.ScrollBar = ScrollBar;
+                UpdateScrollbarRange(ScrollBar,ScrollBarRect, &g_scrollbar);
+                // creating a conversation child window 
+                float ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.15)) - (WindowSize.right-WindowSize.left)*0.007;
+                ConversationScrollBar = CreateWindowEx(
+                0,
+                "CustomConversationScrollChildWindow",
+                NULL,
+                WS_CHILD,
+                Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.4253,
+                PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.148,
+                WindowSize.right - (Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.2877),
+                ConversationHeight,
+                hwnd, NULL, IDhInstance, NULL
+                );
+                if(ConversationScrollBar)
+                {
+                    OriginalConversationBarProc = (WNDPROC)SetWindowLongPtr(ConversationScrollBar, GWLP_WNDPROC, (LONG_PTR)ConversationWindowProc);
+                }
+                // creating an UiGeenral Conversation child window
+                float ConversationHeightG = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.142));
+                UiGeneralConversationWndH = CreateWindowEx(
+                0,
+                "CustomUiGeneralConversationScrollChildWindow",
+                NULL,
+                WS_CHILD,
+                Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,
+                PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.0492,
+                WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,
+                ConversationHeightG,
+                hwnd, NULL, IDhInstance, NULL
+                );
+                if(UiGeneralConversationWndH)
+                {
+                    OriginalUiGeneralConversationBarProc = (WNDPROC)SetWindowLongPtr(UiGeneralConversationWndH, GWLP_WNDPROC, (LONG_PTR)UiGeneralConversationWindowProc);
+                }
+                // this is for the client winsock2 things
+                WSADATA wsaData;
+                int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+                if (result != 0) {
+                    printf("WSAStartup failed: %d\n", result);
+                    return 1;
+                }
             }
-            // creating an UiGeenral Conversation child window
-            float ConversationHeightG = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.142));
-            UiGeneralConversationWndH = CreateWindowEx(
-            0,
-            "CustomUiGeneralConversationScrollChildWindow",
-            NULL,
-            WS_CHILD,
-            Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,
-            PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.0492,
-            WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,
-            ConversationHeightG,
-            hwnd, NULL, IDhInstance, NULL
-            );
-            if(UiGeneralConversationWndH)
-            {
-                OriginalUiGeneralConversationBarProc = (WNDPROC)SetWindowLongPtr(UiGeneralConversationWndH, GWLP_WNDPROC, (LONG_PTR)UiGeneralConversationWindowProc);
-            }
-            // this is for the client winsock2 things
-            WSADATA wsaData;
-            int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-            if (result != 0) {
-                printf("WSAStartup failed: %d\n", result);
-                return 1;
-            }
+            Wm_Creation++;
             /*struct hostent *host = gethostbyname("imad.stil.fun");
             if (host != NULL) {
             memcpy(&ConnectingTools.Server.sin_addr.S_un.S_addr,host->h_addr, host->h_length);
@@ -1588,7 +1680,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             } else {
                 printf("Failed to resolve hostname\n");
             }*/
-           // Sending connection
+            // Sending connection
             ConnectingTools.ServerSending.sin_family=AF_INET;
             ConnectingTools.ServerSending.sin_port=htons(8000);
             ConnectingTools.ServerSending.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
@@ -1626,8 +1718,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 printf("Failed to resolve hostname\n");
             }*/
-            // this socket is for status recv
-            ConnectingTools.ServerStatus.sin_family=AF_INET;
+           // this socket is for status recv
+           ConnectingTools.ServerStatus.sin_family=AF_INET;
             ConnectingTools.ServerStatus.sin_port=htons(8002);
             ConnectingTools.ServerStatus.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
             //struct sockaddr_in ClientsStatus;
@@ -1670,6 +1762,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 closesocket(ConnectingTools.UiGeneralClientSocketReceiving);
                 return 1;
             }
+            Start = TRUE;
             // Create separate server address for UiGeneral receiving on port 8004
             struct sockaddr_in UiGeneralServerReceiving;
             UiGeneralServerReceiving.sin_family=AF_INET;
@@ -1769,7 +1862,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     RoundRect(Mdc,Autorisa.left-30,Autorisa.top,Autorisa.right+30,Autorisa.bottom-30,40,30);
                     RECT CheckText=Autorisa;
                     CheckText.top=CheckText.top+20;
-                    SetTimer(HandleWnd,TimerLogIn,2000,NULL);
+                    SetTimer(HandleWnd,TimerLogIn,1500,NULL);
                     DrawText(Mdc,"Correct",-1,&CheckText,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
                     SelectObject(Mdc,OldFont);
                     SelectObject(Mdc,OldPen);
@@ -1792,13 +1885,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             Green=FALSE;
             if(Start)
             {
+                Disconnect = FALSE;
                 // this is for creating threads to communicate with the server (communicate with other friend in the server (companie)
-                HANDLE ThreadSending = (HANDLE)_beginthreadex(NULL ,0,SendingThread,&SendingTools,0,NULL);
-                HANDLE ThreadStatus = (HANDLE)_beginthreadex(NULL, 0,StatusThread,&SendingTrdStatus, 0, NULL);
-                HANDLE ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, &RcvStg, 0, NULL);
-                HANDLE UiGeneralThreadReceive = (HANDLE)_beginthreadex(NULL, 0, UiGeneralreceivingClient, &RcvStg, 0, NULL);
-                HANDLE ThreadConversation = (HANDLE)_beginthreadex(NULL, 0, ConversationThread, &ConnectingTools.ConversationSocket, 0, NULL);
-                HANDLE UiConversationThreadConversation = (HANDLE)_beginthreadex(NULL, 0, UiGeneralConversationThread, &ConnectingTools.UiGeneralConversationSocket, 0, NULL);
+                g_ThreadSending = (HANDLE)_beginthreadex(NULL ,0,SendingThread,&SendingTools,0,NULL);
+                g_ThreadStatus = (HANDLE)_beginthreadex(NULL, 0,StatusThread,&SendingTrdStatus, 0, NULL);
+                g_ThreadReceive = (HANDLE)_beginthreadex(NULL, 0, receivingClient, &RcvStg, 0, NULL);
+                g_UiGeneralThreadReceive = (HANDLE)_beginthreadex(NULL, 0, UiGeneralreceivingClient, &RcvStg, 0, NULL);
+                g_ThreadConversation = (HANDLE)_beginthreadex(NULL, 0, ConversationThread, &ConnectingTools.ConversationSocket, 0, NULL);
+                g_UiConversationThreadConversation = (HANDLE)_beginthreadex(NULL, 0, UiGeneralConversationThread, &ConnectingTools.UiGeneralConversationSocket, 0, NULL);
                 /*if(ThreadSending)
                 {
                     WaitForSingleObject(ThreadSending, INFINITE);
@@ -1810,6 +1904,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 }*/
                 Start = FALSE;
             } 
+            if(Login || LogInCtl)
+            {
+                ShowWindow(HandleBigLogo, SW_HIDE);
+            }
             if(Account)
             {
                 float FontReturn = baseRectangle(WindowSize,hwnd);
@@ -1954,6 +2052,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
         if(LOWORD(wParam) == ID_LogIn && !safety)
         {
+            printf("yeah\n");
             Green=TRUE;
         }
         else if(LOWORD(wParam) == ID_LogIn && safety)
@@ -1977,6 +2076,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             LogInCtl=FALSE;
             Find = FALSE;
             safety = FALSE;
+            KillTimer(hwnd,TimerLogIn);
             break;
             case MessageTimer :
             // this is updating the the button message every time
@@ -2035,163 +2135,207 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             x =GET_X_LPARAM(lParam);
             y =GET_Y_LPARAM(lParam);
-            if((x>=Choice_1_Button.left && x<=Choice_1_Button.right) && (y>=Choice_1_Button.top && y<=Choice_1_Button.bottom ))
+            if(Account)
             {
-                UiMessage=TRUE;   
-                UiGeneral = FALSE;
-                // taking a copy for the receiving thread
-                RcvStg.UiGeneral = UiGeneral;
-                UiInbox = FALSE;
-                // taking a copy for the receiving thread
-                RcvStg.UiInbox = UiInbox;
-                MessageButtonClicked = TRUE;   
-            }
-            else if(MessageButtonClicked)
-            {
-                // i need to make a condition in the end of the condition messagebuttonclicked about turning messagebuttonclicked into false
-                //MessageButtonClicked = FALSE;
-                // this is for checking the inbox button 
-                if((x>=Choice_1_Inbox_Button.left && x<=Choice_1_Inbox_Button.right) && (y>=Choice_1_Inbox_Button.top && y<=Choice_1_Inbox_Button.bottom ) && !UiGeneral)
+                if((x>=Choice_1_Button.left && x<=Choice_1_Button.right) && (y>=Choice_1_Button.top && y<=Choice_1_Button.bottom ))
                 {
-                    UiInbox = TRUE;
-                    UiInboxTimes++;
-                    MemoryDcSndTool.UiInbox = UiInbox;
+                    UiMessage=TRUE;   
+                    UiGeneral = FALSE;
+                    // taking a copy for the receiving thread
+                    RcvStg.UiGeneral = UiGeneral;
+                    UiInbox = FALSE;
                     // taking a copy for the receiving thread
                     RcvStg.UiInbox = UiInbox;
-                    UiMessage = FALSE;
+                    MessageButtonClicked = TRUE;   
+                }
+                else if((x>=Choice_5_Button.left && x<=Choice_5_Button.right) && (y>=Choice_5_Button.top && y<=Choice_5_Button.bottom ))
+                {
+                    // Properly cleanup all resources before disconnecting
+                    CleanupClientResources();
+                    UiMessage=FALSE;   
                     UiGeneral = FALSE;
-                    MemoryDcSndTool.UiGeneral = UiGeneral;
-                    // Set reset choice when switching from UiGeneral to UiInbox
-                    if(UiGeneralTimes >= 1 && UiInboxTimes >= 1)
+                    // taking a copy for the receiving thread
+                    RcvStg.UiGeneral = UiGeneral;
+                    UiInbox = FALSE;
+                    // taking a copy for the receiving thread
+                    RcvStg.UiInbox = UiInbox;
+                    MessageButtonClicked = FALSE;
+                    Green = FALSE;
+                    Find = FALSE;
+                    Account = FALSE;
+                    ShowWindow(ConversationScrollBar,SW_HIDE);
+                    ShowWindow(ScrollBar,SW_HIDE);
+                    ShowWindow(UiGeneralMessageBarHandle,SW_HIDE);
+                    ShowWindow(UiGeneralConversationWndH,SW_HIDE);
+                    ShowWindow(HandleSearch,SW_HIDE);
+                    ShowWindow(MessageBarHandle,SW_HIDE);
+                    ShowWindow(MessageBarHandle,SW_HIDE);
+                    // showing the login page again
+                    Login = TRUE;
+                    LogInCtl = TRUE;
+                    UiGeneralTimes = 0;
+                    SetWindowText(ULogin,"");
+                    SetWindowText(PLogin,"");
+                    BubbleLogo = FALSE;
+                    g_scrollbar.current_val = 0;
+                    UiGeneralConversation_thumb.current_val = UiGeneralConversation_thumb.max_val;
+                    shutdown(ConnectingTools.ConversationSocket, SD_BOTH);
+                    shutdown(ConnectingTools.ClientSocketReceiving, SD_BOTH);
+                    shutdown(ConnectingTools.StatusSocket, SD_BOTH);
+                    shutdown(ConnectingTools.UiGeneralClientSocketReceiving, SD_BOTH);
+                    shutdown(ConnectingTools.UiGeneralConversationSocket, SD_BOTH);
+                    shutdown(ConnectingTools.ClientSocketSending, SD_BOTH);
+                    printf("it is clicked in\n");
+                    SendMessage(hwnd,WM_CREATE,0,0);
+                }
+                if(MessageButtonClicked)
+                {
+                    // i need to make a condition in the end of the condition messagebuttonclicked about turning messagebuttonclicked into false
+                    //MessageButtonClicked = FALSE;
+                    // this is for checking the inbox button 
+                    if((x>=Choice_1_Inbox_Button.left && x<=Choice_1_Inbox_Button.right) && (y>=Choice_1_Inbox_Button.top && y<=Choice_1_Inbox_Button.bottom ) && !UiGeneral)
                     {
-                        UiGeneralResetChoice = TRUE;
-                    }
-                    SetTimer(hwnd,TimerPanel,30,NULL);
-                    // for the search of the recipient
-                    if(HandleSearch == NULL)
-                    {
-                        GetClientRect(hwnd, &WindowSize); 
-                        ChatRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.018;
-                        ChatRect.top = WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043;
-                        ChatRect.right = ChatRect.left + (WindowSize.right - WindowSize.left)*0.1;
-                        ChatRect.bottom = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.04;
-                        HandleSearch = CreateWindowEx(0,"EDIT",0, 
-                        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
-                        Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.1,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.22,(WindowSize.bottom - WindowSize.top)*0.064,
-                        hwnd,0,IDhInstance, NULL);
-                        if(HandleSearch)
+                        UiInbox = TRUE;
+                        UiInboxTimes++;
+                        MemoryDcSndTool.UiInbox = UiInbox;
+                        // taking a copy for the receiving thread
+                        RcvStg.UiInbox = UiInbox;
+                        UiMessage = FALSE;
+                        UiGeneral = FALSE;
+                        MemoryDcSndTool.UiGeneral = UiGeneral;
+                        // Set reset choice when switching from UiGeneral to UiInbox
+                        if(UiGeneralTimes >= 1 && UiInboxTimes >= 1)
                         {
-                            OriginalEditProc = (WNDPROC)SetWindowLongPtr(HandleSearch, GWLP_WNDPROC, (LONG_PTR)SearchBarProc);
+                            UiGeneralResetChoice = TRUE;
+                        }
+                        SetTimer(hwnd,TimerPanel,30,NULL);
+                        // for the search of the recipient
+                        if(HandleSearch == NULL)
+                        {
+                            GetClientRect(hwnd, &WindowSize); 
+                            ChatRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.018;
+                            ChatRect.top = WindowSize.top+(WindowSize.bottom-WindowSize.top)*0.176+ (WindowSize.bottom - WindowSize.top)*0.043;
+                            ChatRect.right = ChatRect.left + (WindowSize.right - WindowSize.left)*0.1;
+                            ChatRect.bottom = ChatRect.top + (WindowSize.bottom - WindowSize.top)*0.04;
+                            HandleSearch = CreateWindowEx(0,"EDIT",0, 
+                            WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
+                            Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.1,ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.01,(WindowSize.right-WindowSize.left)*0.22,(WindowSize.bottom - WindowSize.top)*0.064,
+                            hwnd,0,IDhInstance, NULL);
+                            if(HandleSearch)
+                            {
+                                OriginalEditProc = (WNDPROC)SetWindowLongPtr(HandleSearch, GWLP_WNDPROC, (LONG_PTR)SearchBarProc);
+                            }
                         }
                     }
-                }
-                else if((x>=Choice_1_General_Button.left && x<=Choice_1_General_Button.right) && (y>=Choice_1_General_Button.top && y<=Choice_1_General_Button.bottom ) && !UiInbox)
-                {
-                    UiGeneral = TRUE;
-                    MemoryDcSndTool.UiGeneral = UiGeneral;
-                    if(!UiGeneralTimes)
-                    {
-                        // Make initial conversation request to load historical messages
-                        UiGeneralRequestConversation UiGeneralRequestCnv;
-                        UiGeneralRequestCnv.index = 0;
-                        UiGeneralRequestCnv.message_requested = 15;
-                        UiGeneralRequestCnv.type = 1; // Initial request type
-                        send(ConnectingTools.UiGeneralConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
-                    }
-                    UiGeneralTimes++;
-                    UiMessage = FALSE;
-                    UiInbox = FALSE;
-                    MemoryDcSndTool.UiInbox = UiInbox;
-                    RcvStg.UiGeneral = UiGeneral;
-                    // Clear conversation data for fresh start (only on first time)
-                    if(UiGeneralTimes == 1)
-                    {
-                        ClearGeneralChatConversation();
-                    }
-                    // Set reset choice when switching from UiInbox to UiGeneral
-                    if(UiGeneralTimes >= 1 && UiInboxTimes >= 1)
-                    {
-                        ResetChoice = TRUE;
-                    }
-                    if(UiGeneralCreateFlag)
-                    {
-                        UiGeneralCreateFlag = FALSE;
-                    }
-                    else 
+                    else if((x>=Choice_1_General_Button.left && x<=Choice_1_General_Button.right) && (y>=Choice_1_General_Button.top && y<=Choice_1_General_Button.bottom ) && !UiInbox)
                     {
                         UiGeneralNewFlag = TRUE;
-                    }
-                    // taking a copy for the receiving thread
-                    RcvStg.UiInbox = UiInbox;
-                    SetTimer(hwnd,TimerPanel,30,NULL);
-                    if(!CWndCreation)
-                    {
-                        CWndCreation = TRUE;
-                        // creating message bar for UiGeneral
-                        RECT UiGeneralMessageBarRect;
-                        GetClientRect(HandleWnd, &UiGeneralMessageBarRect);
-                        UiGeneralMessageBarHandle = CreateWindowEx(0,"EDIT",0, 
-                        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
-                        Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,UiGeneralMessageBarRect.bottom - (UiGeneralMessageBarRect.bottom - UiGeneralMessageBarRect.top)*0.09,
-                        WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,(UiGeneralMessageBarRect.bottom - UiGeneralMessageBarRect.top)*0.07,
-                        HandleWnd,0,IDhInstance, NULL);
-                        if(UiGeneralMessageBarHandle)
+                        UiGeneral = TRUE;
+                        MemoryDcSndTool.UiGeneral = UiGeneral;
+                        if(!UiGeneralTimes)
                         {
-                            UiGeneralOriginalMessageBarProc = (WNDPROC)SetWindowLongPtr(UiGeneralMessageBarHandle, GWLP_WNDPROC, (LONG_PTR)UiGeneralMessageBarProc);
+                            // Make initial conversation request to load historical messages
+                            UiGeneralRequestConversation UiGeneralRequestCnv;
+                            UiGeneralRequestCnv.index = 0;
+                            UiGeneralRequestCnv.message_requested = 15;
+                            UiGeneralRequestCnv.type = 1; // Initial request type
+                            send(ConnectingTools.UiGeneralConversationSocket,(char *)&UiGeneralRequestCnv,sizeof(UiGeneralRequestConversation),0);
                         }
-                        // taking a copy for the sending thread
-                        SendingTools.UiGeneralMessageBarHandle = UiGeneralMessageBarHandle;
-                    }
-                    SetFocus(UiGeneralMessageBarHandle);
-                    // Force UI refresh to show any loaded messages
-                    InvalidateRect(hwnd, NULL, TRUE);
-                    if(UiGeneralConversationWndH)
-                    {
-                        InvalidateRect(UiGeneralConversationWndH, NULL, TRUE);
-                    }
-                }
-                else if(UiInbox)
-                {
-                    float left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
-                    float right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 + (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
-                    float top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
-                    float bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
-                    if(x>=left && x<=right && y>= top && y<=bottom)
-                    {
-                        GetWindowText(MessageBarHandle, buffer, sizeof(buffer));
-                        if(strlen(buffer) != 0 && !HasOnlyWhitespace(MessageBarHandle))
+                        UiGeneralTimes++;
+                        UiMessage = FALSE;
+                        UiInbox = FALSE;
+                        MemoryDcSndTool.UiInbox = UiInbox;
+                        RcvStg.UiGeneral = UiGeneral;
+                        // Clear conversation data for fresh start (only on first time)
+                        if(UiGeneralTimes == 1)
                         {
-                            Send = TRUE;
-                            for(int j=0;j<countclient;j++)
+                            ClearGeneralChatConversation();
+                        }
+                        // Set reset choice when switching from UiInbox to UiGeneral
+                        if(UiGeneralTimes >= 1 && UiInboxTimes >= 1)
+                        {
+                            ResetChoice = TRUE;
+                        }
+                        if(UiGeneralCreateFlag)
+                        {
+                            UiGeneralCreateFlag = FALSE;
+                        }
+                        else 
+                        {
+                            UiGeneralNewFlag = TRUE;
+                        }
+                        // taking a copy for the receiving thread
+                        RcvStg.UiInbox = UiInbox;
+                        SetTimer(hwnd,TimerPanel,30,NULL);
+                        if(!CWndCreation)
+                        {
+                            CWndCreation = TRUE;
+                            // creating message bar for UiGeneral
+                            RECT UiGeneralMessageBarRect;
+                            GetClientRect(HandleWnd, &UiGeneralMessageBarRect);
+                            UiGeneralMessageBarHandle = CreateWindowEx(0,"EDIT",0, 
+                            WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 
+                            Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,UiGeneralMessageBarRect.bottom - (UiGeneralMessageBarRect.bottom - UiGeneralMessageBarRect.top)*0.09,
+                            WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,(UiGeneralMessageBarRect.bottom - UiGeneralMessageBarRect.top)*0.07,
+                            HandleWnd,0,IDhInstance, NULL);
+                            if(UiGeneralMessageBarHandle)
                             {
-                                if(strcmp(MessagesConversations[j].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                                UiGeneralOriginalMessageBarProc = (WNDPROC)SetWindowLongPtr(UiGeneralMessageBarHandle, GWLP_WNDPROC, (LONG_PTR)UiGeneralMessageBarProc);
+                            }
+                            // taking a copy for the sending thread
+                            SendingTools.UiGeneralMessageBarHandle = UiGeneralMessageBarHandle;
+                        }
+                        SetFocus(UiGeneralMessageBarHandle);
+                        // Force UI refresh to show any loaded messages
+                        InvalidateRect(hwnd, NULL, TRUE);
+                        if(UiGeneralConversationWndH)
+                        {
+                            InvalidateRect(UiGeneralConversationWndH, NULL, TRUE);
+                        }
+                    }
+                    else if(UiInbox)
+                    {
+                        float left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
+                        float right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 + (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
+                        float top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
+                        float bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
+                        if(x>=left && x<=right && y>= top && y<=bottom)
+                        {
+                            GetWindowText(MessageBarHandle, buffer, sizeof(buffer));
+                            if(strlen(buffer) != 0 && !HasOnlyWhitespace(MessageBarHandle))
+                            {
+                                Send = TRUE;
+                                for(int j=0;j<countclient;j++)
                                 {
-                                    UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count,&NewRecipientFlag);
-                                    Conversation_thumb.current_val = Conversation_thumb.max_val;
-                                    Conversation_scrolloffset = 0;
-                                    break;
+                                    if(strcmp(MessagesConversations[j].OwnerName,ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+                                    {
+                                        UpdateConversationScrollbarRange(ConversationScrollBar,ConversationScrollBarRect,&Conversation_thumb,MessagesConversations[j].count,&NewRecipientFlag);
+                                        Conversation_thumb.current_val = Conversation_thumb.max_val;
+                                        Conversation_scrolloffset = 0;
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                else if(UiGeneral)
-                {
-                    float left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
-                    float right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 + (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
-                    float top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
-                    float bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
-                    if(x>=left && x<=right && y>= top && y<=bottom)
+                    else if(UiGeneral)
                     {
-                        GetWindowText(UiGeneralMessageBarHandle, buffer, sizeof(buffer));
-                        if(strlen(buffer) != 0 && !HasOnlyWhitespace(UiGeneralMessageBarHandle))
+                        float left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.425 - CurrentHSend;
+                        float right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.375 + (WindowSize.right - WindowSize.left)*0.44 + (WindowSize.right - WindowSize.left)*0.02 + CurrentHSend;
+                        float top = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.0875 - CurrentVSend;
+                        float bottom = WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.075 + (WindowSize.bottom - WindowSize.top)*0.05 + CurrentVSend;
+                        if(x>=left && x<=right && y>= top && y<=bottom)
                         {
-                            UiGeneralSend = TRUE;
-                            UiGeneralUpdateConversationScrollbarRange(UiGeneralConversationWndH,UiGeneralConversationScrollBarRect,&UiGeneralConversation_thumb,GeneralChatConversation.count,&UiGeneralNewFlag);
-                            UiGeneralConversation_thumb.current_val = UiGeneralConversation_thumb.max_val;
-                            UiGeneralConversation_scrolloffset = 0;
-                        }
-                    }   
+                            GetWindowText(UiGeneralMessageBarHandle, buffer, sizeof(buffer));
+                            if(strlen(buffer) != 0 && !HasOnlyWhitespace(UiGeneralMessageBarHandle))
+                            {
+                                UiGeneralSend = TRUE;
+                                UiGeneralUpdateConversationScrollbarRange(UiGeneralConversationWndH,UiGeneralConversationScrollBarRect,&UiGeneralConversation_thumb,GeneralChatConversation.count,&UiGeneralNewFlag);
+                                UiGeneralConversation_thumb.current_val = UiGeneralConversation_thumb.max_val;
+                                UiGeneralConversation_scrolloffset = 0;
+                            }
+                        }   
+                    }
                 }
             }
             InvalidateRect(hwnd,&WindowSize,FALSE);

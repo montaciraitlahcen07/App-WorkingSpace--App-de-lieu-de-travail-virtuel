@@ -57,7 +57,7 @@ typedef struct
     InboxMessage PrivateMessage;
 }CntTrd;
 CntTrd ConnectingTools;
-//
+// sending into the server is code the username and the password to check if he is in the company is  data base
 void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT WindowSize,HDC Mdc,HWND HandleWnd,SndTrd *SendingTools,CntTrd ConnectingTools,bool *Green,bool *safety)
 {
     typedef struct
@@ -153,7 +153,7 @@ void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT
             RoundRect(Mdc,Autorisa.left-30,Autorisa.top,Autorisa.right+30,Autorisa.bottom-30,40,30);
             RECT CheckText=Autorisa;
             CheckText.top=CheckText.top+20;
-            SetTimer(HandleWnd,TimerLogIn,2000,NULL);
+            SetTimer(HandleWnd,TimerLogIn,1500,NULL);
             DrawText(Mdc,"Correct",-1,&CheckText,DT_SINGLELINE | DT_CENTER | HS_HORIZONTAL | HS_VERTICAL);
             SelectObject(Mdc,OldFont);
             SelectObject(Mdc,OldPen);

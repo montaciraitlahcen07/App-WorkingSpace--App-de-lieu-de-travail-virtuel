@@ -144,6 +144,7 @@ extern bool ResetChoice;
 extern bool UiGeneralResetChoice;
 extern HWND UiGeneralConversationWndH;
 extern HWND ConversationScrollBar;
+extern bool Disconnect;
 unsigned __stdcall receivingClient(void *param);
 unsigned __stdcall SendingThread(void *param);
 int FillingSearchRecipientList(HWND HandleSearch,int countclient,Clients Message[100],int ListSearchedRecipient[100],int CompSearchedRecipient);
@@ -162,6 +163,11 @@ unsigned __stdcall receivingClient(void *param)
     int Result;
     while(TRUE)
     {
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 333333333333\n");
+            break; 
+        }
         if(RcvStg->UiInbox)
         {
             // i need to fix this 
@@ -172,10 +178,21 @@ unsigned __stdcall receivingClient(void *param)
                 struct tm TimeStamp;
             }messaget;
             messaget messagetest;
-            int result = recv(ConnectingTools.ClientSocketReceiving,(char *)&messagetest,sizeof(messagetest),0);
-            if(result <= 0)
+            if(Disconnect)
             {
-                continue;
+                printf("the client side is thread is broken 333333333333\n");
+                break; 
+            }
+            int result = recv(ConnectingTools.ClientSocketReceiving,(char *)&messagetest,sizeof(messagetest),0);
+            if(result == SOCKET_ERROR || result == 0)
+            {
+                printf("the client side is thread is broken\n");
+                break;
+            }
+            if(Disconnect)
+            {
+                printf("the client side is thread is broken 333333333333\n");
+                break; 
             }
             Result = strlen(messagetest.Sender);
             messagetest.Sender[Result] = '\0';
@@ -197,7 +214,9 @@ unsigned __stdcall receivingClient(void *param)
             printf("Received message from %s: %s\n", messagetest.Sender, messagetest.buffer);
         }
     }
+    printf("the end of the 3\n");
     closesocket(ConnectingTools.ClientSocketReceiving);
+    //memset(&ConnectingTools.ClientSocketReceiving,0,sizeof(ConnectingTools.ClientSocketReceiving));
     return 0;
 }
 SndTrd MemoryDcSndTool = {0};
@@ -217,28 +236,61 @@ unsigned __stdcall SendingThread(void *param)
         char Choice[20];
         ChoiceChanging :
         memset(Choice, 0, sizeof(Choice));
+        memset(&countclient, 0, sizeof(int));
+        memset(&Message, 0, sizeof(Message));
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 1111111111\n");
+            break; 
+        }
         if(MemoryDcSndTool.UiInbox)
         {  
             i = 0;
             countclient = 0;
             strcpy(Choice,"FALSE");
-            sendResult = send(ConnectingTools.ClientSocketSending, Choice, strlen(Choice), 0);
-            if(sendResult == SOCKET_ERROR)
+            if(Disconnect)
             {
-                continue;
+                printf("the client side is thread is broken 11111111\n");
+                break; 
+            }
+            sendResult = send(ConnectingTools.ClientSocketSending, Choice, strlen(Choice), 0);
+            if(sendResult == SOCKET_ERROR || sendResult == 0)
+            {
+                printf("the client side is thread is broken\n");
+                break;
             } 
             else
             {
                 GetClientRect(MemoryDcSndTool.ScrollBar,&MemoryDcSndTool.ScrollBarRect);
                 HPEN Pen=CreatePen(BS_SOLID,2,RGB(0,0,0));
                 HPEN OldPen=SelectObject(MemoryDcSndTool.Mdc_Child_1,Pen);
-                recv(ConnectingTools.ClientSocketSending,(char *)&countclient,sizeof(countclient),0);
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 11111111\n");
+                    break; 
+                }
+                int CheckR = recv(ConnectingTools.ClientSocketSending,(char *)&countclient,sizeof(countclient),0);
+                if(CheckR == SOCKET_ERROR || CheckR == 0)
+                {
+                    printf("the client side is thread is broken\n");
+                    break;
+                }
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 11111111111111\n");
+                    break; 
+                }
                 // Ensure countclient doesn't exceed array bounds
                 if(countclient > 40) countclient = 40;
                 countclientStatus = countclient;
                 for(int j=0;j<countclient;j++)
                 {
-                    recv(ConnectingTools.ClientSocketSending, (char *)&Message[j], sizeof(Clients), 0);
+                    CheckR = recv(ConnectingTools.ClientSocketSending, (char *)&Message[j], sizeof(Clients), 0);
+                    if(CheckR == SOCKET_ERROR || CheckR == 0)
+                    {
+                        printf("the client side is thread is broken\n");
+                        break;
+                    }
                     // incrementing the array of stocking recipient info
                     i++;
                     // naming the array each users get his own array 
@@ -249,28 +301,54 @@ unsigned __stdcall SendingThread(void *param)
                 }
                 SelectObject(MemoryDcSndTool.Mdc_Child_1, OldPen);
                 DeleteObject(Pen);
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 111111111\n");
+                    break; 
+                }
             }
         }
         else if(MemoryDcSndTool.UiGeneral)
         {
             strcpy(Choice,"TRUE");
             sendResult = send(ConnectingTools.ClientSocketSending, Choice, strlen(Choice), 0);
-            if(sendResult == SOCKET_ERROR)
+            if(sendResult == SOCKET_ERROR || sendResult == 0)
             {
-                continue;
+                printf("the client side is thread is broken\n");
+                break;
             } 
             else
             {
                 GetClientRect(MemoryDcSndTool.ScrollBar,&MemoryDcSndTool.ScrollBarRect);
                 HPEN Pen=CreatePen(BS_SOLID,2,RGB(0,0,0));
                 HPEN OldPen=SelectObject(MemoryDcSndTool.Mdc_Child_1,Pen);
-                recv(ConnectingTools.ClientSocketSending,(char *)&countclient,sizeof(countclient),0);
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 111111111\n");
+                    break; 
+                }
+                int CheckR = recv(ConnectingTools.ClientSocketSending,(char *)&countclient,sizeof(countclient),0);
+                if(CheckR == SOCKET_ERROR || CheckR == 0)
+                {
+                    printf("the client side is thread is broken\n");
+                    break;
+                }
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 11111111111111\n");
+                    break; 
+                }
                 // Ensure countclient doesn't exceed array bounds
                 if(countclient > 40) countclient = 40;
                 countclientStatus = countclient;
                 for(int j=0;j<countclient;j++)
                 {
-                    recv(ConnectingTools.ClientSocketSending, (char *)&Message[j], sizeof(Clients), 0);
+                    CheckR = recv(ConnectingTools.ClientSocketSending, (char *)&Message[j], sizeof(Clients), 0);
+                    if(CheckR == SOCKET_ERROR || CheckR == 0)
+                    {
+                        printf("the client side is thread is broken\n");
+                        break;
+                    }
                     // incrementing the array of stocking recipient info
                     i++;
                     // naming the array each users get his own array 
@@ -280,29 +358,50 @@ unsigned __stdcall SendingThread(void *param)
                     strcpy(UsersNameColor[j].name,Message[j].Username);
                     strcpy(UsersNameColor[j].color,UsersColors(j));
                 }
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 111111\n");
+                    break; 
+                }
                 SelectObject(MemoryDcSndTool.Mdc_Child_1, OldPen);
                 DeleteObject(Pen);
             }
+        }
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 111111111\n");
+            break; 
         }
         if(strcmp(Choice,"TRUE") == 0)
         {
             while(!UiGeneralSend)
             {
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 1111111\n");
+                    break; 
+                }
                 if(UiGeneralResetChoice)
                 {
                     UiGeneralResetChoice = FALSE;
                     char *ChoiceChanging = "RESET";
                     strcpy(UiGeneralMessage.ChoiceChanging,ChoiceChanging);
                     sendResult = send(ConnectingTools.ClientSocketSending,(char*)&UiGeneralMessage, sizeof(UiGeneralMessage), 0);
-                    if(sendResult == SOCKET_ERROR)
+                    if(sendResult == SOCKET_ERROR || sendResult == 0)
                     {
-                        continue;
+                        printf("the client side is thread is broken\n");
+                        break;
                     }
                     printf("it go into inbox\n");
                     Sleep(100); // Small delay to ensure server processes RESET
                     goto ChoiceChanging;
                 }
                 Sleep(10);
+            }
+            if(Disconnect)
+            {
+                printf("the client side is thread is broken 11111111\n");
+                break; 
             }
             // taking the message from message bar
             GetWindowText(SendingTools.UiGeneralMessageBarHandle,UiGeneralMessage.Buffer,sizeof(UiGeneralMessage.Buffer));
@@ -323,9 +422,10 @@ unsigned __stdcall SendingThread(void *param)
                 char *ChoiceChanging = "NORMAL";
                 strcpy(UiGeneralMessage.ChoiceChanging,ChoiceChanging);
                 sendResult = send(ConnectingTools.ClientSocketSending,(char*)&UiGeneralMessage, sizeof(UiGeneralMessage), 0);
-                if(sendResult == SOCKET_ERROR)
+                if(sendResult == SOCKET_ERROR || sendResult == 0)
                 {
-                    continue;
+                    printf("the client side is thread is broken\n");
+                    break;
                 }
                 SetWindowText(SendingTools.UiGeneralMessageBarHandle,"");
             }
@@ -334,28 +434,33 @@ unsigned __stdcall SendingThread(void *param)
         }
         else if(strcmp(Choice,"FALSE") == 0)
         {
-            /*GETBACK :
-            if(!Send)
-            {
-                Sleep(100);
-                goto GETBACK;
-            }*/
             while(!Send)
             {
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 111111111111111\n");
+                    break; 
+                }
                 if(ResetChoice)
                 {
                     ResetChoice = FALSE;
                     char *ChoiceChanging = "RESET";
                     strcpy(ConnectingTools.PrivateMessage.ChoiceChanging,ChoiceChanging);
                     sendResult = send(ConnectingTools.ClientSocketSending,(char*)&ConnectingTools.PrivateMessage, sizeof(ConnectingTools.PrivateMessage), 0);
-                    if(sendResult == SOCKET_ERROR)
+                    if(sendResult == SOCKET_ERROR || sendResult == 0)
                     {
-                        continue;
+                        printf("the client side is thread is broken\n");
+                        break;
                     }
                     printf("it go into UiGeneral\n");
                     goto ChoiceChanging;
                 }
                 Sleep(10);
+            }
+            if(Disconnect)
+            {
+                printf("the client side is thread is broken 1111111111\n");
+                break; 
             }
             int lenRecipient = strlen(ConnectingTools.PrivateMessage.SelectedRecipient);
             while(lenRecipient > 0 && (ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\n' || ConnectingTools.PrivateMessage.SelectedRecipient[lenRecipient-1] == '\r' || 
@@ -382,9 +487,10 @@ unsigned __stdcall SendingThread(void *param)
                 char *ChoiceChanging = "NORMAL";
                 strcpy(ConnectingTools.PrivateMessage.ChoiceChanging,ChoiceChanging);
                 sendResult = send(ConnectingTools.ClientSocketSending,(char*)&ConnectingTools.PrivateMessage, sizeof(ConnectingTools.PrivateMessage), 0);
-                if(sendResult == SOCKET_ERROR)
+                if(sendResult == SOCKET_ERROR || sendResult == 0)
                 {
-                    continue;
+                    printf("the client side is thread is broken\n");
+                    break;
                 }
                 SetWindowText(SendingTools.UiInboxMessageBarHandle,"");
             }
@@ -392,8 +498,10 @@ unsigned __stdcall SendingThread(void *param)
             Sleep(50);
         }
     }  
+    printf("the end of the 1\n");
     closesocket(ConnectingTools.ClientSocketSending);
-    WSACleanup();
+    //memset(&ConnectingTools.ClientSocketSending,0,sizeof(ConnectingTools.ClientSocketSending));
+    //WSACleanup();
     return 0;
 }
 // this thread is for keep checking the status of the user weather if they are on line or off line or new user or reconnected
@@ -416,11 +524,22 @@ unsigned __stdcall StatusThread(void *param)
     StatusTools ScrollBarAndRect = *(StatusTools *)param;
     while(TRUE)
     {
-        int ServerResult = recv(ConnectingTools.StatusSocket, (char *)&UserStatus, sizeof(UserStatus),0);        
-        if(ServerResult <= 0)
+        if(Disconnect)
         {
-            Sleep(50);
-            continue;
+            break; 
+        }
+        int ServerResult = recv(ConnectingTools.StatusSocket, (char *)&UserStatus, sizeof(UserStatus),0);        
+        if(ServerResult == SOCKET_ERROR || ServerResult == 0)
+        {
+            if(!Disconnect)
+            {
+            }
+            printf("the client side is thread is brokenBBBBBBBBBBBBBbb\n");
+            break;
+        }
+        if(Disconnect)
+        {
+            break; 
         }
         if(UserStatus.Type == 1)
         {
@@ -465,9 +584,10 @@ unsigned __stdcall StatusThread(void *param)
             }
         }
         InvalidateRect(ScrollBarAndRect.ScrollBar,&ScrollBarAndRect.ScrolBarRect,FALSE);
-       
     }
+    printf("the end of the 2\n");
     closesocket(ConnectingTools.StatusSocket);
+    //memset(&ConnectingTools.StatusSocket,0,sizeof(ConnectingTools.StatusSocket));
     return 0;
 }
 // this is for using the bar search for a recipient 
@@ -500,7 +620,22 @@ unsigned __stdcall ConversationThread(void *param)
     SOCKET ConversationSocket = *(SOCKET *)param;
     while(true)
     {
-        recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 5555555\n");
+            break; 
+        }
+        int CheckR = recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 555555555555\n");
+            break; 
+        }
+        if(CheckR == SOCKET_ERROR || CheckR == 0)
+        {
+            printf("the client side is thread is broken\n");
+            break;
+        }
         if(Response.message_count == 0)
         {
             for(int k=0;k<countclient;k++)
@@ -524,13 +659,23 @@ unsigned __stdcall ConversationThread(void *param)
                 struct tm TimeStamp;
             }ResponseData;
             ResponseData SendingData;
+            if(Disconnect)
+            {
+                printf("the client side is thread is broken 555555555555\n");
+                break; 
+            }
             for(int k=0;k<countclient;k++)
             {
                 if(strcmp(MessagesConversations[k].OwnerName,Response.Recipient) == 0)
                 {
                     for(int j=0;j<Response.message_count;j++)
                     {
-                        recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                        CheckR = recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                        if(CheckR == SOCKET_ERROR || CheckR == 0)
+                        {
+                            printf("the client side is thread is broken\n");
+                            break;
+                        }
                         ConversationData NewData;
                         strcpy(NewData.message,SendingData.message);
                         strcpy(NewData.owner,SendingData.owner);
@@ -547,8 +692,16 @@ unsigned __stdcall ConversationThread(void *param)
                 }
             }
         }
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 5555555555555\n");
+            break; 
+        }
     }
+    printf("the end of the 5\n");
     closesocket(ConversationSocket);
+    closesocket(ConnectingTools.ConversationSocket);
+    //memset(&ConnectingTools.ConversationSocket,0,sizeof(ConnectingTools.ConversationSocket));
     return 0;
 }
 // inserting new message at the bottom of the array (UiInbox)
@@ -621,7 +774,22 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
     SOCKET ConversationSocket = *(SOCKET *)param;
     while(true)
     {
-        recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 666666666\n");
+            break; 
+        }
+        int CheckR = recv(ConversationSocket,(char *)&Response,sizeof(ResponseSetting),0);
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 66666666666\n");
+            break; 
+        }
+        if(CheckR == SOCKET_ERROR || CheckR == 0)
+        {
+            printf("the client side is thread is broken\n");
+            break;
+        }
         if(Response.message_count == 0)
         {
             GeneralChatConversation.last_index = 0;
@@ -640,7 +808,18 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
             ResponseData SendingData;
             for(int j=0;j<Response.message_count;j++)
             {
-                recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                CheckR = recv(ConversationSocket,(char *)&SendingData,sizeof(ResponseData),0);
+                if(CheckR == SOCKET_ERROR || CheckR == 0)
+                {
+                    printf("the client side is thread is broken\n");
+                    closesocket(ConversationSocket);
+                    break;
+                }
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 555555555555\n");
+                    break; 
+                }
                 // Only process non-empty messages
                 if(strlen(SendingData.message) > 0 && strlen(SendingData.owner) > 0)
                 {
@@ -674,7 +853,10 @@ unsigned __stdcall UiGeneralConversationThread(void *param)
             }
         }
     }
+    printf("the end of the 6\n");
     closesocket(ConversationSocket);
+    closesocket(ConnectingTools.UiGeneralConversationSocket);
+    //memset(&ConnectingTools.UiGeneralConversationSocket,0,sizeof(ConnectingTools.UiGeneralConversationSocket));
     return 0;
 }
 // inserting new message at the bottom of the array (UiGeneral)
@@ -715,6 +897,11 @@ unsigned __stdcall UiGeneralreceivingClient(void *param)
     RcvSetting *RcvStg = (RcvSetting*)param;
     while(true)
     {
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 4444444444\n");
+            break; 
+        }
         if(RcvStg->UiGeneral)
         {
             typedef struct 
@@ -724,16 +911,36 @@ unsigned __stdcall UiGeneralreceivingClient(void *param)
                 struct tm TimeStamp;
             }messaget;
             messaget messagetest;
-            int result = recv(ConnectingTools.UiGeneralClientSocketReceiving,(char *)&messagetest,sizeof(messagetest),0);
-            if(result <= 0)
+            if(Disconnect)
             {
-                continue;
+                printf("the client side is thread is broken 444444444444\n");
+                break; 
+            }
+            int result = recv(ConnectingTools.UiGeneralClientSocketReceiving,(char *)&messagetest,sizeof(messagetest),0);
+            if(Disconnect)
+            {
+                printf("the client side is thread is broken 4444444444\n");
+                break; 
+            }
+            if(result == SOCKET_ERROR || result == 0)
+            {
+                if(!Disconnect)
+                {
+                    continue;
+                }
+                printf("the client side is thread is broken\n");
+                break;
             }
             int lena = strlen(messagetest.Sender);
             while(lena > 0 && (messagetest.Sender[lena-1] == '\n' || messagetest.Sender[lena-1] == '\r' || 
             messagetest.Sender[lena-1] == '\t' || messagetest.Sender[lena-1] == ' '))
             {
                 messagetest.Sender[--lena] = '\0';
+            }
+            if(Disconnect)
+            {
+                printf("the client side is thread is broken 444444444444\n");
+                break; 
             }
             int len = strlen(messagetest.buffer);
             while (len > 0 && (messagetest.buffer[len-1] == '\n' || messagetest.buffer[len-1] == '\r' || 
@@ -743,11 +950,28 @@ unsigned __stdcall UiGeneralreceivingClient(void *param)
             }
             if(strlen(messagetest.buffer) > 0 && strlen(messagetest.Sender) > 0 && strcmp(messagetest.Sender, SendingTools.username) != 0)
             {
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 4444444444\n");
+                    break; 
+                }
                 UiGeneralinsert_at_bottom(messagetest.Sender,messagetest.buffer,messagetest.TimeStamp);
+                if(Disconnect)
+                {
+                    printf("the client side is thread is broken 4444444444\n");
+                    break; 
+                }
                 printf("Received message from %s: %s\n", messagetest.Sender, messagetest.buffer);
             }
         }
+        if(Disconnect)
+        {
+            printf("the client side is thread is broken 444444444444\n");
+            break; 
+        }
     }
-    closesocket(ConnectingTools.UiGeneralConversationSocket);
+    printf("the end of the 4\n");
+    closesocket(ConnectingTools.UiGeneralClientSocketReceiving);
+    //memset(&ConnectingTools.UiGeneralClientSocketReceiving,0,sizeof(ConnectingTools.UiGeneralClientSocketReceiving));
     return 0;
 }
