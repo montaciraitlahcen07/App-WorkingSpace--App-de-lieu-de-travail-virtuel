@@ -8,6 +8,8 @@
 
     // UI for message 
     bool UiMessage=FALSE;
+    // Ui for Schedule
+    bool UiSchedule;
     // Inbox 
     RECT Choice_1_Inbox;
     RECT Choice_1_Inbox_Button;
@@ -1290,8 +1292,8 @@ void UiGeneralRenderingConversationMessage(HWND hwnd,HWND HandleWnd,HDC Mdc_UiGe
                 HBRUSH old_brush = SelectObject(Mdc_UiGeneralConversation_child,RecipientBrush);
                 RECT RecipientMessagePositionRect;
                 // Calculate message width, but ensure it's at least as wide as the username
-                float widthMessage = textSize.cx + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.05;
-                float usernameWidth = UsernameSize.cx + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.05;
+                float widthMessage = textSize.cx + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.051;
+                float usernameWidth = UsernameSize.cx + (ConversationScrollBarRect.right - ConversationScrollBarRect.left)*0.051;
                 if(widthMessage < usernameWidth)
                 {
                     widthMessage = usernameWidth; // Expand bubble to fit username
@@ -1521,4 +1523,159 @@ void UiGeneralUpdateConversationScrollbarRange(HWND hwnd,RECT UiGeneralConversat
         UiGeneralConversation_scrolloffset = 0;
         UiGeneralConversation_thumb->current_val = UiGeneralConversation_thumb->max_val;
     }
+}
+// UiSchedule 
+void ScheduleUi(HDC Mdc,HWND HandleWnd,RECT WindowSize,bool FontSize)
+{
+    GetClientRect(HandleWnd,&WindowSize);
+    HPEN Pen=CreatePen(BS_SOLID,2,RGB(210,210,210));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    HFONT Font;
+    if(FontSize)
+    {
+        Font=CreateFont(
+        25,
+        12,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
+    else
+    {
+        Font=CreateFont(
+        22,
+        10,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE,
+        "Segoe UI");
+    }
+    HBRUSH ButtonColor=CreateSolidBrush(RGB(210, 210, 210));
+    HBRUSH OldButtonColor=SelectObject(Mdc,ButtonColor);
+    HFONT OldFont=SelectObject(Mdc,Font);
+    RECT RoundedRec;
+    RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.009,
+    Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.63,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.06,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+    RoundedRec.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3;
+    RoundedRec.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.02;
+    RoundedRec.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.546;
+    RoundedRec.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.046;
+    DrawText(Mdc,"This Week",-1,&RoundedRec,DT_SINGLELINE | DT_CENTER);
+    Pen=CreatePen(BS_SOLID,2,RGB(180, 180, 190));
+    OldPen=SelectObject(Mdc,Pen);
+    MoveToEx(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.09,NULL);
+    LineTo(Mdc,(Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.39);
+    Pen=CreatePen(BS_SOLID,2,RGB(244,238,210));
+    OldPen=SelectObject(Mdc,Pen);
+    ButtonColor = CreateSolidBrush(RGB(244,238,210));
+    OldButtonColor = SelectObject(Mdc,ButtonColor);
+    RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.04,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.095,
+    ((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 - (WindowSize.right-WindowSize.left)*0.02),PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.15,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+
+    RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.04,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.17,
+    ((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 - (WindowSize.right-WindowSize.left)*0.02),PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.225,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+
+    RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.04,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.245,
+    ((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 - (WindowSize.right-WindowSize.left)*0.02),PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.3,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+
+    RoundRect(Mdc,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.04,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.32,
+    ((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 - (WindowSize.right-WindowSize.left)*0.02),PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.375,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+
+
+    RoundRect(Mdc,((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 + (WindowSize.right-WindowSize.left)*0.02),PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.132,
+    WindowSize.right - (WindowSize.right-WindowSize.left)*0.02,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.187,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+
+    RoundRect(Mdc,((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 + (WindowSize.right-WindowSize.left)*0.02),PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.207,
+    WindowSize.right - (WindowSize.right-WindowSize.left)*0.02,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.262,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+    
+    RoundRect(Mdc,((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 + (WindowSize.right-WindowSize.left)*0.02),PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.282,
+    WindowSize.right - (WindowSize.right-WindowSize.left)*0.02,PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.337,
+    (WindowSize.right-WindowSize.left)*0.025,(WindowSize.right-WindowSize.left)*0.025);
+    SelectObject(Mdc,OldPen);
+    DeleteObject(Pen);
+    RECT ShiftDaysRect,ShiftTimeRect;
+    ShiftDaysRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.05;
+    ShiftDaysRect.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.15;
+    ShiftDaysRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.11;
+    ShiftDaysRect.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.132;
+    ShiftTimeRect = ShiftDaysRect;
+    DrawText(Mdc,"Monday :",-1,&ShiftDaysRect,DT_SINGLELINE | DT_CENTER);
+    ShiftTimeRect.left = ((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 - (WindowSize.right-WindowSize.left)*0.24);
+    ShiftTimeRect.right = ((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 - (WindowSize.right-WindowSize.left)*0.02);
+    ShiftTimeRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.1105;
+    DrawText(Mdc,"9:00 AM - 5:00 PM",-1,&ShiftTimeRect,DT_SINGLELINE | DT_CENTER);
+
+    ShiftDaysRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.185;
+    ShiftDaysRect.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.207;
+    DrawText(Mdc,"Tuesday :",-1,&ShiftDaysRect,DT_SINGLELINE | DT_CENTER);ShiftDaysRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.185;
+    ShiftTimeRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.1855;
+    ShiftTimeRect.bottom =  PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.207;
+    DrawText(Mdc,"9:00 AM - 5:00 PM",-1,&ShiftTimeRect,DT_SINGLELINE | DT_CENTER);
+    
+    ShiftDaysRect.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.17;
+    ShiftDaysRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.26;
+    ShiftDaysRect.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.282;
+    DrawText(Mdc,"Wednesday :",-1,&ShiftDaysRect,DT_SINGLELINE | DT_CENTER);
+    ShiftDaysRect.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.15;
+    ShiftTimeRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.2605;
+    ShiftTimeRect.bottom =  PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.282;
+    DrawText(Mdc,"9:00 AM - 5:00 PM",-1,&ShiftTimeRect,DT_SINGLELINE | DT_CENTER);
+
+    ShiftDaysRect.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.15;
+    ShiftDaysRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.335;
+    ShiftDaysRect.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.357;
+    DrawText(Mdc,"Thursday :",-1,&ShiftDaysRect,DT_SINGLELINE | DT_CENTER);
+    ShiftTimeRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.3355;
+    ShiftTimeRect.bottom =  PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.357;
+    DrawText(Mdc,"9:00 AM - 5:00 PM",-1,&ShiftTimeRect,DT_SINGLELINE | DT_CENTER);
+
+
+    ShiftDaysRect.left = ((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 + (WindowSize.right-WindowSize.left)*0.04);
+    ShiftDaysRect.right = ((Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.24 + Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.615) / 2 + (WindowSize.right-WindowSize.left)*0.13);
+    ShiftDaysRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.147;
+    ShiftDaysRect.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.169;
+    DrawText(Mdc,"Friday :",-1,&ShiftDaysRect,DT_SINGLELINE | DT_CENTER);
+    ShiftTimeRect.left = WindowSize.right - (WindowSize.right-WindowSize.left)*0.26;
+    ShiftTimeRect.right = WindowSize.right - (WindowSize.right-WindowSize.left)*0.05;
+    ShiftTimeRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.1475;
+    ShiftTimeRect.bottom =  PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.169;
+    DrawText(Mdc,"9:00 AM - 5:00 PM",-1,&ShiftTimeRect,DT_SINGLELINE | DT_CENTER);
+
+    ShiftDaysRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.222;
+    ShiftDaysRect.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.244;
+    DrawText(Mdc,"Saturday :",-1,&ShiftDaysRect,DT_SINGLELINE | DT_CENTER);
+    ShiftTimeRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.2225;
+    ShiftTimeRect.bottom =  PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.244;
+    DrawText(Mdc,"Day off",-1,&ShiftTimeRect,DT_SINGLELINE | DT_CENTER);
+
+    ShiftDaysRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.297;
+    ShiftDaysRect.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.319;
+    DrawText(Mdc,"Sunday :",-1,&ShiftDaysRect,DT_SINGLELINE | DT_CENTER);
+    ShiftTimeRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.2975;
+    ShiftTimeRect.bottom =  PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.319;
+    DrawText(Mdc,"Day off",-1,&ShiftTimeRect,DT_SINGLELINE | DT_CENTER);
 }
