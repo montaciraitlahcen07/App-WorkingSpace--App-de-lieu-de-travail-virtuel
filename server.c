@@ -14,6 +14,8 @@ typedef struct
     char PassWord[30];
     int age;
     int salarie;
+    //char *JobTitle;
+    //char *email;
     SOCKET ClientsS;
     SOCKET ClientsR;
     SOCKET StatusClients;

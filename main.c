@@ -96,7 +96,6 @@ HANDLE g_ThreadReceive = NULL;
 HANDLE g_UiGeneralThreadReceive = NULL;
 HANDLE g_ThreadConversation = NULL;
 HANDLE g_UiConversationThreadConversation = NULL;
-
 // Function to cleanup all client threads and sockets
 void CleanupClientResources()
 {
@@ -311,16 +310,9 @@ LRESULT CALLBACK UiGeneralConversationWindowProc(HWND hwnd, UINT msg, WPARAM wPa
             HBITMAP oldBitmap = SelectObject(Mdc_UiGeneralConversation_child, memBitmap);
             bool FontSize = (((WindowSize.right - WindowSize.left) >= 1000 && (WindowSize.bottom - WindowSize.top) >= 700)?TRUE:FALSE);
             float ConversationHeight;
-            /*if(!FontSize)
-            {
-                ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.right-WindowSize.left)*0.139));
-            }*/
-            //else 
-            //{
-              ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.bottom-WindowSize.top)*0.292));
-            //}
+            ConversationHeight = ((WindowSize.bottom - (WindowSize.bottom - WindowSize.top)*0.09) - ((WindowSize.bottom-WindowSize.top)*0.32));
             MoveWindow(hwnd,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,
-            (WindowSize.bottom - WindowSize.top)*0.272,
+            (WindowSize.bottom - WindowSize.top)*0.31,
             WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,
             ConversationHeight,TRUE);
             HBRUSH DarkCreme = CreateSolidBrush(RGB(247, 240, 217));
@@ -1603,10 +1595,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 RECT rect;
                 GetClientRect(HandleSearch, &rect);
                 // resize contact child window
-                /*MoveWindow(ScrollBar,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.03,
-                ChatRect.bottom + (WindowSize.bottom - WindowSize.top)*0.08,
-                (WindowSize.right - WindowSize.left)/2 - ((WindowSize.right - WindowSize.left)*0.25),
-                (WindowSize.bottom-WindowSize.top)*0.643,TRUE);*/
                 InvalidateRect(ScrollBar,NULL,TRUE);
                 // resize conversation child window 
                 InvalidateRect(ConversationScrollBar,NULL,TRUE);
@@ -1624,6 +1612,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             GetClientRect(hwnd, &WindowSize);
             if(!Wm_Creation)
             {
+                for(int u=0;u<2;u++)
+                {
+
+                }
                 ButtonHandle = CreateWindowEx( 0,"BUTTON","Log in",WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_FLAT,
                 0, 0, 100, 32,hwnd,(HMENU)ButtonID,IDhInstance,NULL); 
                 // thoose are for rendering the logo of the company in the first page
@@ -1646,6 +1638,46 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 hwnd,0,0,NULL);
                 SendMessage(HandleBigLogo,STM_SETICON,(WPARAM)CompanyBigLogo,0); 
                 ShowWindow(HandleBigLogo,SW_HIDE);
+                // Monta Picture
+                MontaPicture = (HICON)LoadImage(0,"monta.ico",IMAGE_ICON,
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,LR_LOADFROMFILE);   
+                HandleMontaPic = CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
+                (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.28),
+                (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.32),
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,
+                hwnd,0,0,NULL);
+                SendMessage(HandleMontaPic,STM_SETICON,(WPARAM)MontaPicture,0); 
+                ShowWindow(HandleMontaPic,SW_HIDE);
+
+                MontaPictureRecipient = (HICON)LoadImage(0,"montarecipient.ico",IMAGE_ICON,
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,LR_LOADFROMFILE);   
+                HandleMontaPicRecipient = CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
+                (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.28),
+                (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.32),
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,
+                hwnd,0,0,NULL);
+                SendMessage(HandleMontaPicRecipient,STM_SETICON,(WPARAM)MontaPictureRecipient,0); 
+                ShowWindow(HandleMontaPicRecipient,SW_HIDE);
+                // Mohammed Picture
+                MohammedPicture = (HICON)LoadImage(0,"mohammed.ico",IMAGE_ICON,
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,LR_LOADFROMFILE);   
+                HandleMohammedPic = CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
+                (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.28),
+                (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.32),
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,
+                hwnd,0,0,NULL);
+                SendMessage(HandleMohammedPic,STM_SETICON,(WPARAM)MohammedPicture,0); 
+                ShowWindow(HandleMohammedPic,SW_HIDE);
+
+                MohammedPictureRecipient = (HICON)LoadImage(0,"mohammedrecipient.ico",IMAGE_ICON,
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,LR_LOADFROMFILE);   
+                HandleMohammedPicRecipient = CreateWindowEx(0,"STATIC",0,WS_CHILD | WS_VISIBLE | SS_ICON,
+                (WindowSize.left+(WindowSize.right-WindowSize.left)/2-(WindowSize.right-WindowSize.left)*0.28),
+                (WindowSize.top+(WindowSize.bottom-WindowSize.top)/2-(WindowSize.bottom-WindowSize.top)*0.32),
+                (WindowSize.right-WindowSize.left)*0.6,(WindowSize.bottom-WindowSize.top)*0.82,
+                hwnd,0,0,NULL);
+                SendMessage(HandleMohammedPicRecipient,STM_SETICON,(WPARAM)MohammedPictureRecipient,0); 
+                ShowWindow(HandleMohammedPicRecipient,SW_HIDE);
                 // creating a scroll bar child window 
                 ScrollBar = CreateWindowEx(
                 0,
@@ -1959,7 +1991,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 LineDifference(Mdc,hwnd,WindowSize);
                 // three point of menu on the panel 
                 Points(Mdc,hwnd,WindowSize);
-
+                // rending profile picture in the panel
+                Panelinfo(Mdc,HandleWnd,WindowSize,FontSize,AddLenght);
                 // rendering the big logo of the company
                 if(CompanyBigLogo)
                 { 
@@ -2020,6 +2053,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 {
                     ShowWindow(MessageBarHandle,SW_HIDE);
                     ShowWindow(ConversationScrollBar, SW_HIDE); 
+                    ShowWindow(HandleMontaPicRecipient, SW_HIDE);
+                    ShowWindow(HandleMohammedPicRecipient, SW_HIDE);
                 }
                 if(UiInbox)
                 {
@@ -2041,10 +2076,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     if(UiGeneralConversationWndH)
                     {
                         ShowWindow(UiGeneralConversationWndH, SW_SHOW);
-                        /*MoveWindow(UiGeneralConversationWndH,Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.191,
-                        (WindowSize.bottom - WindowSize.top)*0.272,
-                        WindowSize.right - (WindowSize.right-WindowSize.left)*0.51,
-                        ConversationHeight,TRUE);*/
                     }
                     if(UiGeneralMessageBarHandle)
                     {
@@ -2071,7 +2102,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     FontSize = (FontReturn >= 106?TRUE:FALSE);
                     ScheduleUi(Mdc,HandleWnd,WindowSize,FontSize);
                 }
-            }    
+            }  
+            else if(!Account)
+            {
+                ShowWindow(HandleMohammedPic, SW_HIDE);
+                ShowWindow(HandleMontaPic, SW_HIDE);
+                ShowWindow(HandleMontaPicRecipient, SW_HIDE);
+                ShowWindow(HandleMohammedPicRecipient, SW_HIDE);
+            }  
             BitBlt(DeviceContext, WindowLeft, WindowTop, WindowWidth, WindowHeight, Mdc, 0, 0, SRCCOPY);
             SelectObject(Mdc, OldBitMap);
             DeleteObject(BitMap);
@@ -2188,7 +2226,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     // taking a copy for the receiving thread
                     RcvStg.UiInbox = UiInbox;
                     MessageButtonClicked = TRUE; 
-                    SetTimer(hwnd,TimerPanelDown,30,NULL);
+                    //SetTimer(hwnd,TimerPanelDown,30,NULL);
                 }
                 else if((x>=Choice_3_Button.left && x<=Choice_3_Button.right) && (y>=Choice_3_Button.top && y<=Choice_3_Button.bottom ))
                 {
@@ -2201,11 +2239,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     // taking a copy for the receiving thread
                     RcvStg.UiInbox = UiInbox;
                     UiSchedule = TRUE;
-                    SetTimer(hwnd,TimerPanel,30,NULL);
+                    //SetTimer(hwnd,TimerPanel,30,NULL);
                 }
                 else if((x>=Choice_5_Button.left && x<=Choice_5_Button.right) && (y>=Choice_5_Button.top && y<=Choice_5_Button.bottom))
                 {
-                    SetTimer(hwnd,TimerPanelDown,30,NULL);
+                    //SetTimer(hwnd,TimerPanelDown,30,NULL);
                     // Properly cleanup all resources before disconnecting
                     CleanupClientResources();
                     UiMessage=FALSE;   
@@ -2267,7 +2305,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         {
                             UiGeneralResetChoice = TRUE;
                         }
-                        SetTimer(hwnd,TimerPanel,30,NULL);
+                        //SetTimer(hwnd,TimerPanel,30,NULL);
                         // for the search of the recipient
                         if(HandleSearch == NULL)
                         {
@@ -2325,7 +2363,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         }
                         // taking a copy for the receiving thread
                         RcvStg.UiInbox = UiInbox;
-                        SetTimer(hwnd,TimerPanel,30,NULL);
+                        //SetTimer(hwnd,TimerPanel,30,NULL);
                         if(!CWndCreation)
                         {
                             CWndCreation = TRUE;

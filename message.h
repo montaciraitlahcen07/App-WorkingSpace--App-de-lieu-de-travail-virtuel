@@ -565,9 +565,9 @@ void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT Wind
     DeleteObject(OldButtonColor);
     // rendering the recipient is name
     RECT RecipientRect;
-    RecipientRect.left = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.3;
+    RecipientRect.left = ((WindowSize.left + (WindowSize.right - WindowSize.left) / 2 - (WindowSize.right - WindowSize.left) * 0.055) + (WindowSize.right - WindowSize.left) * 0.035);
     RecipientRect.top = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.022;
-    RecipientRect.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.52;
+    RecipientRect.right = Choice_1_Button.right + (WindowSize.right-WindowSize.left)*0.5;
     RecipientRect.bottom = PanelRect.bottom + (WindowSize.right-WindowSize.left)*0.05;
     HBRUSH ButtonColorRecipient = CreateSolidBrush(RGB(0,0,0));
     HBRUSH OldButtonColorRecipient = SelectObject(Mdc,ButtonColorRecipient);
@@ -576,7 +576,32 @@ void UiInboxConversation(HWND HandleWnd,HDC Mdc,CntTrd ConnectingTools,RECT Wind
     HFONT OldFont=(HFONT)SelectObject(Mdc,Font);
     HPEN PenRecipient=CreatePen(PS_DOT,2,RGB(0,0,0));
     HPEN OldPenRecipient=SelectObject(Mdc,PenRecipient);
-    DrawText(Mdc,ConnectingTools.PrivateMessage.SelectedRecipient,-1,&RecipientRect,DT_SINGLELINE | DT_CENTER);
+    DrawText(Mdc,ConnectingTools.PrivateMessage.SelectedRecipient,-1,&RecipientRect,DT_SINGLELINE | DT_CENTER | DT_LEFT);
+    if(strcmp(WorkersPicture[0], ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+    {
+        SetWindowPos(HandleMontaPicRecipient, NULL,
+        (WindowSize.left + (WindowSize.right - WindowSize.left) / 2 - (WindowSize.right - WindowSize.left) * 0.055),
+        (WindowSize.top + (WindowSize.bottom - WindowSize.top) / 2 - (WindowSize.bottom - WindowSize.top) * 0.296),
+        (WindowSize.right - WindowSize.left) * 0.065,
+        (WindowSize.bottom - WindowSize.top) * 0.11,
+        SWP_NOZORDER);  
+        ShowWindow(HandleMontaPicRecipient, SW_SHOW);
+    }
+    else if(strcmp(WorkersPicture[1], ConnectingTools.PrivateMessage.SelectedRecipient) == 0)
+    {
+        SetWindowPos(HandleMohammedPicRecipient, NULL,
+        (WindowSize.left + (WindowSize.right - WindowSize.left) / 2 - (WindowSize.right - WindowSize.left) * 0.055),
+        (WindowSize.top + (WindowSize.bottom - WindowSize.top) / 2 - (WindowSize.bottom - WindowSize.top) * 0.296),
+        (WindowSize.right - WindowSize.left) * 0.065,
+        (WindowSize.bottom - WindowSize.top) * 0.11,
+        SWP_NOZORDER);  
+        ShowWindow(HandleMohammedPicRecipient, SW_SHOW);
+    }
+    else 
+    {
+        ShowWindow(HandleMontaPicRecipient, SW_HIDE);
+        ShowWindow(HandleMohammedPicRecipient, SW_HIDE);
+    }
     SelectObject(Mdc,OldFont);
     DeleteObject(Font);
     // Emoji form

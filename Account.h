@@ -30,12 +30,22 @@ RECT UiGeneralSend_Button;
 //Comapany Big logo
 HICON CompanyBigLogo;
 HWND HandleBigLogo;
+HICON MontaPicture;
+HWND HandleMontaPic;
+HICON MontaPictureRecipient;
+HWND HandleMontaPicRecipient;
+HICON MohammedPicture;
+HWND HandleMohammedPic;
+HICON MohammedPictureRecipient;
+HWND HandleMohammedPicRecipient;
 #define MAX_BUTTON_WIDTH 160
 #define MAX_BUTTON_HEIGHT 52
 #define MIN_BUTTON_WIDTH 101
 #define MIN_BUTTON_HEIGHT 35
+char WorkersPicture[][50] = {"monta","mohammed"};
 // a function for measuring my window 
-int MeasureWindowSize(int size, int min, int max) {
+int MeasureWindowSize(int size, int min, int max)
+{
     if (size < min) return min;
     if (size > max) return max;
     return size;
@@ -450,3 +460,83 @@ void Points(HDC Mdc,HWND HandleWnd,RECT WindowSize)
     SelectObject(Mdc,OldDotsColor);
     DeleteObject(DotsColor);
 }
+void Panelinfo(HDC Mdc,HWND HandleWnd,RECT WindowSize,bool FontSize,float AddLenght)
+{
+    HFONT Font;
+    HFONT FontJobTitle;
+    HFONT OldFontTimeStamp;
+    float TimeStamp_Height,TimeStamp_Width;
+    int WidthFirst,HeightFirst;
+    HPEN Pen=CreatePen(PS_DOT,3,RGB(0,0,0));
+    HPEN OldPen=SelectObject(Mdc,Pen);
+    if(FontSize)
+    {
+        HeightFirst = 24;
+        WidthFirst = 12;
+        Font=CreateFont(23,11,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+        DEFAULT_PITCH|FF_SWISS,"Segoe UI");
+        FontJobTitle = CreateFont(18,7,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+        DEFAULT_PITCH|FF_SWISS,"Segoe UI");
+    }
+    else 
+    {
+        HeightFirst = 22;
+        WidthFirst = 10;
+        Font=CreateFont(22,10,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+        DEFAULT_PITCH|FF_SWISS,"Segoe UI");
+        FontJobTitle = CreateFont(16,6,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+        DEFAULT_PITCH|FF_SWISS,"Segoe UI");
+    }
+    HFONT OldFont=SelectObject(Mdc,Font);
+    float PanelHeight = PanelRect.top + (WindowSize.bottom-WindowSize.top)*0.176;
+    if(strcmp(WorkersPicture[0],SendingTools.username) == 0)
+    {
+        SetWindowPos(HandleMontaPic, NULL,
+        WindowSize.left + (WindowSize.right-WindowSize.left)*0.012,
+        PanelHeight*0.09,
+        WindowSize.left + (WindowSize.right-WindowSize.left)*0.083,PanelHeight*0.85,
+        SWP_NOZORDER);  
+        ShowWindow(HandleMontaPic, SW_SHOW);
+    }
+    else if(strcmp(WorkersPicture[1],SendingTools.username) == 0)
+    {
+        SetWindowPos(HandleMohammedPic, NULL,
+        WindowSize.left + (WindowSize.right-WindowSize.left)*0.012,
+        PanelHeight*0.09,
+        WindowSize.left + (WindowSize.right-WindowSize.left)*0.083,PanelHeight*0.85,
+        SWP_NOZORDER);  
+        ShowWindow(HandleMohammedPic, SW_SHOW);
+    }
+    RECT UsernamePanel,dutyRect;
+    UsernamePanel.left = WindowSize.left + (WindowSize.right-WindowSize.left)*0.04;
+    UsernamePanel.top = PanelHeight*0.25;
+    UsernamePanel.right = WindowSize.left + (WindowSize.right-WindowSize.left)*0.27;
+    UsernamePanel.bottom = PanelHeight*0.5;
+    DrawText(Mdc,SendingTools.username,-1,&UsernamePanel,DT_SINGLELINE | DT_CENTER | DT_LEFT);
+    dutyRect = UsernamePanel;
+    dutyRect.top = PanelHeight*0.41;
+    dutyRect.bottom = PanelHeight*0.68;
+    dutyRect.left = ((WindowSize.right - WindowSize.left) / 2) - (WindowSize.right - WindowSize.left)*0.045;
+    dutyRect.right = ((WindowSize.right - WindowSize.left) / 2) + (WindowSize.right - WindowSize.left)*0.07;
+    DrawText(Mdc,SendingTools.username,-1,&UsernamePanel,DT_SINGLELINE | DT_CENTER | DT_LEFT);
+    SetTextColor(Mdc,RGB(50, 205, 50));
+    Pen = CreatePen(PS_DOT,5,RGB(0,0,0));
+    OldPen = SelectObject(Mdc,Pen);
+    Font = CreateFont(25,13,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,
+    DEFAULT_PITCH|FF_SWISS,"Segoe UI");
+    OldFont=SelectObject(Mdc,Font);
+    DrawText(Mdc,"On duty",-1,&dutyRect,DT_SINGLELINE | DT_CENTER);
+    SetTextColor(Mdc,RGB(0,0,0));
+    Pen = CreatePen(PS_DOT,1,RGB(0,0,0));
+    OldPen = SelectObject(Mdc,Pen);
+    OldFont = SelectObject(Mdc,FontJobTitle);
+    UsernamePanel.left = WindowSize.left + (WindowSize.right-WindowSize.left)*0.045;
+    UsernamePanel.top = PanelHeight*0.47;
+    UsernamePanel.bottom = PanelHeight*0.68;
+    DrawText(Mdc,"Software engineer",-1,&UsernamePanel,DT_SINGLELINE | DT_CENTER | DT_LEFT);
+    SelectObject(Mdc, OldPen);
+    DeleteObject(Pen);
+    SelectObject(Mdc,OldFont);
+    DeleteObject(Font);
+}
+ 
