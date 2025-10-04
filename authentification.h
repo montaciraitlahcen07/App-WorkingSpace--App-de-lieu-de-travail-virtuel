@@ -24,6 +24,15 @@ typedef struct
     HWND UiGeneralMessageBarHandle;
 }SndTrd;
 SndTrd SendingTools;
+typedef struct 
+{
+    char Authentification[30];
+    int age;
+    int salarie;
+    char JobTitle[50];
+    char email[100];
+}SelfInfo;
+SelfInfo Myinfo;
 // Message Send info (UiInbox)
 typedef struct
 {
@@ -103,7 +112,6 @@ void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT
         strcpy(SendingTools->username,username);
         strcpy(SendingTools->password,password);
         Workers WorkerData;
-        char Authentification[30];
         UserData_2=fopen("usersdata.txt","rb+");
         int sendResult = send(ConnectingTools.ClientSocketSending,SendingTools->username, strlen(SendingTools->username), 0);
         if(sendResult == SOCKET_ERROR)
@@ -117,19 +125,19 @@ void Authentification(HWND ULogin,HWND PLogin,FILE *UserData_2,HBRUSH creme,RECT
             return ;
         }
     
-        int Result = recv(ConnectingTools.ClientSocketSending, Authentification, sizeof(Authentification)-1, 0);
+        int Result = recv(ConnectingTools.ClientSocketSending,(char *)&Myinfo,sizeof(Myinfo), 0);
         if(Result <= 0)
         {
             printf("the authentification did not been sent from the server\n");
         }
-        Authentification[Result] = '\0';
-        int lena = strlen(Authentification);
-        while(lena > 0 && (Authentification[lena-1] == '\n' || Authentification[lena-1] == '\r' || 
-        Authentification[lena-1] == '\t' || Authentification[lena-1] == ' '))
+        Myinfo.Authentification[Result] = '\0';
+        int lena = strlen(Myinfo.Authentification);
+        while(lena > 0 && (Myinfo.Authentification[lena-1] == '\n' || Myinfo.Authentification[lena-1] == '\r' || 
+        Myinfo.Authentification[lena-1] == '\t' || Myinfo.Authentification[lena-1] == ' '))
         {
-            Authentification[--lena] = '\0';
+            Myinfo.Authentification[--lena] = '\0';
         }
-        if(strcmp("Correct",Authentification) == 0)
+        if(strcmp("Correct",Myinfo.Authentification) == 0)
         {
             Find = TRUE;
         }

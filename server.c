@@ -14,8 +14,8 @@ typedef struct
     char PassWord[30];
     int age;
     int salarie;
-    //char *JobTitle;
-    //char *email;
+    char JobTitle[50];
+    char email[100];
     SOCKET ClientsS;
     SOCKET ClientsR;
     SOCKET StatusClients;
@@ -109,8 +109,8 @@ void UiGeneralStoringConversation(const char* Sender,const char* message,struct 
 int main()
 {
     // Storing the users is infos
-    Clients FillingTrial[7] = {{"monta","sir",19,1000,0,0,0,FALSE},{"imad","mon",29,10000,0,0,0,FALSE},{"anwar","ba",25,10000,0,0,0,FALSE},
-    {"bilal","zarkal",19,1000,0,0,0,FALSE},{"aymen","sale",19,1000,0,0,0,FALSE},{"mohammed","puakki",19,1000,0,0,0,FALSE},{"omar","ait",19,1000,0,0,0,FALSE}};
+    Clients FillingTrial[7] = {{"montacir","mon",19,1000,"SoftWare engineer","montasiraitlahcen@gmail.com",0,0,0,FALSE},{"imad","mon",29,10000,"Chief Information Officer","imadmon@gmail.com",0,0,0,FALSE},{"anwar","ba",25,10000,"Chief Information Officer","anwarmon@gmail.com",0,0,0,FALSE},
+    {"bilal","zarkal",19,1000,"Cyber Security","bilalzarkal@gmail.com",0,0,0,FALSE},{"aymen","sale",19,1000,"Network Engineer","aymensale@gmail.com",0,0,0,FALSE},{"mohammed","puakki",19,1000,"Data Analyst","mohammedpuakki@gmail.com",0,0,0,FALSE},{"omar","ait",19,1000,"Systems Administrator","omarmon@gmail.com",0,0,0,FALSE}};
     FILE *testFile = fopen("ClientsData.txt", "w+b");
     if (testFile == NULL)
     {
@@ -121,16 +121,13 @@ int main()
     {
         fwrite(&FillingTrial[i], sizeof(Clients), 1, testFile);
     }
-
     fclose(testFile); 
-
     WSADATA wsaData;
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (result != 0) {
         printf("WSAStartup failed: %d\n", result);
         return 1;
     }
-
     struct sockaddr_in ServerSending, ClientDataSending,ServerReceiving, ClientDataReceiving,StatusData,StatusServer,ConversationData,ConversationServer,UiGeneralServerReceiving;
     // Sending Connection
     SOCKET ServerSocketSending = socket(AF_INET, SOCK_STREAM, 0);
@@ -139,7 +136,6 @@ int main()
         //WSACleanup();
         return 1;
     }
-
     ServerSending.sin_family = AF_INET;
     ServerSending.sin_port = htons(8000);
     ServerSending.sin_addr.S_un.S_addr = INADDR_ANY;
@@ -381,6 +377,15 @@ int main()
 }
 bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientSocketSending,SOCKET clientSocketReceiving,SOCKET StatusSocket, SOCKET UiGeneralReceivingSocket, bool *isNewConnection,FILE *ClientsData,StatusType *UserStatus)
 {
+    typedef struct 
+    {
+        char Authentification[30];
+        int age;
+        int salarie;
+        char JobTitle[50];
+        char email[100];
+    }SelfInfo;
+    SelfInfo Senderinfo;
     ClientsData = fopen("ClientsData.txt", "r+b");
     if (ClientsData == NULL)
     {
@@ -411,7 +416,12 @@ bool FindAndUpdateUser(const char* username,const char* PassWord, SOCKET clientS
             UserStatus->Type = ONLINE;
             UserStatus->Socket = clientSocketSending;
             UserStatus->StatusSocket = StatusSocket;
-            send(clientSocketSending,"Correct",strlen("Correct"),0);
+            strcpy(Senderinfo.Authentification,"Correct");
+            Senderinfo.age = ClientsStoring.age;
+            Senderinfo.salarie = ClientsStoring.salarie;
+            strcpy(Senderinfo.email,ClientsStoring.email);
+            strcpy(Senderinfo.JobTitle,ClientsStoring.JobTitle);
+            send(clientSocketSending,(char *)&Senderinfo,sizeof(Senderinfo),0);
             *isNewConnection = TRUE;
             rewind(ClientsData);
             while(fread(&ClientsStoring, sizeof(ClientsStoring), 1, ClientsData) == 1)
